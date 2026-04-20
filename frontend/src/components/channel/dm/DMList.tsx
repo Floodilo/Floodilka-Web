@@ -117,45 +117,16 @@ import * as TimeUtils from '~/utils/TimeUtils';
 import styles from './DMList.module.css';
 
 const DMNameplateLayer = observer(
-	({recipientId, recipientNameplate, isHovering}: {
+	({recipientId, recipientNameplate}: {
 		recipientId: string;
 		recipientNameplate: string | null;
-		isHovering: boolean;
 	}) => {
-		const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => {
-			if (typeof window === 'undefined' || !window.matchMedia) return false;
-			return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-		});
-
-		useEffect(() => {
-			if (typeof window === 'undefined' || !window.matchMedia) return;
-			const media = window.matchMedia('(prefers-reduced-motion: reduce)');
-			const onChange = (event: MediaQueryListEvent) => setPrefersReducedMotion(event.matches);
-			media.addEventListener('change', onChange);
-			return () => media.removeEventListener('change', onChange);
-		}, []);
-
 		const asset = AvatarUtils.getUserNameplateAsset({id: recipientId, nameplate: recipientNameplate});
 		if (!asset) return null;
 
-		const shouldAnimate = asset.animated && isHovering && !prefersReducedMotion;
-
 		return (
 			<div className={styles.nameplateLayer} aria-hidden="true">
-				{shouldAnimate && asset.videoUrl ? (
-					<video
-						className={styles.nameplateVideo}
-						src={asset.videoUrl}
-						poster={asset.imageUrl}
-						autoPlay
-						loop
-						muted
-						playsInline
-						preload="metadata"
-					/>
-				) : (
-					<span className={styles.nameplate} style={{backgroundImage: `url(${asset.imageUrl})`}} />
-				)}
+				<span className={styles.nameplate} style={{backgroundImage: `url(${asset.imageUrl})`}} />
 				<span className={styles.nameplateOverlay} />
 			</div>
 		);
@@ -184,7 +155,7 @@ const DMListItem = observer(({channel, isSelected}: {channel: ChannelRecord; isS
 	const [isFocused, setIsFocused] = useState(false);
 
 	const scrollTargetRef = useRef<HTMLElement | null>(null);
-	const [hoverRef, isHovering] = useHover();
+	const [hoverRef] = useHover();
 	const setDesktopRef = useCallback(
 		(node: HTMLButtonElement | null) => {
 			scrollTargetRef.current = node;
@@ -470,7 +441,6 @@ const DMListItem = observer(({channel, isSelected}: {channel: ChannelRecord; isS
 							<DMNameplateLayer
 								recipientId={recipient.id}
 								recipientNameplate={recipient.nameplate ?? null}
-								isHovering={isHovering}
 							/>
 						)}
 						<AnimatePresence>
@@ -558,7 +528,6 @@ const DMListItem = observer(({channel, isSelected}: {channel: ChannelRecord; isS
 						<DMNameplateLayer
 							recipientId={recipient.id}
 							recipientNameplate={recipient.nameplate ?? null}
-							isHovering={isHovering}
 						/>
 					)}
 					<AnimatePresence>

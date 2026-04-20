@@ -656,18 +656,7 @@ const ProfileModalContent: React.FC<ProfileModalContentProps> = observer(
 							</mask>
 
 							<foreignObject x="0" y="0" width="600" height="210" overflow="visible" mask={`url(#${maskId})`}>
-								{bannerAsset?.videoUrl ? (
-									<video
-										className={userProfileModalStyles.bannerImage}
-										src={bannerAsset.videoUrl}
-										poster={bannerAsset.imageUrl}
-										autoPlay
-										loop
-										muted
-										playsInline
-										aria-hidden="true"
-									/>
-								) : bannerUrl ? (
+								{bannerUrl ? (
 									<div
 										className={userProfileModalStyles.bannerImage}
 										style={{

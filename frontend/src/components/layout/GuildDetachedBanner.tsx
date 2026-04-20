@@ -44,20 +44,7 @@ export function GuildDetachedBanner({guild}: {guild: GuildRecord}) {
 			className={styles.container}
 			style={{maxHeight, ...(aspectRatio ? {aspectRatio: `${aspectRatio}`} : {height: bannerHeight})}}
 		>
-			{bannerAsset.videoUrl ? (
-				<video
-					className={styles.banner}
-					src={bannerAsset.videoUrl}
-					poster={bannerAsset.imageUrl}
-					autoPlay
-					loop
-					muted
-					playsInline
-					aria-hidden="true"
-				/>
-			) : (
-				<img src={bannerAsset.imageUrl} alt="" className={styles.banner} draggable={false} />
-			)}
+			<img src={bannerAsset.imageUrl} alt="" className={styles.banner} draggable={false} />
 		</div>
 	);
 }

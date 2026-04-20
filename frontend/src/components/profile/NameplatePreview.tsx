@@ -47,7 +47,7 @@ export const NameplatePreview: React.FC<NameplatePreviewProps> = observer(
 		const nameplateAsset = React.useMemo(() => {
 			if (hasClearedNameplate) return null;
 			if (previewNameplateUrl) {
-				return {animated: false as const, videoUrl: null, imageUrl: previewNameplateUrl};
+				return {animated: false as const, imageUrl: previewNameplateUrl};
 			}
 			return AvatarUtils.getUserNameplateAsset({id: user.id, nameplate: user.nameplate ?? null});
 		}, [hasClearedNameplate, previewNameplateUrl, user.id, user.nameplate]);
@@ -63,21 +63,7 @@ export const NameplatePreview: React.FC<NameplatePreviewProps> = observer(
 				<div className={styles.card}>
 					<SkeletonMemberItem index={0} />
 					<div className={clsx(styles.row, hasNameplate && styles.nameplateActive)}>
-						{nameplateAsset?.animated && nameplateAsset.videoUrl ? (
-							<>
-								<video
-									className={styles.nameplateVideo}
-									src={nameplateAsset.videoUrl}
-									poster={nameplateAsset.imageUrl}
-									autoPlay
-									loop
-									muted
-									playsInline
-									aria-hidden="true"
-								/>
-								<span className={styles.nameplateOverlay} aria-hidden="true" />
-							</>
-						) : nameplateAsset ? (
+						{nameplateAsset ? (
 							<>
 								<span
 									className={styles.nameplate}

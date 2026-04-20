@@ -27,7 +27,6 @@ import styles from './ProfileCardBanner.module.css';
 
 interface ProfileCardBannerProps {
 	bannerUrl: string | null;
-	bannerVideoUrl?: string | null;
 	bannerColor: string;
 	user: UserRecord;
 	avatarUrl: string | null;
@@ -41,7 +40,6 @@ interface ProfileCardBannerProps {
 export const ProfileCardBanner: React.FC<ProfileCardBannerProps> = observer(
 	({
 		bannerUrl,
-		bannerVideoUrl = null,
 		bannerColor,
 		user,
 		avatarUrl,
@@ -76,21 +74,7 @@ export const ProfileCardBanner: React.FC<ProfileCardBannerProps> = observer(
 						</mask>
 
 						<foreignObject x="0" y="0" width="300" height="105" overflow="visible" mask={`url(#${maskId})`}>
-							{bannerVideoUrl ? (
-								<video
-									className={styles.banner}
-									style={{height: bannerHeight, minHeight: bannerHeight, objectFit: 'cover'}}
-									src={bannerVideoUrl}
-									poster={bannerUrl ?? undefined}
-									autoPlay
-									loop
-									muted
-									playsInline
-									aria-hidden="true"
-								/>
-							) : (
-								<div className={styles.banner} style={bannerStyle} />
-							)}
+							<div className={styles.banner} style={bannerStyle} />
 						</foreignObject>
 					</svg>
 				</div>

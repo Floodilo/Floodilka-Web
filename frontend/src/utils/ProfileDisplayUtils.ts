@@ -138,7 +138,7 @@ export function getProfileBannerAsset(
 	}
 
 	if (previewBannerUrl) {
-		return {animated: false, videoUrl: null, imageUrl: previewBannerUrl};
+		return {animated: false, imageUrl: previewBannerUrl};
 	}
 
 	if (!ignoreGuildBanner && guildId && guildMember) {
@@ -147,7 +147,7 @@ export function getProfileBannerAsset(
 		}
 		if (guildMemberProfile?.banner) {
 			if (guildMemberProfile.banner.startsWith('blob:') || guildMemberProfile.banner.startsWith('data:')) {
-				return {animated: false, videoUrl: null, imageUrl: guildMemberProfile.banner};
+				return {animated: false, imageUrl: guildMemberProfile.banner};
 			}
 			return AvatarUtils.getGuildMemberBannerAsset({
 				guildId,
@@ -167,7 +167,7 @@ export function getProfileBannerAsset(
 
 	if (effectiveBanner) {
 		if (effectiveBanner.startsWith('blob:') || effectiveBanner.startsWith('data:')) {
-			return {animated: false, videoUrl: null, imageUrl: effectiveBanner};
+			return {animated: false, imageUrl: effectiveBanner};
 		}
 		return AvatarUtils.getUserBannerAsset({id: user.id, banner: effectiveBanner}, size);
 	}

@@ -424,18 +424,7 @@ const UserProfileMobileSheetContent: React.FC<UserProfileMobileSheetContentProps
 							<Scroller key="user-profile-mobile-sheet-scroller">
 								<div style={{paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)'}}>
 									<div className={styles.bannerContainer}>
-										{bannerAsset?.videoUrl ? (
-											<video
-												className={styles.bannerImage}
-												src={bannerAsset.videoUrl}
-												poster={bannerAsset.imageUrl}
-												autoPlay
-												loop
-												muted
-												playsInline
-												aria-hidden="true"
-											/>
-										) : bannerUrl ? (
+										{bannerUrl ? (
 											<div className={styles.bannerImage} style={{backgroundImage: `url(${bannerUrl})`}} />
 										) : (
 											<div className={styles.bannerColor} style={{backgroundColor: bannerColor}} />

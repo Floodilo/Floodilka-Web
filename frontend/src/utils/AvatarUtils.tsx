@@ -110,7 +110,6 @@ const parseBannerHash = (banner: string) => {
 
 export interface BannerAsset {
 	animated: boolean;
-	videoUrl: string | null;
 	imageUrl: string;
 }
 
@@ -202,29 +201,27 @@ export const getUserBannerAsset = ({id, banner}: BannerOptions, size = 1024): Ba
 	const parsed = parseBannerHash(banner);
 
 	if (parsed.newFormat && parsed.animated) {
-		const videoUrl = getMediaURL({path: 'bnnrs', id, hash: parsed.fullHash, format: 'mp4'});
-		const imageUrl = getMediaURL({path: 'bnnrs', id, hash: parsed.fullHash, size, format: 'png'});
-		return {animated: true, videoUrl, imageUrl};
+		const imageUrl = getMediaURL({path: 'bnnrs', id, hash: parsed.fullHash, size, format: 'webp'});
+		return {animated: true, imageUrl};
 	}
 
 	if (parsed.newFormat) {
 		const imageUrl = getMediaURL({path: 'bnnrs', id, hash: parsed.fullHash, size, format: 'webp'});
-		return {animated: false, videoUrl: null, imageUrl};
+		return {animated: false, imageUrl};
 	}
 
 	const legacyHash = parsed.animated ? parsed.fullHash.slice(2) : parsed.fullHash;
 	if (parsed.animated) {
 		const imageUrl = getMediaURL({path: 'bnnrs', id, hash: legacyHash, size, format: 'gif'});
-		return {animated: true, videoUrl: null, imageUrl};
+		return {animated: true, imageUrl};
 	}
 
 	const imageUrl = getMediaURL({path: 'bnnrs', id, hash: legacyHash, size, format: 'webp'});
-	return {animated: false, videoUrl: null, imageUrl};
+	return {animated: false, imageUrl};
 };
 
 export interface NameplateAsset {
 	animated: boolean;
-	videoUrl: string | null;
 	imageUrl: string;
 }
 
@@ -236,20 +233,14 @@ export const getUserNameplateAsset = ({id, nameplate}: NameplateOptions, size = 
 	const parsed = parseAvatar(nameplate);
 
 	if (parsed.animated) {
-		const videoUrl = getMediaURL({
-			path: 'nmplts',
-			id,
-			hash: `a_${parsed.hash}`,
-			format: 'mp4',
-		});
 		const imageUrl = getMediaURL({
 			path: 'nmplts',
 			id,
 			hash: `a_${parsed.hash}`,
 			size,
-			format: 'png',
+			format: 'webp',
 		});
-		return {animated: true, videoUrl, imageUrl};
+		return {animated: true, imageUrl};
 	}
 
 	const imageUrl = getMediaURL({
@@ -259,7 +250,7 @@ export const getUserNameplateAsset = ({id, nameplate}: NameplateOptions, size = 
 		size,
 		format: 'webp',
 	});
-	return {animated: false, videoUrl: null, imageUrl};
+	return {animated: false, imageUrl};
 };
 
 export const getUserNameplateURL = (options: NameplateOptions, size = 480): string | null => {
@@ -321,24 +312,23 @@ export const getGuildBannerAsset = (
 	const parsed = parseBannerHash(banner);
 
 	if (parsed.newFormat && parsed.animated) {
-		const videoUrl = getMediaURL({path: 'bnnrs', id, hash: parsed.fullHash, format: 'mp4'});
-		const imageUrl = getMediaURL({path: 'bnnrs', id, hash: parsed.fullHash, size, format: 'png'});
-		return {animated: true, videoUrl, imageUrl};
+		const imageUrl = getMediaURL({path: 'bnnrs', id, hash: parsed.fullHash, size, format: 'webp'});
+		return {animated: true, imageUrl};
 	}
 
 	if (parsed.newFormat) {
 		const imageUrl = getMediaURL({path: 'bnnrs', id, hash: parsed.fullHash, size, format: 'webp'});
-		return {animated: false, videoUrl: null, imageUrl};
+		return {animated: false, imageUrl};
 	}
 
 	const legacyHash = parsed.animated ? parsed.fullHash.slice(2) : parsed.fullHash;
 	if (parsed.animated) {
 		const imageUrl = getMediaURL({path: 'bnnrs', id, hash: legacyHash, size, format: 'gif'});
-		return {animated: true, videoUrl: null, imageUrl};
+		return {animated: true, imageUrl};
 	}
 
 	const imageUrl = getMediaURL({path: 'bnnrs', id, hash: legacyHash, size, format: 'webp'});
-	return {animated: false, videoUrl: null, imageUrl};
+	return {animated: false, imageUrl};
 };
 
 export const getGuildSplashURL = ({id, splash}: {id: string; splash: string | null}, size = 1024) => {
@@ -476,9 +466,15 @@ export const getGuildMemberBannerAsset = ({
 	const parsed = parseBannerHash(banner);
 
 	if (parsed.newFormat && parsed.animated) {
-		const videoUrl = getGuildMemberMediaURL({path: 'bnnrs', guildId, userId, hash: parsed.fullHash, format: 'mp4'});
-		const imageUrl = getGuildMemberMediaURL({path: 'bnnrs', guildId, userId, hash: parsed.fullHash, size, format: 'png'});
-		return {animated: true, videoUrl, imageUrl};
+		const imageUrl = getGuildMemberMediaURL({
+			path: 'bnnrs',
+			guildId,
+			userId,
+			hash: parsed.fullHash,
+			size,
+			format: 'webp',
+		});
+		return {animated: true, imageUrl};
 	}
 
 	if (parsed.newFormat) {
@@ -490,17 +486,17 @@ export const getGuildMemberBannerAsset = ({
 			size,
 			format: 'webp',
 		});
-		return {animated: false, videoUrl: null, imageUrl};
+		return {animated: false, imageUrl};
 	}
 
 	const legacyHash = parsed.animated ? parsed.fullHash.slice(2) : parsed.fullHash;
 	if (parsed.animated) {
 		const imageUrl = getGuildMemberMediaURL({path: 'bnnrs', guildId, userId, hash: legacyHash, size, format: 'gif'});
-		return {animated: true, videoUrl: null, imageUrl};
+		return {animated: true, imageUrl};
 	}
 
 	const imageUrl = getGuildMemberMediaURL({path: 'bnnrs', guildId, userId, hash: legacyHash, size, format: 'webp'});
-	return {animated: false, videoUrl: null, imageUrl};
+	return {animated: false, imageUrl};
 };
 
 export const getEmojiURL = ({id, animated}: {id: string; animated?: boolean}) => {

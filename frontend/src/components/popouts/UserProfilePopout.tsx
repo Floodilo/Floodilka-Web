@@ -205,7 +205,6 @@ export const UserProfilePopout: React.FC<UserProfilePopoutProps> = observer(
 					<ProfileCardLayout hoverRef={hoverRef}>
 						<ProfileCardBanner
 							bannerUrl={bannerUrl as string | null}
-							bannerVideoUrl={bannerAsset?.videoUrl ?? null}
 							bannerColor={bannerColor}
 							user={user}
 							avatarUrl={avatarUrl}

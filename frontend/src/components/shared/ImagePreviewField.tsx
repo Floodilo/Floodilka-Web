@@ -22,7 +22,6 @@ import styles from './ImagePreviewField.module.css';
 
 export interface ImagePreviewFieldProps {
 	imageUrl: string | null | undefined;
-	videoUrl?: string | null;
 	showPlaceholder: boolean;
 	placeholderText: React.ReactNode;
 	altText: string;
@@ -33,7 +32,6 @@ export interface ImagePreviewFieldProps {
 
 export const ImagePreviewField: React.FC<ImagePreviewFieldProps> = ({
 	imageUrl,
-	videoUrl,
 	showPlaceholder,
 	placeholderText,
 	altText,
@@ -79,21 +77,7 @@ export const ImagePreviewField: React.FC<ImagePreviewFieldProps> = ({
 		);
 	}
 
-	const media = videoUrl ? (
-		<video
-			className={styles.image}
-			style={imageStyle}
-			src={videoUrl}
-			poster={imageUrl}
-			autoPlay
-			loop
-			muted
-			playsInline
-			aria-label={altText}
-		/>
-	) : (
-		<img src={imageUrl} alt={altText} className={styles.image} style={imageStyle} />
-	);
+	const media = <img src={imageUrl} alt={altText} className={styles.image} style={imageStyle} />;
 
 	return (
 		<div className={`${styles.preview} ${className ?? ''}`} style={aspectRatio ? innerContainerStyle : {}}>

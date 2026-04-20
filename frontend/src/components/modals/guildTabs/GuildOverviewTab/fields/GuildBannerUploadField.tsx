@@ -93,7 +93,6 @@ export const GuildBannerUploadField: React.FC<{
 		guild.banner && !hasClearedBanner ? AvatarUtils.getGuildBannerAsset({id: guild.id, banner: guild.banner}) : null;
 
 	const imageUrl = previewBannerUrl || storedBannerAsset?.imageUrl || null;
-	const videoUrl = previewBannerUrl ? null : (storedBannerAsset?.videoUrl ?? null);
 
 	return (
 		<div>
@@ -155,7 +154,6 @@ export const GuildBannerUploadField: React.FC<{
 				<div className={styles.imagePreviewColumn}>
 					<ImagePreviewField
 						imageUrl={imageUrl}
-						videoUrl={videoUrl}
 						showPlaceholder={!hasBannerImage}
 						placeholderText={<Trans>No community banner</Trans>}
 						altText={t`Banner preview`}

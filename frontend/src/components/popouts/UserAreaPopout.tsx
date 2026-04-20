@@ -392,7 +392,6 @@ export const UserAreaPopout = observer(() => {
 				<ProfileCardLayout>
 					<ProfileCardBanner
 						bannerUrl={bannerUrl}
-						bannerVideoUrl={bannerAsset?.videoUrl ?? null}
 						bannerColor={bannerColor}
 						user={currentUser}
 						avatarUrl={avatarUrl}

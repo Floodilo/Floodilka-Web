@@ -227,7 +227,6 @@ export const ProfilePreview: React.FC<ProfilePreviewProps> = observer(
 					<ProfileCardLayout showPreviewLabel={showPreviewLabel}>
 						<ProfileCardBanner
 							bannerUrl={finalBannerUrl}
-							bannerVideoUrl={finalBannerAsset?.videoUrl ?? null}
 							bannerColor={bannerColor}
 							user={user}
 							avatarUrl={finalAvatarUrl}

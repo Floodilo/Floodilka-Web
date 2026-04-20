@@ -578,7 +578,6 @@ export const ApplicationDetail: React.FC<ApplicationDetailProps> = observer(
 				? AvatarUtils.getUserBannerAsset({id: application.bot.id, banner: application.bot.banner})
 				: null;
 		const displayBannerUrl = previewBannerUrl || storedBotBannerAsset?.imageUrl || null;
-		const displayBannerVideoUrl = previewBannerUrl ? null : (storedBotBannerAsset?.videoUrl ?? null);
 		const hasBanner = Boolean(displayBannerUrl || bannerValue);
 
 		return (
@@ -629,7 +628,6 @@ export const ApplicationDetail: React.FC<ApplicationDetailProps> = observer(
 										onBannerChange={handleBannerChange}
 										onBannerClear={handleBannerClear}
 										displayBannerUrl={displayBannerUrl}
-										displayBannerVideoUrl={displayBannerVideoUrl}
 										hasBanner={hasBanner}
 										hasClearedBanner={hasClearedBanner}
 									/>

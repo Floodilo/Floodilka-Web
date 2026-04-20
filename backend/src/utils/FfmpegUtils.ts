@@ -27,16 +27,17 @@ import {Logger} from '~/Logger';
 const FFMPEG_TIMEOUT_MS = 30_000;
 const FFPROBE_TIMEOUT_MS = 5_000;
 
-export interface TranscodeLoopedMp4Options {
+export interface TranscodeAnimatedWebpOptions {
 	input: Uint8Array;
 	targetWidth: number;
 	targetHeight: number;
 	maxDurationSeconds: number;
-	targetBitrateKbps: number;
+	quality?: number;
+	compressionLevel?: number;
 }
 
-export interface TranscodeLoopedMp4Result {
-	mp4: Uint8Array;
+export interface TranscodeAnimatedWebpResult {
+	webp: Uint8Array;
 	poster: Uint8Array;
 	durationSeconds: number;
 }
@@ -158,14 +159,14 @@ const probeMediaFile = async (filePath: string): Promise<ProbeResult> => {
 	return {width, height, durationSeconds, hasVideoStream: true, hasAnimation};
 };
 
-export const transcodeToLoopedMp4 = async (
-	options: TranscodeLoopedMp4Options,
-): Promise<TranscodeLoopedMp4Result> => {
-	const {input, targetWidth, targetHeight, maxDurationSeconds, targetBitrateKbps} = options;
+export const transcodeToAnimatedWebp = async (
+	options: TranscodeAnimatedWebpOptions,
+): Promise<TranscodeAnimatedWebpResult> => {
+	const {input, targetWidth, targetHeight, maxDurationSeconds, quality = 80, compressionLevel = 5} = options;
 
-	const workDir = await mkdtemp(path.join(os.tmpdir(), `looped-mp4-${crypto.randomUUID()}-`));
+	const workDir = await mkdtemp(path.join(os.tmpdir(), `anim-webp-${crypto.randomUUID()}-`));
 	const inputPath = path.join(workDir, 'input.bin');
-	const mp4Path = path.join(workDir, 'out.mp4');
+	const webpPath = path.join(workDir, 'out.webp');
 	const posterPath = path.join(workDir, 'poster.png');
 
 	try {
@@ -176,7 +177,7 @@ export const transcodeToLoopedMp4 = async (
 			`crop=${targetWidth}:${targetHeight}`,
 		].join(',');
 
-		const mp4Args = [
+		const webpArgs = [
 			'-hide_banner',
 			'-loglevel',
 			'error',
@@ -189,31 +190,17 @@ export const transcodeToLoopedMp4 = async (
 			'-vf',
 			videoFilter,
 			'-c:v',
-			'libx264',
-			'-profile:v',
-			'high',
-			'-level',
-			'4.0',
+			'libwebp_anim',
+			'-loop',
+			'0',
+			'-q:v',
+			String(quality),
+			'-compression_level',
+			String(compressionLevel),
 			'-preset',
-			'medium',
-			'-b:v',
-			`${targetBitrateKbps}k`,
-			'-maxrate',
-			`${Math.round(targetBitrateKbps * 1.5)}k`,
-			'-bufsize',
-			`${targetBitrateKbps * 2}k`,
-			'-pix_fmt',
-			'yuv420p',
-			'-movflags',
-			'+faststart',
-			mp4Path,
+			'picture',
+			webpPath,
 		];
-
-		const mp4Run = await runCommand('ffmpeg', mp4Args, FFMPEG_TIMEOUT_MS);
-		if (mp4Run.code !== 0) {
-			Logger.error({stderr: mp4Run.stderr}, 'ffmpeg mp4 transcode failed');
-			throw new Error(`ffmpeg mp4 transcode failed: ${mp4Run.stderr}`);
-		}
 
 		const posterArgs = [
 			'-hide_banner',
@@ -231,24 +218,32 @@ export const transcodeToLoopedMp4 = async (
 			posterPath,
 		];
 
-		const posterRun = await runCommand('ffmpeg', posterArgs, FFMPEG_TIMEOUT_MS);
+		const [webpRun, posterRun] = await Promise.all([
+			runCommand('ffmpeg', webpArgs, FFMPEG_TIMEOUT_MS),
+			runCommand('ffmpeg', posterArgs, FFMPEG_TIMEOUT_MS),
+		]);
+
+		if (webpRun.code !== 0) {
+			Logger.error({stderr: webpRun.stderr}, 'ffmpeg animated webp transcode failed');
+			throw new Error(`ffmpeg animated webp transcode failed: ${webpRun.stderr}`);
+		}
 		if (posterRun.code !== 0) {
 			Logger.error({stderr: posterRun.stderr}, 'ffmpeg poster extraction failed');
 			throw new Error(`ffmpeg poster extraction failed: ${posterRun.stderr}`);
 		}
 
-		const [mp4, poster] = await Promise.all([readFile(mp4Path), readFile(posterPath)]);
+		const [webp, poster] = await Promise.all([readFile(webpPath), readFile(posterPath)]);
 
 		let durationSeconds = 0;
 		try {
-			const probed = await probeMediaFile(mp4Path);
+			const probed = await probeMediaFile(webpPath);
 			durationSeconds = probed.durationSeconds;
 		} catch (error) {
-			Logger.warn({error, mp4Path}, 'Failed to probe transcoded mp4; defaulting duration to 0');
+			Logger.warn({error, webpPath}, 'Failed to probe animated webp; defaulting duration to 0');
 		}
 
 		return {
-			mp4: new Uint8Array(mp4),
+			webp: new Uint8Array(webp),
 			poster: new Uint8Array(poster),
 			durationSeconds,
 		};

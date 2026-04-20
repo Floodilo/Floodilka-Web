@@ -23,7 +23,7 @@ import {Config} from '~/Config';
 import {AVATAR_EXTENSIONS, AVATAR_MAX_SIZE} from '~/Constants';
 import {InputValidationError} from '~/Errors';
 import {Logger} from '~/Logger';
-import {transcodeToLoopedMp4} from '~/utils/FfmpegUtils';
+import {transcodeToAnimatedWebp} from '~/utils/FfmpegUtils';
 import type {IAssetDeletionQueue} from './IAssetDeletionQueue';
 import type {IMediaService} from './IMediaService';
 import type {IStorageService} from './IStorageService';
@@ -290,26 +290,25 @@ export class BannerAssetProcessor {
 
 		let result;
 		try {
-			result = await transcodeToLoopedMp4({
+			result = await transcodeToAnimatedWebp({
 				input: inputBuffer,
 				targetWidth: target.width,
 				targetHeight: target.height,
 				maxDurationSeconds: BANNER_ANIMATED_MAX_DURATION_SECONDS,
-				targetBitrateKbps: target.animatedBitrateKbps,
 			});
 		} catch (error) {
 			Logger.error({error, entityType}, 'Banner animated transcode failed');
 			throw InputValidationError.create(errorPath, 'Не удалось обработать анимацию');
 		}
 
-		if (result.mp4.length > BANNER_MAX_VIDEO_BYTES) {
+		if (result.webp.length > BANNER_MAX_VIDEO_BYTES) {
 			throw InputValidationError.create(
 				errorPath,
-				`Анимация слишком большая после сжатия (${Math.ceil(result.mp4.length / 1024)}KB)`,
+				`Анимация слишком большая после сжатия (${Math.ceil(result.webp.length / 1024)}KB)`,
 			);
 		}
 
-		const shortHash = crypto.createHash('md5').update(Buffer.from(result.mp4)).digest('hex').slice(0, 8);
+		const shortHash = crypto.createHash('md5').update(Buffer.from(result.webp)).digest('hex').slice(0, 8);
 		const newHash = `${NEW_ANIMATED_HASH_PREFIX}${shortHash}`;
 
 		if (newHash === previousHash) {
@@ -328,17 +327,17 @@ export class BannerAssetProcessor {
 			};
 		}
 
-		const mp4Key = this.mp4Key(entityType, entityId, shortHash, guildId);
+		const webpKey = this.animatedWebpKey(entityType, entityId, shortHash, guildId);
 		const posterKey = this.posterKey(entityType, entityId, shortHash, guildId);
-		const mp4Cdn = this.mp4CdnUrl(entityType, entityId, newHash, guildId);
+		const webpCdn = this.animatedWebpCdnUrl(entityType, entityId, newHash, guildId);
 		const posterCdn = this.posterCdnUrl(entityType, entityId, newHash, guildId);
 
 		await Promise.all([
 			this.storageService.uploadObject({
 				bucket: Config.s3.buckets.cdn,
-				key: mp4Key,
-				body: result.mp4,
-				contentType: 'video/mp4',
+				key: webpKey,
+				body: result.webp,
+				contentType: 'image/webp',
 			}),
 			this.storageService.uploadObject({
 				bucket: Config.s3.buckets.cdn,
@@ -352,9 +351,9 @@ export class BannerAssetProcessor {
 			newHash,
 			previousHash,
 			isAnimated: true,
-			newKeys: [mp4Key, posterKey],
+			newKeys: [webpKey, posterKey],
 			previousKeys,
-			newCdnUrls: [mp4Cdn, posterCdn],
+			newCdnUrls: [webpCdn, posterCdn],
 			previousCdnUrls,
 			height: target.height,
 			width: target.width,
@@ -374,7 +373,7 @@ export class BannerAssetProcessor {
 		if (hash.startsWith(NEW_ANIMATED_HASH_PREFIX)) {
 			const shortHash = hash.slice(NEW_ANIMATED_HASH_PREFIX.length);
 			return [
-				this.mp4Key(entityType, entityId, shortHash, guildId),
+				this.animatedWebpKey(entityType, entityId, shortHash, guildId),
 				this.posterKey(entityType, entityId, shortHash, guildId),
 			];
 		}
@@ -397,7 +396,7 @@ export class BannerAssetProcessor {
 
 		if (hash.startsWith(NEW_ANIMATED_HASH_PREFIX)) {
 			return [
-				this.mp4CdnUrl(entityType, entityId, hash, guildId),
+				this.animatedWebpCdnUrl(entityType, entityId, hash, guildId),
 				this.posterCdnUrl(entityType, entityId, hash, guildId),
 			];
 		}
@@ -437,8 +436,8 @@ export class BannerAssetProcessor {
 		return `${this.s3KeyBase(entityType, entityId, guildId)}/${shortHash}.webp`;
 	}
 
-	private mp4Key(entityType: BannerEntityType, entityId: bigint, shortHash: string, guildId?: bigint): string {
-		return `${this.s3KeyBase(entityType, entityId, guildId)}/${shortHash}.mp4`;
+	private animatedWebpKey(entityType: BannerEntityType, entityId: bigint, shortHash: string, guildId?: bigint): string {
+		return `${this.s3KeyBase(entityType, entityId, guildId)}/${shortHash}.webp`;
 	}
 
 	private posterKey(entityType: BannerEntityType, entityId: bigint, shortHash: string, guildId?: bigint): string {
@@ -453,8 +452,8 @@ export class BannerAssetProcessor {
 		return `${this.cdnUrlBase(entityType, entityId, guildId)}/${hash}.webp`;
 	}
 
-	private mp4CdnUrl(entityType: BannerEntityType, entityId: bigint, hash: string, guildId?: bigint): string {
-		return `${this.cdnUrlBase(entityType, entityId, guildId)}/${hash}.mp4`;
+	private animatedWebpCdnUrl(entityType: BannerEntityType, entityId: bigint, hash: string, guildId?: bigint): string {
+		return `${this.cdnUrlBase(entityType, entityId, guildId)}/${hash}.webp`;
 	}
 
 	private posterCdnUrl(entityType: BannerEntityType, entityId: bigint, hash: string, guildId?: bigint): string {

@@ -49,7 +49,6 @@ export const GuildHeader = observer(({guild}: {guild: GuildRecord}) => {
 
 	const bannerAsset = AvatarUtils.getGuildBannerAsset({id: guild.id, banner: guild.banner});
 	const bannerURL = bannerAsset?.imageUrl ?? null;
-	const bannerVideoUrl = bannerAsset?.videoUrl ?? null;
 	const isDetachedBanner = guild.features.has(GuildFeatures.DETACHED_BANNER);
 	const showIntegratedBanner = Boolean(bannerURL && !isDetachedBanner);
 
@@ -110,23 +109,10 @@ export const GuildHeader = observer(({guild}: {guild: GuildRecord}) => {
 			>
 				{showIntegratedBanner && (
 					<>
-						{bannerVideoUrl ? (
-							<video
-								className={clsx(styles.bannerVideo, centerCrop && styles.bannerVideoCentered)}
-								src={bannerVideoUrl}
-								poster={bannerURL ?? undefined}
-								autoPlay
-								loop
-								muted
-								playsInline
-								aria-hidden="true"
-							/>
-						) : (
-							<div
-								className={clsx(styles.bannerBackground, centerCrop && styles.bannerBackgroundCentered)}
-								style={{backgroundImage: `url(${bannerURL})`}}
-							/>
-						)}
+						<div
+							className={clsx(styles.bannerBackground, centerCrop && styles.bannerBackgroundCentered)}
+							style={{backgroundImage: `url(${bannerURL})`}}
+						/>
 						<div className={styles.bannerGradient} />
 					</>
 				)}

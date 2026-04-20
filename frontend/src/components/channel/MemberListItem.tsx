@@ -143,22 +143,7 @@ export const MemberListItem: React.FC<MemberListItemProps> = observer((props) =>
 				)}
 				onContextMenu={handleContextMenu}
 			>
-				{shouldAnimateNameplate && nameplateAsset?.videoUrl ? (
-					<>
-						<video
-							className={styles.nameplateVideo}
-							src={nameplateAsset.videoUrl}
-							poster={nameplateAsset.imageUrl}
-							autoPlay
-							loop
-							muted
-							playsInline
-							preload="metadata"
-							aria-hidden="true"
-						/>
-						<span className={styles.nameplateOverlay} aria-hidden="true" />
-					</>
-				) : nameplateAsset ? (
+				{nameplateAsset ? (
 					<>
 						<span
 							className={styles.nameplate}

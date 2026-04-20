@@ -383,11 +383,11 @@ export async function processUserDeletion(
 			const isAnimated = hash.startsWith('a_');
 			const shortHash = isAnimated ? hash.slice(2) : hash;
 			const keys = isAnimated
-				? [`nameplates/${userId}/${shortHash}.mp4`, `nameplates/${userId}/${shortHash}.png`]
+				? [`nameplates/${userId}/${shortHash}.webp`, `nameplates/${userId}/${shortHash}.png`]
 				: [`nameplates/${userId}/${shortHash}.webp`];
 			const cdnUrls = isAnimated
 				? [
-						`${Config.endpoints.media}/nmplts/${userId}/${hash}.mp4`,
+						`${Config.endpoints.media}/nmplts/${userId}/${hash}.webp`,
 						`${Config.endpoints.media}/nmplts/${userId}/${hash}.png`,
 					]
 				: [`${Config.endpoints.media}/nmplts/${userId}/${hash}.webp`];

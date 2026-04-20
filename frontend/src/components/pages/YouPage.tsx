@@ -73,18 +73,7 @@ export const YouPage = observer(({onAvatarClick}: YouPageProps) => {
 				<Scroller key="you-page-scroller">
 					<div style={{paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0px) + 1rem)'}}>
 						<div className={styles.banner}>
-							{bannerAsset?.videoUrl ? (
-								<video
-									className={styles.bannerImage}
-									src={bannerAsset.videoUrl}
-									poster={bannerAsset.imageUrl}
-									autoPlay
-									loop
-									muted
-									playsInline
-									aria-hidden="true"
-								/>
-							) : bannerAsset ? (
+							{bannerAsset ? (
 								<div className={styles.bannerImage} style={{backgroundImage: `url(${bannerAsset.imageUrl})`}} />
 							) : (
 								<div className={styles.bannerDefault} />
