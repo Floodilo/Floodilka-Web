@@ -79,9 +79,12 @@ export interface DesktopSource {
 	display_id?: string;
 }
 
+export type ScreenShareAudioMode = 'off' | 'system' | 'source';
+
 export interface DisplayMediaRequestInfo {
 	audioRequested: boolean;
 	videoRequested: boolean;
+	audioMode: ScreenShareAudioMode;
 }
 
 export type AccessibilityStatus = boolean;
@@ -193,7 +196,7 @@ export interface ElectronAPI {
 
 	getDesktopSources: (types: Array<'screen' | 'window'>) => Promise<Array<DesktopSource>>;
 	onDisplayMediaRequested?: (callback: (requestId: string, info: DisplayMediaRequestInfo) => void) => () => void;
-	selectDisplayMediaSource: (requestId: string, sourceId: string | null, withAudio: boolean) => void;
+	selectDisplayMediaSource: (requestId: string, sourceId: string | null, audioMode: ScreenShareAudioMode) => void;
 }
 
 export interface GlobalKeyHookRegisterOptions {

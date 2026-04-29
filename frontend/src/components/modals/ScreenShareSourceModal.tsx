@@ -18,31 +18,30 @@
  */
 
 import {Trans, useLingui} from '@lingui/react/macro';
-import type {DesktopSource} from '~/../src-electron/common/types';
+import type {DesktopSource, ScreenShareAudioMode} from '~/../src-electron/common/types';
 import * as Modal from '~/components/modals/Modal';
 import styles from '~/components/modals/ScreenShareSourceModal.module.css';
 import {Button} from '~/components/uikit/Button/Button';
 import FocusRing from '~/components/uikit/FocusRing/FocusRing';
-import {isNativeMacOS} from '~/utils/NativeUtils';
 
 interface ScreenShareSourceModalProps {
 	sources: Array<DesktopSource>;
-	audioRequested: boolean;
+	audioMode: ScreenShareAudioMode;
 	onSelect: (sourceId: string | null) => void;
 }
 
-const getAudioHintText = (audioRequested: boolean): string => {
+const getAudioHintText = (audioMode: ScreenShareAudioMode): string => {
 	const {t} = useLingui();
-	if (!audioRequested) {
+	if (audioMode === 'off') {
 		return t`Audio is disabled for this share.`;
 	}
-	if (isNativeMacOS()) {
-		return t`Audio will be included with this screen share.`;
+	if (audioMode === 'source') {
+		return t`Only audio from the selected source will be requested instead of full desktop loopback.`;
 	}
-	return t`System audio capture is not supported on this platform.`;
+	return t`All desktop audio will be included, including voice chat playback on this device.`;
 };
 
-export const ScreenShareSourceModal = ({sources, audioRequested, onSelect}: ScreenShareSourceModalProps) => {
+export const ScreenShareSourceModal = ({sources, audioMode, onSelect}: ScreenShareSourceModalProps) => {
 	const {t} = useLingui();
 	return (
 		<Modal.Root size="xlarge" onClose={() => onSelect(null)}>
@@ -68,7 +67,7 @@ export const ScreenShareSourceModal = ({sources, audioRequested, onSelect}: Scre
 						</FocusRing>
 					))}
 				</div>
-				<p className={styles.audioHint}>{getAudioHintText(audioRequested)}</p>
+				<p className={styles.audioHint}>{getAudioHintText(audioMode)}</p>
 			</Modal.Content>
 			<Modal.Footer>
 				<Button variant="secondary" onClick={() => onSelect(null)}>

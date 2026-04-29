@@ -18,12 +18,13 @@
  */
 
 import {useEffect} from 'react';
-import type {DesktopSource, DisplayMediaRequestInfo} from '~/../src-electron/common/types';
+import type {DesktopSource, DisplayMediaRequestInfo, ScreenShareAudioMode} from '~/../src-electron/common/types';
 import * as ModalActionCreators from '~/actions/ModalActionCreators';
 import {modal} from '~/actions/ModalActionCreators';
 import {ScreenRecordingPermissionDeniedModal} from '~/components/alerts/ScreenRecordingPermissionDeniedModal';
 import {ScreenShareSourceModal} from '~/components/modals/ScreenShareSourceModal';
 import {Logger} from '~/lib/Logger';
+import LocalVoiceStateStore from '~/stores/LocalVoiceStateStore';
 import MediaPermissionStore from '~/stores/MediaPermissionStore';
 import {checkNativePermission} from '~/utils/NativePermissions';
 import {getElectronAPI, isNativeMacOS} from '~/utils/NativeUtils';
@@ -35,7 +36,7 @@ const SCREEN_SHARE_SELECTION_TIMEOUT_MS = 55_000;
 
 const promptDesktopSourceSelection = (
 	sources: Array<DesktopSource>,
-	audioRequested: boolean,
+	audioMode: ScreenShareAudioMode,
 ): Promise<string | null> => {
 	return new Promise((resolve) => {
 		let resolved = false;
@@ -60,7 +61,7 @@ const promptDesktopSourceSelection = (
 
 		ModalActionCreators.push(
 			modal(() => (
-				<ScreenShareSourceModal sources={sources} audioRequested={audioRequested} onSelect={handleSelection} />
+				<ScreenShareSourceModal sources={sources} audioMode={audioMode} onSelect={handleSelection} />
 			)),
 		);
 	});
@@ -77,8 +78,15 @@ export const useElectronScreenSharePicker = (): void => {
 		let handlingRequest = false;
 
 		const handleRequest = async (requestId: string, info: DisplayMediaRequestInfo) => {
+			const requestedAudioMode: ScreenShareAudioMode = info.audioRequested
+				? (() => {
+						const storedMode = LocalVoiceStateStore.getSelfStreamAudioMode();
+						return storedMode === 'source' ? 'system' : storedMode;
+					})()
+				: 'off';
+
 			if (handlingRequest) {
-				electronApi.selectDisplayMediaSource(requestId, null, false);
+				electronApi.selectDisplayMediaSource(requestId, null, 'off');
 				return;
 			}
 
@@ -93,7 +101,7 @@ export const useElectronScreenSharePicker = (): void => {
 							MediaPermissionStore.markScreenRecordingExplicitlyDenied();
 							ModalActionCreators.push(modal(() => <ScreenRecordingPermissionDeniedModal />));
 						}
-						electronApi.selectDisplayMediaSource(requestId, null, false);
+						electronApi.selectDisplayMediaSource(requestId, null, 'off');
 						return;
 					}
 				}
@@ -101,15 +109,15 @@ export const useElectronScreenSharePicker = (): void => {
 				const sources = await electronApi.getDesktopSources(DESKTOP_SOURCE_TYPES);
 				if (sources.length === 0) {
 					logger.warn('[handleRequest] No desktop sources available');
-					electronApi.selectDisplayMediaSource(requestId, null, false);
+					electronApi.selectDisplayMediaSource(requestId, null, 'off');
 					return;
 				}
 
-				const selectedSourceId = await promptDesktopSourceSelection(sources, info.audioRequested);
-				electronApi.selectDisplayMediaSource(requestId, selectedSourceId, info.audioRequested);
+				const selectedSourceId = await promptDesktopSourceSelection(sources, requestedAudioMode);
+				electronApi.selectDisplayMediaSource(requestId, selectedSourceId, requestedAudioMode);
 			} catch (error) {
 				logger.error('[handleRequest] Failed to handle display media request', error);
-				electronApi.selectDisplayMediaSource(requestId, null, false);
+				electronApi.selectDisplayMediaSource(requestId, null, 'off');
 			} finally {
 				handlingRequest = false;
 			}

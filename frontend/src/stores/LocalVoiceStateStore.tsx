@@ -20,6 +20,7 @@
 import {makeAutoObservable, runInAction} from 'mobx';
 import {Logger} from '~/lib/Logger';
 import {makePersistent} from '~/lib/MobXPersistence';
+import type {ScreenShareAudioMode} from '~/../src-electron/common/types';
 import MediaPermissionStore from '~/stores/MediaPermissionStore';
 import VoiceDevicePermissionStore, {type VoiceDeviceState} from '~/stores/voice/VoiceDevicePermissionStore';
 
@@ -31,6 +32,7 @@ class LocalVoiceStateStore {
 	selfVideo = false;
 	selfStream = false;
 	selfStreamAudio = false;
+	selfStreamAudioMode: ScreenShareAudioMode = 'off';
 	selfStreamAudioMute = false;
 	viewerStreamKey: string | null = null;
 
@@ -233,6 +235,10 @@ class LocalVoiceStateStore {
 		return this.selfStreamAudio;
 	}
 
+	getSelfStreamAudioMode(): ScreenShareAudioMode {
+		return this.selfStreamAudioMode;
+	}
+
 	getSelfStreamAudioMute(): boolean {
 		return this.selfStreamAudioMute;
 	}
@@ -330,8 +336,10 @@ class LocalVoiceStateStore {
 
 	toggleSelfStreamAudio(): void {
 		runInAction(() => {
-			this.selfStreamAudio = !this.selfStreamAudio;
-			logger.debug('User toggled self stream audio', {selfStreamAudio: this.selfStreamAudio});
+			const nextMode: ScreenShareAudioMode = this.selfStreamAudioMode === 'off' ? 'system' : 'off';
+			this.selfStreamAudioMode = nextMode;
+			this.selfStreamAudio = nextMode !== 'off';
+			logger.debug('User toggled self stream audio', {selfStreamAudio: this.selfStreamAudio, audioMode: nextMode});
 		});
 	}
 
@@ -383,9 +391,14 @@ class LocalVoiceStateStore {
 	}
 
 	updateSelfStreamAudio(enabled: boolean): void {
+		this.updateSelfStreamAudioMode(enabled ? 'system' : 'off');
+	}
+
+	updateSelfStreamAudioMode(mode: ScreenShareAudioMode): void {
 		runInAction(() => {
-			this.selfStreamAudio = enabled;
-			logger.debug('Self stream audio updated', {enabled});
+			this.selfStreamAudioMode = mode;
+			this.selfStreamAudio = mode !== 'off';
+			logger.debug('Self stream audio updated', {enabled: this.selfStreamAudio, audioMode: mode});
 		});
 	}
 
@@ -404,6 +417,7 @@ class LocalVoiceStateStore {
 			this.selfVideo = false;
 			this.selfStream = false;
 			this.selfStreamAudio = false;
+			this.selfStreamAudioMode = 'off';
 			this.selfStreamAudioMute = false;
 			this.mutedByPermission = false;
 			this.shouldUnmuteOnUndeafen = false;

@@ -22,7 +22,7 @@ import {CrownIcon} from '@phosphor-icons/react';
 import {clsx} from 'clsx';
 import {observer} from 'mobx-react-lite';
 import {useMemo} from 'react';
-import {Switch} from '~/components/form/Switch';
+import type {ScreenShareAudioMode} from '~/../src-electron/common/types';
 import * as Modal from '~/components/modals/Modal';
 import styles from '~/components/modals/ScreenShareSettingsModal.module.css';
 import {Button} from '~/components/uikit/Button/Button';
@@ -33,7 +33,7 @@ interface ScreenShareSettingsModalProps {
 	onStartShare: (
 		resolution: 'low' | 'medium' | 'high',
 		frameRate: number,
-		includeAudio: boolean,
+		audioMode: ScreenShareAudioMode,
 	) => Promise<void>;
 }
 
@@ -44,8 +44,8 @@ export const ScreenShareSettingsModal = observer(({onStartShare}: ScreenShareSet
 		isSharing,
 		selectedResolution,
 		selectedFrameRate,
-		includeAudio,
-		setIncludeAudio,
+		audioMode,
+		setAudioMode,
 		handleStartShare,
 		handleCancel,
 		handleResolutionClick,
@@ -60,6 +60,21 @@ export const ScreenShareSettingsModal = observer(({onStartShare}: ScreenShareSet
 	);
 
 	const framerateOptions = useMemo(() => FRAMERATE_OPTIONS.map((option) => ({...option, label: t(option.label)})), [t]);
+	const audioOptions = useMemo(
+		() => [
+			{
+				value: 'off' as const,
+				label: t`Off`,
+				description: t`Share video only`,
+			},
+			{
+				value: 'system' as const,
+				label: t`System`,
+				description: t`Share all desktop audio, including call playback`,
+			},
+		],
+		[t],
+	);
 
 	const getOptionButtonClass = (isSelected: boolean, isLocked: boolean) =>
 		clsx(styles.optionButton, {
@@ -125,16 +140,22 @@ export const ScreenShareSettingsModal = observer(({onStartShare}: ScreenShareSet
 					</div>
 
 					<div className={styles.section}>
-						<div className={styles.audioToggleRow}>
-							<div className={styles.audioToggleInfo}>
-								<div className={styles.sectionLabel}>
-									<Trans>Share Audio</Trans>
-								</div>
-								<div className={styles.audioToggleDescription}>
-									<Trans>Include audio from your screen in the share</Trans>
-								</div>
-							</div>
-							<Switch value={includeAudio} onChange={setIncludeAudio} />
+						<div className={styles.sectionLabel}>
+							<Trans>Share Audio</Trans>
+						</div>
+						<div className={styles.audioModeGrid}>
+							{audioOptions.map((option) => (
+								<FocusRing key={option.value} offset={-2}>
+									<button
+										type="button"
+										onClick={() => setAudioMode(option.value)}
+										className={clsx(getOptionButtonClass(audioMode === option.value, false), styles.audioOptionButton)}
+									>
+										<span>{option.label}</span>
+										<span className={styles.audioModeDescription}>{option.description}</span>
+									</button>
+								</FocusRing>
+							))}
 						</div>
 					</div>
 

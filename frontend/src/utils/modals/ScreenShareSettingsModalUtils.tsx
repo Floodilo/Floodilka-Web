@@ -19,6 +19,7 @@
 
 import {msg} from '@lingui/core/macro';
 import React from 'react';
+import type {ScreenShareAudioMode} from '~/../src-electron/common/types';
 import * as ModalActionCreators from '~/actions/ModalActionCreators';
 import * as PremiumModalActionCreators from '~/actions/PremiumModalActionCreators';
 import LocalVoiceStateStore from '~/stores/LocalVoiceStateStore';
@@ -29,7 +30,7 @@ export interface ScreenShareSettingsModalSharedProps {
 	onStartShare: (
 		resolution: 'low' | 'medium' | 'high',
 		frameRate: number,
-		includeAudio: boolean,
+		audioMode: ScreenShareAudioMode,
 	) => Promise<void>;
 }
 
@@ -51,25 +52,29 @@ export const useScreenShareSettingsModal = ({onStartShare}: ScreenShareSettingsM
 	const voiceSettings = VoiceSettingsStore;
 	const hasPremium = React.useMemo(() => user?.isPremium() ?? false, [user]);
 	const [isSharing, setIsSharing] = React.useState(false);
+	const initialAudioMode = React.useMemo<ScreenShareAudioMode>(() => {
+		const storedMode = LocalVoiceStateStore.getSelfStreamAudioMode();
+		return storedMode === 'source' ? 'system' : storedMode;
+	}, []);
 	const [selectedResolution, setSelectedResolution] = React.useState<'low' | 'medium' | 'high'>(
 		!hasPremium && voiceSettings.screenshareResolution === 'high' ? 'medium' : voiceSettings.screenshareResolution,
 	);
 	const [selectedFrameRate, setSelectedFrameRate] = React.useState<number>(
 		!hasPremium && voiceSettings.videoFrameRate > 30 ? 30 : voiceSettings.videoFrameRate,
 	);
-	const [includeAudio, setIncludeAudio] = React.useState<boolean>(LocalVoiceStateStore.getSelfStreamAudio());
+	const [audioMode, setAudioMode] = React.useState<ScreenShareAudioMode>(initialAudioMode);
 
 	const handleStartShare = React.useCallback(async () => {
 		setIsSharing(true);
 		try {
-			LocalVoiceStateStore.updateSelfStreamAudio(includeAudio);
-			await onStartShare(selectedResolution, selectedFrameRate, includeAudio);
+			LocalVoiceStateStore.updateSelfStreamAudioMode(audioMode);
+			await onStartShare(selectedResolution, selectedFrameRate, audioMode);
 			ModalActionCreators.pop();
 		} catch (error) {
 			console.error('Failed to start screen share:', error);
 			setIsSharing(false);
 		}
-	}, [selectedResolution, selectedFrameRate, includeAudio, onStartShare]);
+	}, [selectedResolution, selectedFrameRate, audioMode, onStartShare]);
 
 	const handleCancel = React.useCallback(() => {
 		ModalActionCreators.pop();
@@ -102,8 +107,8 @@ export const useScreenShareSettingsModal = ({onStartShare}: ScreenShareSettingsM
 		isSharing,
 		selectedResolution,
 		selectedFrameRate,
-		includeAudio,
-		setIncludeAudio,
+		audioMode,
+		setAudioMode,
 		handleStartShare,
 		handleCancel,
 		handleResolutionClick,

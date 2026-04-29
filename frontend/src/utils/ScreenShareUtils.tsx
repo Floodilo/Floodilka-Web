@@ -23,9 +23,12 @@ import * as ModalActionCreators from '~/actions/ModalActionCreators';
 import {modal} from '~/actions/ModalActionCreators';
 import {ScreenRecordingPermissionDeniedModal} from '~/components/alerts/ScreenRecordingPermissionDeniedModal';
 import {ScreenShareUnsupportedModal} from '~/components/alerts/ScreenShareUnsupportedModal';
+import type {ScreenShareAudioMode} from '~/../src-electron/common/types';
 import {ScreenRecordingPermissionDeniedError} from '~/utils/errors/ScreenRecordingPermissionDeniedError';
 
 export type ScreenShareResolution = 'low' | 'medium' | 'high';
+
+export const isScreenShareAudioModeEnabled = (audioMode: ScreenShareAudioMode): boolean => audioMode !== 'off';
 
 const SCREEN_SHARE_RESOLUTIONS = {
 	low: {width: 640, height: 360, baseBitrate: 1_000_000},
@@ -56,12 +59,12 @@ function getScreenShareSimulcastLayers(resolution: ScreenShareResolution, frameR
 export function getScreenShareOptions(
 	resolution: ScreenShareResolution,
 	frameRate: number,
-	includeAudio: boolean,
+	audioMode: ScreenShareAudioMode,
 ): {captureOptions: ScreenShareCaptureOptions; publishOptions: TrackPublishOptions} {
 	const preset = getScreenSharePreset(resolution, frameRate);
 	return {
 		captureOptions: {
-			audio: includeAudio
+			audio: isScreenShareAudioModeEnabled(audioMode)
 				? {
 						autoGainControl: false,
 						echoCancellation: false,

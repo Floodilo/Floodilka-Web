@@ -40,6 +40,11 @@
 	gap: 4px;
 }
 
+.audioModeGrid {
+	display: grid;
+	gap: 8px;
+}
+
 .optionButton {
 	display: flex;
 	flex: 1;
@@ -53,6 +58,11 @@
 	transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
 	transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 	transition-duration: 150ms;
+}
+
+.audioOptionButton {
+	align-items: flex-start;
+	flex-direction: column;
 }
 
 .optionButtonSelected {
@@ -123,26 +133,7 @@
 	font-size: 12px;
 }
 
-.audioToggleRow {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 12px;
-	background-color: var(--background-secondary);
-	border-radius: 8px;
-}
-
-.audioToggleInfo {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-}
-
-.audioToggleInfo .sectionLabel {
-	margin-bottom: 0;
-}
-
-.audioToggleDescription {
+.audioModeDescription {
 	color: var(--text-primary-muted);
 	font-size: 12px;
 }

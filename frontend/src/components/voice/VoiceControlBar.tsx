@@ -182,9 +182,9 @@ const VoiceControlBarInner = observer(function VoiceControlBarInner() {
 				ModalActionCreators.push(
 					modal(() => (
 						<ScreenShareSettingsModal
-							onStartShare={async (resolution, frameRate, includeAudio) => {
+							onStartShare={async (resolution, frameRate, audioMode) => {
 								await executeScreenShareOperation(async () => {
-									const {captureOptions, publishOptions} = getScreenShareOptions(resolution, frameRate, includeAudio);
+									const {captureOptions, publishOptions} = getScreenShareOptions(resolution, frameRate, audioMode);
 									await MediaEngineStore.setScreenShareEnabled(true, captureOptions, publishOptions);
 								});
 							}}

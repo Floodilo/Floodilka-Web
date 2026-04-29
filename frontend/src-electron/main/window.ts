@@ -26,6 +26,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import {app, BrowserWindow, desktopCapturer, ipcMain, screen, shell} from 'electron';
 import log from 'electron-log';
 import {BUILD_CHANNEL} from '../common/build-channel.js';
+import type {ScreenShareAudioMode} from '../common/types.js';
 import {
 	CANARY_APP_URL,
 	DEFAULT_WINDOW_HEIGHT,
@@ -159,6 +160,7 @@ function setupDisplayMediaHandler(session: Electron.Session, webContents: Electr
 		webContents.send('display-media-requested', requestId, {
 			audioRequested: Boolean(request.audioRequested),
 			videoRequested: Boolean(request.videoRequested),
+			audioMode: 'system' as ScreenShareAudioMode,
 		});
 
 		setTimeout(() => {
@@ -209,7 +211,7 @@ export function registerDisplayMediaHandlers(): void {
 
 	ipcMain.on(
 		'select-display-media-source',
-		async (_event, requestId: string, sourceId: string | null, withAudio: boolean) => {
+		async (_event, requestId: string, sourceId: string | null, audioMode: ScreenShareAudioMode) => {
 			const pending = pendingDisplayMediaRequests.get(requestId);
 			if (!pending) {
 				log.warn('[selectDisplayMediaSource] No pending request for:', requestId);
@@ -239,10 +241,10 @@ export function registerDisplayMediaHandlers(): void {
 				log.info('[selectDisplayMediaSource] Selected source:', {
 					id: selectedSource.id,
 					name: selectedSource.name,
-					withAudio,
+					audioMode,
 				});
 
-				const audioSource = withAudio ? 'loopback' : undefined;
+				const audioSource = audioMode === 'system' ? 'loopback' : undefined;
 
 				pending.callback({
 					video: selectedSource,
