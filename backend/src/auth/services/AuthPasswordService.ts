@@ -85,7 +85,7 @@ export class AuthPasswordService {
 	async forgotPassword({data, request}: ForgotPasswordParams): Promise<void> {
 		const clientIp = IpUtils.requireClientIp(request);
 
-		const ipLimitConfig = {maxAttempts: 20, windowMs: 30 * 60 * 1000};
+		const ipLimitConfig = {maxAttempts: 50, windowMs: 30 * 60 * 1000};
 		const emailLimitConfig = {maxAttempts: 5, windowMs: 30 * 60 * 1000};
 
 		const ipRateLimit = await this.rateLimitService.checkLimit({

@@ -97,37 +97,49 @@ export class AuthLoginService {
 		const inTests = Config.dev.testModeEnabled || process.env.CI === 'true';
 		const skipRateLimits = inTests || Config.dev.disableRateLimits;
 
-		const emailRateLimit = await this.rateLimitService.checkLimit({
-			identifier: `login:email:${data.email}`,
-			maxAttempts: 5,
-			windowMs: 15 * 60 * 1000,
-		});
-
-		if (!emailRateLimit.allowed && !skipRateLimits) {
-			throw new FloodilkaAPIError({
-				code: APIErrorCodes.RATE_LIMITED,
-				message: 'Too many login attempts. Please try again later.',
-				status: 429,
-			});
-		}
-
 		const clientIp = IpUtils.requireClientIp(request);
-		const ipRateLimit = await this.rateLimitService.checkLimit({
-			identifier: `login:ip:${clientIp}`,
-			maxAttempts: 10,
-			windowMs: 30 * 60 * 1000,
-		});
+		const emailKey = `login:email:${data.email}`;
+		const ipKey = `login:ip:${clientIp}`;
+		const emailLimit = {maxAttempts: 10, windowMs: 15 * 60 * 1000};
+		const ipLimit = {maxAttempts: 20, windowMs: 15 * 60 * 1000};
 
-		if (!ipRateLimit.allowed && !skipRateLimits) {
-			throw new FloodilkaAPIError({
-				code: APIErrorCodes.RATE_LIMITED,
-				message: 'Too many login attempts from this IP. Please try again later.',
-				status: 429,
+		if (!skipRateLimits) {
+			const emailPeek = await this.rateLimitService.peekLimit({
+				identifier: emailKey,
+				maxAttempts: emailLimit.maxAttempts,
 			});
+			if (!emailPeek.allowed) {
+				throw new FloodilkaAPIError({
+					code: APIErrorCodes.RATE_LIMITED,
+					message: 'Too many login attempts. Please try again later.',
+					status: 429,
+				});
+			}
+
+			const ipPeek = await this.rateLimitService.peekLimit({
+				identifier: ipKey,
+				maxAttempts: ipLimit.maxAttempts,
+			});
+			if (!ipPeek.allowed) {
+				throw new FloodilkaAPIError({
+					code: APIErrorCodes.RATE_LIMITED,
+					message: 'Too many login attempts from this IP. Please try again later.',
+					status: 429,
+				});
+			}
 		}
+
+		const recordLoginFailure = async (): Promise<void> => {
+			if (skipRateLimits) return;
+			await Promise.all([
+				this.rateLimitService.checkLimit({identifier: emailKey, ...emailLimit}),
+				this.rateLimitService.checkLimit({identifier: ipKey, ...ipLimit}),
+			]);
+		};
 
 		const user = await this.repository.findByEmail(data.email);
 		if (!user) {
+			await recordLoginFailure();
 			getMetricsService().counter({
 				name: 'auth.login.failure',
 				dimensions: {reason: 'invalid_credentials'},
@@ -146,6 +158,7 @@ export class AuthLoginService {
 		});
 
 		if (!isMatch) {
+			await recordLoginFailure();
 			getMetricsService().counter({
 				name: 'auth.login.failure',
 				dimensions: {reason: 'invalid_credentials'},
@@ -153,6 +166,13 @@ export class AuthLoginService {
 			throw InputValidationError.createMultiple([
 				{field: 'email', message: 'Неверный email или пароль'},
 				{field: 'password', message: 'Неверный email или пароль'},
+			]);
+		}
+
+		if (!skipRateLimits) {
+			await Promise.all([
+				this.rateLimitService.resetLimit(emailKey),
+				this.rateLimitService.resetLimit(ipKey),
 			]);
 		}
 

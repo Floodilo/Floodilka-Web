@@ -39,8 +39,14 @@ export interface BucketConfig {
 	exemptFromGlobal?: boolean;
 }
 
+export interface PeekLimitConfig {
+	identifier: string;
+	maxAttempts: number;
+}
+
 export interface IRateLimitService {
 	checkLimit(config: RateLimitConfig): Promise<RateLimitResult>;
+	peekLimit(config: PeekLimitConfig): Promise<RateLimitResult>;
 	checkBucketLimit(bucket: string, config: BucketConfig): Promise<RateLimitResult>;
 	checkGlobalLimit(identifier: string, limit: number): Promise<RateLimitResult>;
 	resetLimit(identifier: string): Promise<void>;
