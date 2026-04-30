@@ -197,7 +197,7 @@ export class AuthRegistrationService {
 		const emailKey = rawEmail ? rawEmail.toLowerCase() : null;
 
 		const enforceRateLimits = !Config.dev.relaxRegistrationRateLimits;
-		await this.enforceRegistrationRateLimits({enforceRateLimits, clientIp, emailKey});
+		await this.enforceRegistrationRateLimits({enforceRateLimits, emailKey});
 
 		if (rawEmail) {
 			const hasValidDns = await this.emailDnsValidationService.hasValidDnsRecords(rawEmail);
@@ -510,10 +510,9 @@ export class AuthRegistrationService {
 
 	private async enforceRegistrationRateLimits(params: {
 		enforceRateLimits: boolean;
-		clientIp: string;
 		emailKey: string | null;
 	}): Promise<void> {
-		const {enforceRateLimits, clientIp, emailKey} = params;
+		const {enforceRateLimits, emailKey} = params;
 		if (!enforceRateLimits) return;
 
 		if (emailKey) {
@@ -525,15 +524,6 @@ export class AuthRegistrationService {
 
 			if (!emailRateLimit.allowed) throw rateLimitError('Too many registration attempts. Please try again later.');
 		}
-
-		const ipRateLimit = await this.rateLimitService.checkLimit({
-			identifier: `registration:ip:${clientIp}`,
-			maxAttempts: 5,
-			windowMs: 30 * 60 * 1000,
-		});
-
-		if (!ipRateLimit.allowed)
-			throw rateLimitError('Too many registration attempts from this IP. Please try again later.');
 	}
 
 	private generateUserId(emailKey: string | null): UserID {

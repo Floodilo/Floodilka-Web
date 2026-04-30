@@ -18,7 +18,13 @@
  */
 
 import type {ICacheService} from './ICacheService';
-import type {BucketConfig, IRateLimitService, RateLimitConfig, RateLimitResult} from './IRateLimitService';
+import type {
+	BucketConfig,
+	IRateLimitService,
+	PeekLimitConfig,
+	RateLimitConfig,
+	RateLimitResult,
+} from './IRateLimitService';
 
 interface RateLimitData {
 	attempts: number;
@@ -101,6 +107,40 @@ export class RateLimitService implements IRateLimitService {
 	async checkLimit(config: RateLimitConfig): Promise<RateLimitResult> {
 		const key = `ratelimit:${config.identifier}`;
 		return this.checkLimitInternal(key, config.maxAttempts, config.windowMs);
+	}
+
+	async peekLimit(config: PeekLimitConfig): Promise<RateLimitResult> {
+		const key = `ratelimit:${config.identifier}`;
+		const now = new Date();
+		const data = await this.getRateLimitData(key);
+
+		if (!data || now >= data.resetTime) {
+			return {
+				allowed: true,
+				limit: config.maxAttempts,
+				remaining: config.maxAttempts,
+				resetTime: now,
+			};
+		}
+
+		if (data.attempts >= config.maxAttempts) {
+			const retryAfterDecimal = (data.resetTime.getTime() - now.getTime()) / 1000;
+			return {
+				allowed: false,
+				limit: config.maxAttempts,
+				remaining: 0,
+				resetTime: data.resetTime,
+				retryAfter: Math.ceil(retryAfterDecimal),
+				retryAfterDecimal,
+			};
+		}
+
+		return {
+			allowed: true,
+			limit: config.maxAttempts,
+			remaining: Math.max(0, config.maxAttempts - data.attempts),
+			resetTime: data.resetTime,
+		};
 	}
 
 	async checkBucketLimit(bucket: string, config: BucketConfig): Promise<RateLimitResult> {
