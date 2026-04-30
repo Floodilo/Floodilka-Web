@@ -1,0 +1,21 @@
+services:
+  cassandra:
+    environment:
+      - MAX_HEAP_SIZE=2G
+      - HEAP_NEWSIZE=400M
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+      - ./conf/cassandra.yaml:/etc/cassandra/cassandra.yaml
+      - ./conf/jvm-server.stage.options:/etc/cassandra/jvm-server.options
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+
+  cassandra-backup:
+    deploy:
+      replicas: 0
