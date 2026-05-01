@@ -1,5 +1,5 @@
--Xms2G
--Xmx2G
+-Xms4G
+-Xmx4G
 -XX:+UseG1GC
 -XX:+ParallelRefProcEnabled
 -XX:MaxTenuringThreshold=2
