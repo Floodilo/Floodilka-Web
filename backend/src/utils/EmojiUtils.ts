@@ -67,18 +67,6 @@ export async function sanitizeCustomEmojis(params: SanitizeCustomEmojisParams): 
 
 	const isPremium = userId ? await checkUserPremium(userId, userRepository) : false;
 	const isWebhook = webhookId != null;
-	const shouldSanitizeForRegularUser = userId != null && !isWebhook && !isPremium;
-
-	if (shouldSanitizeForRegularUser) {
-		return applyReplacements(
-			content,
-			emojiMatches.map((match) => ({
-				start: match.start,
-				end: match.end,
-				replacement: `:${match.name}:`,
-			})),
-		);
-	}
 
 	const emojiLookups = await batchFetchEmojis(emojiMatches, guildId, guildRepository);
 
