@@ -24,7 +24,7 @@ import type {
 	RegistrationResponseJSON,
 } from '@simplewebauthn/browser';
 import {contextBridge, ipcRenderer} from 'electron';
-import {BUILD_CHANNEL} from '../common/build-channel.js';
+import {API_PROXY_PORT, MEDIA_PROXY_PORT, WS_PROXY_PORT} from '../common/local-ports.js';
 import type {
 	DesktopInfo,
 	DesktopSource,
@@ -44,10 +44,6 @@ import type {
 	UpdaterContext,
 	UpdaterEvent,
 } from '../common/types.js';
-
-const WS_PROXY_PORT = BUILD_CHANNEL === 'canary' ? 21866 : 21865;
-const API_PROXY_PORT = BUILD_CHANNEL === 'canary' ? 21862 : 21861;
-const MEDIA_PROXY_PORT = BUILD_CHANNEL === 'canary' ? 21868 : 21867;
 
 const MEDIA_PROXY_TOKEN = (() => {
 	try {

@@ -18,7 +18,7 @@
 		"electron:build:canary": "BUILD_CHANNEL=canary pnpm electron:compile && BUILD_CHANNEL=canary electron-builder --config electron-builder.config.cjs",
 		"electron:build:stable": "pnpm electron:compile && electron-builder --config electron-builder.config.cjs",
 		"electron:compile": "node scripts/build-electron.mjs",
-		"electron:dev": "pnpm electron:compile && NODE_ENV=development electron .",
+		"electron:dev": "node scripts/run-electron-dev.mjs",
 		"generate:colors": "cd scripts && go run ./cmd/generate-color-system",
 		"generate:emoji-sprites": "cd scripts && go run ./cmd/generate-emoji-sprites",
 		"generate:masks": "npx tsx scripts/generate-avatar-masks.ts",

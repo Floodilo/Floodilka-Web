@@ -20,23 +20,52 @@
 import http from 'node:http';
 import https from 'node:https';
 import log from 'electron-log';
-import {BUILD_CHANNEL} from '../common/build-channel.js';
 import {CANARY_APP_URL, STABLE_APP_URL} from '../common/constants.js';
-
-export const API_PROXY_PORT = BUILD_CHANNEL === 'canary' ? 21862 : 21861;
+import {API_PROXY_PORT} from '../common/local-ports.js';
 
 const PROXY_PATH = '/proxy';
 const PROXY_INITIATOR_HEADER = 'x-floodilka-proxy-initiator';
 const ALLOWED_ORIGINS = [STABLE_APP_URL, CANARY_APP_URL];
+const isDev = process.env.NODE_ENV === 'development';
+const DEFAULT_CORS_HEADERS = [
+	'Accept',
+	'Authorization',
+	'Content-Type',
+	'Origin',
+	'X-Audit-Log-Reason',
+	'X-Captcha-Token',
+	'X-Captcha-Type',
+	'X-Floodilka-Platform',
+	'X-Floodilka-Proxy-Initiator',
+	'X-Floodilka-Sudo-Mode-Jwt',
+	'X-Requested-With',
+];
+
+const isLoopbackOrigin = (origin?: string): boolean => {
+	if (!origin) return false;
+	try {
+		const url = new URL(origin);
+		return (
+			(url.protocol === 'http:' || url.protocol === 'https:') &&
+			(url.hostname === 'localhost' ||
+				url.hostname === '127.0.0.1' ||
+				url.hostname === '::1' ||
+				url.hostname === '[::1]')
+		);
+	} catch {
+		return false;
+	}
+};
 
 const isAllowedOrigin = (origin?: string): boolean => {
 	if (!origin) return false;
-	return ALLOWED_ORIGINS.includes(origin);
+	return ALLOWED_ORIGINS.includes(origin) || (isDev && isLoopbackOrigin(origin));
 };
 
 const refererMatchesAllowedOrigin = (referer?: string): boolean => {
 	if (!referer) return false;
-	return ALLOWED_ORIGINS.some((allowed) => referer.startsWith(allowed));
+	if (ALLOWED_ORIGINS.some((allowed) => referer.startsWith(allowed))) return true;
+	return isDev && isLoopbackOrigin(parseOrigin(referer) ?? undefined);
 };
 
 const parseOrigin = (value?: string): string | null => {
@@ -82,16 +111,35 @@ const buildForwardHeaders = (req: http.IncomingMessage, targetUrl: URL): Record<
 	return headers;
 };
 
-const setCorsHeaders = (res: http.ServerResponse, origin?: string) => {
-	if (origin) {
-		res.setHeader('Access-Control-Allow-Origin', origin);
+const getRequestedCorsHeaders = (req: http.IncomingMessage): Array<string> => {
+	const requested = req.headers['access-control-request-headers'];
+	if (typeof requested !== 'string') return [];
+	return requested
+		.split(',')
+		.map((header) => header.trim())
+		.filter(Boolean);
+};
+
+const getAllowedCorsHeaders = (req: http.IncomingMessage): Array<string> => {
+	const seen = new Set<string>();
+	const headers: Array<string> = [];
+	for (const header of [...DEFAULT_CORS_HEADERS, ...getRequestedCorsHeaders(req)]) {
+		const key = header.toLowerCase();
+		if (seen.has(key)) continue;
+		seen.add(key);
+		headers.push(header);
+	}
+	return headers;
+};
+
+const setCorsHeaders = (req: http.IncomingMessage, res: http.ServerResponse, origin?: string) => {
+	const corsOrigin = parseOrigin(origin);
+	if (corsOrigin) {
+		res.setHeader('Access-Control-Allow-Origin', corsOrigin);
 		res.setHeader('Vary', 'Origin');
 	}
 	res.setHeader('Access-Control-Allow-Credentials', 'true');
-	res.setHeader(
-		'Access-Control-Allow-Headers',
-		'Authorization,Content-Type,Accept,Origin,X-Requested-With,X-Floodilka-Proxy-Initiator',
-	);
+	res.setHeader('Access-Control-Allow-Headers', getAllowedCorsHeaders(req).join(','));
 	res.setHeader('Access-Control-Expose-Headers', 'x-floodilka-sudo-mode-jwt,x-request-id,content-type');
 };
 
@@ -175,7 +223,8 @@ const pipeRequest = (
 		delete headers['proxy-connection'];
 		delete headers['transfer-encoding'];
 
-		headers['Access-Control-Allow-Origin'] = req.headers.origin ?? req.headers.referer ?? 'https://floodilka.com';
+		headers['Access-Control-Allow-Origin'] =
+			parseOrigin(req.headers.origin ?? req.headers.referer) ?? 'https://floodilka.com';
 		headers['Access-Control-Allow-Credentials'] = 'true';
 		headers['Access-Control-Expose-Headers'] = 'x-floodilka-sudo-mode-jwt,x-request-id,content-type';
 		headers.Vary = 'Origin';
@@ -187,7 +236,7 @@ const pipeRequest = (
 	upstreamReq.on('error', (error: Error) => {
 		log.error('[API Proxy] Upstream request error:', error);
 		if (!res.headersSent) {
-			setCorsHeaders(res, req.headers.origin ?? req.headers.referer);
+			setCorsHeaders(req, res, req.headers.origin ?? req.headers.referer);
 			res.writeHead(502, {'Content-Type': 'text/plain'});
 		}
 		res.end('Bad Gateway');
@@ -242,7 +291,7 @@ export const startApiProxyServer = (): Promise<void> => {
 				return;
 			}
 
-			setCorsHeaders(res, req.headers.origin ?? initiatorHeader ?? req.headers.referer ?? undefined);
+			setCorsHeaders(req, res, req.headers.origin ?? initiatorHeader ?? req.headers.referer ?? undefined);
 
 			if (req.method?.toUpperCase() === 'OPTIONS') {
 				res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS');

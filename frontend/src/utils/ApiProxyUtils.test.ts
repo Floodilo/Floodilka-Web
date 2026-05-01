@@ -18,7 +18,12 @@
  */
 
 import {afterEach, describe, expect, test} from 'vitest';
-import {isCustomInstanceUrl, isElectronApiProxyUrl, wrapUrlWithElectronApiProxy} from './ApiProxyUtils';
+import {
+	isCustomInstanceUrl,
+	isElectronApiProxyUrl,
+	shouldUseElectronApiProxy,
+	wrapUrlWithElectronApiProxy,
+} from './ApiProxyUtils';
 
 const ELECTRON_API_PROXY_BASE = 'http://127.0.0.1:21862/proxy';
 
@@ -76,5 +81,18 @@ describe('ApiProxyUtils (Electron API proxy wrapping)', () => {
 
 		const alreadyWrapped = wrapUrlWithElectronApiProxy(wrapped);
 		expect(alreadyWrapped).toBe(wrapped);
+	});
+
+	test('wraps default hosts from local Electron dev origins', () => {
+		setElectronApiProxy();
+		window.history.replaceState(null, '', 'http://localhost:3000/login');
+
+		const target = 'https://floodilka.com/api/v1';
+		expect(shouldUseElectronApiProxy(target)).toBe(true);
+
+		const wrapped = wrapUrlWithElectronApiProxy(target);
+		const parsed = new URL(wrapped);
+		expect(parsed.origin).toBe('http://127.0.0.1:21862');
+		expect(parsed.searchParams.get('target')).toBe(target);
 	});
 });

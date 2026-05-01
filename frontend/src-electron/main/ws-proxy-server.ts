@@ -20,10 +20,8 @@
 import http from 'node:http';
 import log from 'electron-log';
 import WebSocket, {WebSocketServer} from 'ws';
-import {BUILD_CHANNEL} from '../common/build-channel.js';
 import {CANARY_APP_URL, STABLE_APP_URL} from '../common/constants.js';
-
-export const WS_PROXY_PORT = BUILD_CHANNEL === 'canary' ? 21866 : 21865;
+import {WS_PROXY_PORT} from '../common/local-ports.js';
 
 const ALLOWED_ORIGINS = new Set([STABLE_APP_URL, CANARY_APP_URL]);
 

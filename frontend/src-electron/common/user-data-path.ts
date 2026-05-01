@@ -38,6 +38,14 @@ const channelStorageDirectoryMap: ChannelStorageDirectoryMap = {
 };
 
 function resolveUserDataPaths(channel: BuildChannel): {directoryName: string; base: string} {
+	const devOverride = process.env.FLOODILKA_DEV_USER_DATA_DIR;
+	if (devOverride) {
+		return {
+			directoryName: path.basename(devOverride),
+			base: devOverride,
+		};
+	}
+
 	const directoryName = channelStorageDirectoryMap[channel];
 	const appDataPath = app.getPath('appData');
 	const base = path.join(appDataPath, directoryName);

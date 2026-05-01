@@ -438,6 +438,9 @@ export function createWindow(onReady?: () => void): BrowserWindow {
 	mainWindow.webContents.once('did-finish-load', () => {
 		hasFinishedLoad = true;
 		cancelLoadRetry();
+		if (process.env.FLOODILKA_OPEN_DEVTOOLS === '1') {
+			mainWindow?.webContents.openDevTools({mode: 'detach'});
+		}
 		showWindowOnce();
 	});
 

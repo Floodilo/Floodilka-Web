@@ -22,9 +22,8 @@ import {app} from 'electron';
 import log from 'electron-log';
 import {BUILD_CHANNEL} from '../common/build-channel.js';
 import {CANARY_APP_URL, STABLE_APP_URL} from '../common/constants.js';
+import {RPC_PORT} from '../common/local-ports.js';
 import {getMainWindow, showWindow} from './window.js';
-
-export const RPC_PORT = BUILD_CHANNEL === 'canary' ? 21864 : 21863;
 
 const ALLOWED_ORIGINS = [STABLE_APP_URL, CANARY_APP_URL];
 

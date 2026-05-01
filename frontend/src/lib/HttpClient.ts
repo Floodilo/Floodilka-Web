@@ -23,7 +23,7 @@ import {HttpError} from '~/lib/HttpError';
 import type {HttpMethod} from '~/lib/HttpTypes';
 import {Logger} from '~/lib/Logger';
 import type {SudoVerificationPayload} from '~/types/Sudo';
-import {getElectronApiProxyBaseUrl, isCustomInstanceUrl, isElectronApiProxyUrl} from '~/utils/ApiProxyUtils';
+import {getElectronApiProxyBaseUrl, isElectronApiProxyUrl, shouldUseElectronApiProxy} from '~/utils/ApiProxyUtils';
 
 const SUDO_MODE_HEADER = 'x-floodilka-sudo-mode-jwt';
 
@@ -366,7 +366,7 @@ class HttpClient {
 	}
 
 	private shouldUseProxy(url: string): boolean {
-		return hasElectronProxy() && !isElectronApiProxyUrl(url) && isCustomInstanceUrl(url);
+		return hasElectronProxy() && !isElectronApiProxyUrl(url) && shouldUseElectronApiProxy(url);
 	}
 
 	private async executeViaProxy<T>(

@@ -21,10 +21,8 @@ import {randomUUID} from 'node:crypto';
 import http from 'node:http';
 import https from 'node:https';
 import log from 'electron-log';
-import {BUILD_CHANNEL} from '../common/build-channel.js';
 import {CANARY_APP_URL, STABLE_APP_URL} from '../common/constants.js';
-
-export const MEDIA_PROXY_PORT = BUILD_CHANNEL === 'canary' ? 21868 : 21867;
+import {MEDIA_PROXY_PORT} from '../common/local-ports.js';
 const MEDIA_PROXY_TOKEN_PARAM = 'token';
 const MEDIA_PROXY_TOKEN = randomUUID();
 

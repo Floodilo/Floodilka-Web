@@ -20,9 +20,10 @@
 export const APP_PROTOCOL = 'floodilka';
 
 const isDev = process.env.NODE_ENV === 'development';
+const devAppUrl = process.env.FLOODILKA_DESKTOP_APP_URL ?? 'http://localhost:8088';
 
-export const STABLE_APP_URL = isDev ? 'http://localhost:8088' : 'https://floodilka.com';
-export const CANARY_APP_URL = isDev ? 'http://localhost:8088' : 'https://stage.floodilka.com';
+export const STABLE_APP_URL = isDev ? devAppUrl : 'https://floodilka.com';
+export const CANARY_APP_URL = isDev ? devAppUrl : 'https://stage.floodilka.com';
 
 export const DEFAULT_WINDOW_WIDTH = 1280;
 export const DEFAULT_WINDOW_HEIGHT = 800;

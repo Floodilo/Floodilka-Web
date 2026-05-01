@@ -56,6 +56,20 @@ export function isCustomInstanceUrl(url: string): boolean {
 	}
 }
 
+function isLocalDesktopDevOrigin(): boolean {
+	if (typeof window === 'undefined') return false;
+	if (!window.electron?.getApiProxyUrl) return false;
+
+	const {hostname, protocol} = window.location;
+	return protocol === 'http:' && (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1');
+}
+
+export function shouldUseElectronApiProxy(raw: string): boolean {
+	if (isElectronApiProxyUrl(raw)) return false;
+	if (isCustomInstanceUrl(raw)) return true;
+	return isLocalDesktopDevOrigin();
+}
+
 export function getElectronApiProxyBaseUrl(): URL | null {
 	if (typeof window === 'undefined') {
 		return null;
@@ -79,8 +93,7 @@ export function getElectronApiProxyBaseUrl(): URL | null {
 export function wrapUrlWithElectronApiProxy(raw: string): string {
 	const base = getElectronApiProxyBaseUrl();
 	if (!base) return raw;
-	if (isElectronApiProxyUrl(raw)) return raw;
-	if (!isCustomInstanceUrl(raw)) return raw;
+	if (!shouldUseElectronApiProxy(raw)) return raw;
 
 	const proxyUrl = new URL(base.toString());
 	proxyUrl.searchParams.set('target', raw);
