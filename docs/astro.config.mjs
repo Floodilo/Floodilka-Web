@@ -32,6 +32,7 @@ export default defineConfig({
 					attrs: {property: 'og:image', content: 'https://docs.floodilka.com/og.png'},
 				},
 			],
+			social: [],
 			sidebar: [
 				{
 					label: 'Начало работы',
