@@ -32,10 +32,17 @@ start(_StartType, _StartArgs) ->
         ]}
     ]),
 
-    {ok, _} = cowboy:start_clear(http, [{port, WsPort}], #{
-        env => #{dispatch => Dispatch},
-        max_frame_size => 4096
-    }),
+    {ok, _} = cowboy:start_clear(http,
+        #{
+            socket_opts => [{port, WsPort}],
+            max_connections => infinity,
+            num_acceptors => 100
+        },
+        #{
+            env => #{dispatch => Dispatch},
+            max_frame_size => 4096
+        }
+    ),
 
     RpcDispatch = cowboy_router:compile([
         {'_', [
@@ -44,9 +51,16 @@ start(_StartType, _StartArgs) ->
         ]}
     ]),
 
-    {ok, _} = cowboy:start_clear(rpc_http, [{port, RpcPort}], #{
-        env => #{dispatch => RpcDispatch}
-    }),
+    {ok, _} = cowboy:start_clear(rpc_http,
+        #{
+            socket_opts => [{port, RpcPort}],
+            max_connections => infinity,
+            num_acceptors => 100
+        },
+        #{
+            env => #{dispatch => RpcDispatch}
+        }
+    ),
 
     floodilka_gateway_sup:start_link().
 
