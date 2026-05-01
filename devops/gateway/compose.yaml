@@ -2,6 +2,13 @@ services:
   gateway:
     image: floodilka-gateway:latest
     hostname: gateway
+    ulimits:
+      nofile:
+        soft: 1048576
+        hard: 1048576
+      nproc:
+        soft: 65536
+        hard: 65536
     environment:
       - RELEASE_NODE=floodilka_gateway@gateway
       - CLUSTER_NAME=floodilka_gateway
