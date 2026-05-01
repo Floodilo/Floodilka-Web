@@ -7,7 +7,7 @@
         {max_payload_size, 4096},
         {heartbeat_interval, 41250},
         {heartbeat_timeout, 45000},
-        {resume_timeout, 10000},
+        {resume_timeout, 60000},
         {identify_rate_limit_enabled, false},
         {push_enabled, true},
         {push_user_guild_settings_cache_mb, 8192},
