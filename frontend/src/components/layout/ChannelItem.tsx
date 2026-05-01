@@ -266,7 +266,6 @@ export const ChannelItem = observer(
 				accept: [DND_TYPES.CHANNEL, DND_TYPES.CATEGORY, DND_TYPES.VOICE_PARTICIPANT],
 				canDrop: (item: DragItem) => {
 					if (item.id === channel.id) return false;
-					if (channelIsCategory && item.type === DND_TYPES.CHANNEL && item.parentId !== null) return false;
 					if (item.type === DND_TYPES.VOICE_PARTICIPANT) return channelIsVoice;
 					if (item.type === DND_TYPES.CHANNEL) {
 						if (item.channelType === ChannelTypes.GUILD_VOICE) {
