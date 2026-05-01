@@ -131,13 +131,29 @@ handle_dm_disconnect(ConnectionId, _UserId, VoiceStates, State) ->
             NewVoiceStates = maps:remove(ConnectionId, VoiceStates),
             NewState = maps:put(dm_voice_states, NewVoiceStates, State),
 
-            OldChannelId = maps:get(<<"channel_id">>, OldVoiceState, null),
+            OldChannelIdBin = maps:get(<<"channel_id">>, OldVoiceState, null),
             DisconnectVoiceState = maps:put(
                 <<"channel_id">>, null, maps:put(<<"connection_id">>, ConnectionId, OldVoiceState)
             ),
             SessionId = maps:get(id, State),
 
-            case OldChannelId of
+            OldChannelIdInt =
+                case OldChannelIdBin of
+                    null ->
+                        null;
+                    _ ->
+                        case validation:validate_snowflake(<<"channel_id">>, OldChannelIdBin) of
+                            {ok, Id} ->
+                                Id;
+                            {error, _, Reason} ->
+                                logger:warning(
+                                    "[dm_voice] Invalid channel_id on disconnect: ~p", [Reason]
+                                ),
+                                null
+                        end
+                end,
+
+            case OldChannelIdInt of
                 null ->
                     ok;
                 ChannelIdValue ->
@@ -154,22 +170,10 @@ handle_dm_disconnect(ConnectionId, _UserId, VoiceStates, State) ->
                         catch
                             _:_ -> ok
                         end
-                    end)
-            end,
-
-            case OldChannelId of
-                null ->
-                    ok;
-                _ ->
-                    case validation:validate_snowflake(<<"channel_id">>, OldChannelId) of
-                        {ok, OldChannelIdInt} ->
-                            broadcast_voice_state_update(
-                                OldChannelIdInt, DisconnectVoiceState, NewState
-                            );
-                        {error, _, Reason} ->
-                            logger:warning("[dm_voice] Invalid channel_id: ~p", [Reason]),
-                            ok
-                    end
+                    end),
+                    broadcast_voice_state_update(
+                        ChannelIdValue, DisconnectVoiceState, NewState
+                    )
             end,
 
             {reply, #{success => true}, NewState}
