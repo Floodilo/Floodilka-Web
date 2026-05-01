@@ -24,7 +24,6 @@ turn:
   external_tls: true
 
 keys:
-  ${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}
   ${LIVEKIT_API_KEY_PROD}: ${LIVEKIT_API_SECRET_PROD}
 
 audio:
