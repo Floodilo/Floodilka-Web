@@ -41,5 +41,4 @@ room:
 webhook:
   api_key: ${LIVEKIT_API_KEY_PROD}
   urls:
-    - ${LIVEKIT_WEBHOOK_URL}
     - ${LIVEKIT_WEBHOOK_URL_PROD}
