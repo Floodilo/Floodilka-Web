@@ -222,6 +222,11 @@ export default () => {
 						to: DIST_DIR,
 						noErrorOnMissing: true,
 					},
+					{
+						from: path.join(PUBLIC_DIR, '.well-known'),
+						to: path.join(DIST_DIR, '.well-known'),
+						noErrorOnMissing: true,
+					},
 				],
 			}),
 

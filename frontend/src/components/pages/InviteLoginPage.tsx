@@ -33,6 +33,7 @@ import {DesktopDeepLinkPrompt} from '~/components/auth/DesktopDeepLinkPrompt';
 import {HandoffCodeDisplay} from '~/components/auth/HandoffCodeDisplay';
 import {GuildInviteHeader, InviteHeader} from '~/components/auth/InviteHeader';
 import MfaScreen from '~/components/auth/MfaScreen';
+import {MobileAppPrompt} from '~/components/auth/MobileAppPrompt';
 import {Button} from '~/components/uikit/Button/Button';
 import {useAuthLayoutContext} from '~/contexts/AuthLayoutContext';
 import {useDocumentTitle} from '~/hooks/useDocumentTitle';
@@ -74,6 +75,7 @@ const InviteLoginPage = observer(function InviteLoginPage({code, invite}: Invite
 			inviteCode={code}
 			extraTopContent={
 				<>
+					<MobileAppPrompt code={code} kind="invite" />
 					<DesktopDeepLinkPrompt code={code} kind="invite" preferLogin={true} />
 					<InviteHeader invite={invite} />
 				</>
@@ -212,6 +214,7 @@ const InviteLoginPageContainer = observer(() => {
 	if (isInvitesDisabled && !isGroupDM) {
 		return (
 			<div className={sharedStyles.container}>
+				<MobileAppPrompt code={code} kind="invite" />
 				<DesktopDeepLinkPrompt code={code} kind="invite" preferLogin={true} />
 
 				{guildInvite ? <GuildInviteHeader invite={guildInvite} /> : null}

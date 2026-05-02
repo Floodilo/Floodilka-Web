@@ -28,6 +28,7 @@ import sharedStyles from '~/components/auth/AuthPageStyles.module.css';
 import {AuthRouterLink} from '~/components/auth/AuthRouterLink';
 import {DesktopDeepLinkPrompt} from '~/components/auth/DesktopDeepLinkPrompt';
 import {GuildInviteHeader, InviteHeader} from '~/components/auth/InviteHeader';
+import {MobileAppPrompt} from '~/components/auth/MobileAppPrompt';
 import {Button} from '~/components/uikit/Button/Button';
 import {useAuthLayoutContext} from '~/contexts/AuthLayoutContext';
 import {useDocumentTitle} from '~/hooks/useDocumentTitle';
@@ -105,6 +106,7 @@ const InviteRegisterPage = observer(function InviteRegisterPage() {
 	if (isInvitesDisabled && !isGroupDM) {
 		return (
 			<div className={sharedStyles.container}>
+				<MobileAppPrompt code={code} kind="invite" />
 				<DesktopDeepLinkPrompt code={code} kind="invite" />
 
 				{guildInvite ? <GuildInviteHeader invite={guildInvite} /> : null}
@@ -139,6 +141,7 @@ const InviteRegisterPage = observer(function InviteRegisterPage() {
 
 	return (
 		<>
+			<MobileAppPrompt code={code} kind="invite" />
 			<DesktopDeepLinkPrompt code={code} kind="invite" />
 
 			<InviteHeader invite={invite} />
