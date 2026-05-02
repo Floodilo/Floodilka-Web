@@ -626,11 +626,11 @@ msgstr "{overflowCount} more videos"
 msgid "{participantCount} in call"
 msgstr "{participantCount} in call"
 
-#: src/components/voice/VoiceCallView.tsx:295
+#: src/components/voice/VoiceCallView.tsx:306
 msgid "{participantCount} participant in call"
 msgstr "{participantCount} participant in call"
 
-#: src/components/voice/VoiceCallView.tsx:296
+#: src/components/voice/VoiceCallView.tsx:307
 msgid "{participantCount} participants in call"
 msgstr "{participantCount} participants in call"
 
@@ -1357,8 +1357,8 @@ msgstr "Accept Friend Request"
 msgid "Accept invite"
 msgstr "Accept invite"
 
-#: src/components/pages/InviteLoginPage.tsx:155
-#: src/components/pages/InviteRegisterPage.tsx:44
+#: src/components/pages/InviteLoginPage.tsx:157
+#: src/components/pages/InviteRegisterPage.tsx:45
 msgid "Accept Invite"
 msgstr "Accept Invite"
 
@@ -3746,7 +3746,7 @@ msgid "Channel Record"
 msgstr "Channel Record"
 
 #: src/components/bottomsheets/ChannelDetailsBottomSheet.tsx:1099
-#: src/components/layout/ChannelItem.tsx:645
+#: src/components/layout/ChannelItem.tsx:644
 #: src/components/modals/ChannelSettingsModal.tsx:113
 #: src/components/modals/components/DesktopChannelSettingsView.tsx:202
 msgid "Channel Settings"
@@ -3956,7 +3956,7 @@ msgid "Claim your account to create applications."
 msgstr "Claim your account to create applications."
 
 #: src/components/layout/ChannelItem.tsx:206
-#: src/components/layout/ChannelItem.tsx:382
+#: src/components/layout/ChannelItem.tsx:381
 #: src/stores/voice/MediaEngineFacade.ts:584
 msgid "Claim your account to join this voice channel."
 msgstr "Claim your account to join this voice channel."
@@ -4664,8 +4664,8 @@ msgstr "Connection ID"
 msgid "Connection Issue"
 msgstr "Connection Issue"
 
-#: src/components/voice/VoiceCallView.tsx:342
-#: src/components/voice/VoiceCallView.tsx:375
+#: src/components/voice/VoiceCallView.tsx:353
+#: src/components/voice/VoiceCallView.tsx:386
 #: src/components/voice/VoiceStatsOverlay.tsx:119
 msgid "Connection Stats"
 msgstr "Connection Stats"
@@ -4722,6 +4722,10 @@ msgstr "Context menus can be opened with left-click (on buttons) or right-click 
 #: src/components/modals/UsernameChangeModal.tsx:110
 msgid "Continue"
 msgstr "Continue"
+
+#: src/components/auth/MobileAppPrompt.tsx:141
+msgid "Continue in the mobile app for the best experience."
+msgstr "Continue in the mobile app for the best experience."
 
 #: src/components/modals/utils/settingsSearchIndex.ts:250
 msgid "Contrast"
@@ -5070,8 +5074,8 @@ msgstr "Create a Private Group"
 msgid "Create account"
 msgstr "Create account"
 
-#: src/components/pages/InviteLoginPage.tsx:234
-#: src/components/pages/InviteRegisterPage.tsx:127
+#: src/components/pages/InviteLoginPage.tsx:237
+#: src/components/pages/InviteRegisterPage.tsx:129
 msgid "Create Account"
 msgstr "Create Account"
 
@@ -5103,7 +5107,7 @@ msgid "Create Category"
 msgstr "Create Category"
 
 #: src/components/bottomsheets/GuildHeaderBottomSheet.tsx:207
-#: src/components/layout/ChannelItem.tsx:622
+#: src/components/layout/ChannelItem.tsx:621
 #: src/components/modals/ChannelCreateModal.tsx:57
 #: src/components/modals/ChannelCreateModal.tsx:91
 #: src/components/popouts/GuildHeaderPopout.tsx:194
@@ -6597,7 +6601,7 @@ msgstr "Edit Attachment"
 msgid "Edit attachment form"
 msgstr "Edit attachment form"
 
-#: src/components/layout/ChannelItem.tsx:645
+#: src/components/layout/ChannelItem.tsx:644
 #: src/components/uikit/ContextMenu/items/CategoryMenuItems.tsx:299
 msgid "Edit Category"
 msgstr "Edit Category"
@@ -7298,7 +7302,7 @@ msgstr "exclude user"
 msgid "Exit fullscreen"
 msgstr "Exit fullscreen"
 
-#: src/components/voice/VoiceCallView.tsx:355
+#: src/components/voice/VoiceCallView.tsx:366
 msgid "Exit Fullscreen"
 msgstr "Exit Fullscreen"
 
@@ -8457,7 +8461,7 @@ msgstr "from:"
 msgid "Full Legal Name"
 msgstr "Full Legal Name"
 
-#: src/components/voice/VoiceCallView.tsx:355
+#: src/components/voice/VoiceCallView.tsx:366
 #: src/components/voice/VoiceParticipantTile.tsx:926
 msgid "Fullscreen"
 msgstr "Fullscreen"
@@ -9657,7 +9661,7 @@ msgid "Invite Links"
 msgstr "Invite Links"
 
 #: src/components/bottomsheets/GuildHeaderBottomSheet.tsx:191
-#: src/components/layout/ChannelItem.tsx:614
+#: src/components/layout/ChannelItem.tsx:613
 #: src/components/popouts/GuildHeaderPopout.tsx:178
 msgid "Invite Members"
 msgstr "Invite Members"
@@ -9671,8 +9675,8 @@ msgid "Invite modal preview"
 msgstr "Invite modal preview"
 
 #: src/components/modals/InviteAcceptModal.tsx:148
-#: src/components/pages/InviteLoginPage.tsx:196
-#: src/components/pages/InviteRegisterPage.tsx:89
+#: src/components/pages/InviteLoginPage.tsx:198
+#: src/components/pages/InviteRegisterPage.tsx:90
 msgid "Invite not found"
 msgstr "Invite not found"
 
@@ -10397,9 +10401,9 @@ msgstr "Local Mute"
 msgid "Log in"
 msgstr "Log in"
 
-#: src/components/pages/InviteLoginPage.tsx:239
-#: src/components/pages/InviteRegisterPage.tsx:132
-#: src/components/pages/InviteRegisterPage.tsx:149
+#: src/components/pages/InviteLoginPage.tsx:242
+#: src/components/pages/InviteRegisterPage.tsx:134
+#: src/components/pages/InviteRegisterPage.tsx:152
 msgid "Log In"
 msgstr "Log In"
 
@@ -12442,6 +12446,10 @@ msgstr "Opacity"
 msgid "Open {altText} in full view"
 msgstr "Open {altText} in full view"
 
+#: src/components/auth/MobileAppPrompt.tsx:147
+msgid "Open app"
+msgstr "Open app"
+
 #: src/components/auth/BrowserLoginHandoffModal.tsx:326
 msgid "Open browser"
 msgstr "Open browser"
@@ -12486,6 +12494,11 @@ msgstr "Open image in full view"
 #: src/components/channel/embeds/media/EmbedYouTube.tsx:117
 msgid "Open in new tab"
 msgstr "Open in new tab"
+
+#: src/components/auth/MobileAppPrompt.tsx:120
+#: src/components/auth/MobileAppPrompt.tsx:138
+msgid "Open in Флудилка"
+msgstr "Open in Флудилка"
 
 #: src/components/auth/DesktopDeepLinkPrompt.tsx:87
 msgid "Open in Флудилка for desktop"
@@ -12564,6 +12577,10 @@ msgstr "Open the shortcuts list anytime for quick actions."
 #: src/stores/KeybindStore.ts:431
 msgid "Open the upload file dialog"
 msgstr "Open the upload file dialog"
+
+#: src/components/auth/MobileAppPrompt.tsx:126
+msgid "Open this link in Chrome or another browser — the app will open automatically."
+msgstr "Open this link in Chrome or another browser — the app will open automatically."
 
 #: src/stores/KeybindStore.ts:244
 msgid "Open User Settings"
@@ -13763,7 +13780,7 @@ msgstr "Regenerating will invalidate the current token. Update any code that use
 
 #: src/components/auth/AuthBottomLink.tsx:36
 #: src/components/pages/ForgotPasswordPage.tsx:120
-#: src/components/pages/InviteLoginPage.tsx:84
+#: src/components/pages/InviteLoginPage.tsx:86
 #: src/components/pages/LoginPage.tsx:55
 #: src/components/pages/RegisterPage.tsx:62
 msgid "Register"
@@ -16753,6 +16770,10 @@ msgstr "Tags ({0}/{MAX_FAVORITE_MEME_TAGS})"
 msgid "Tags ({0}/10)"
 msgstr "Tags ({0}/10)"
 
+#: src/components/auth/MobileAppPrompt.tsx:124
+msgid "Tap the menu (⋯) at the top and choose «Open in Safari» — the app will open automatically."
+msgstr "Tap the menu (⋯) at the top and choose «Open in Safari» — the app will open automatically."
+
 #: src/components/modals/NoteEditSheet.tsx:90
 msgid "Tap to add a note"
 msgstr "Tap to add a note"
@@ -17076,8 +17097,8 @@ msgstr "This community doesn't have any webhooks yet. Go to a channel's settings
 msgid "This community has reached its maximum member limit and is not accepting new members at this time."
 msgstr "This community has reached its maximum member limit and is not accepting new members at this time."
 
-#: src/components/pages/InviteLoginPage.tsx:221
-#: src/components/pages/InviteRegisterPage.tsx:114
+#: src/components/pages/InviteLoginPage.tsx:224
+#: src/components/pages/InviteRegisterPage.tsx:116
 msgid "This community has temporarily disabled invites."
 msgstr "This community has temporarily disabled invites."
 
@@ -17149,8 +17170,8 @@ msgid "This invite link never expires."
 msgstr "This invite link never expires."
 
 #: src/components/modals/InviteAcceptModal.tsx:149
-#: src/components/pages/InviteLoginPage.tsx:197
-#: src/components/pages/InviteRegisterPage.tsx:90
+#: src/components/pages/InviteLoginPage.tsx:199
+#: src/components/pages/InviteRegisterPage.tsx:91
 msgid "This invite may have expired or been deleted."
 msgstr "This invite may have expired or been deleted."
 
@@ -19068,7 +19089,7 @@ msgstr "View backup codes form"
 msgid "View call"
 msgstr "View call"
 
-#: src/components/voice/VoiceCallView.tsx:350
+#: src/components/voice/VoiceCallView.tsx:361
 msgid "View call controls"
 msgstr "View call controls"
 
@@ -19211,7 +19232,7 @@ msgid "Voice Activity"
 msgstr "Voice Activity"
 
 #: src/components/channel/channel-view/DMChannelView.tsx:278
-#: src/components/voice/VoiceCallView.tsx:392
+#: src/components/voice/VoiceCallView.tsx:403
 msgid "Voice call"
 msgstr "Voice call"
 
@@ -19840,8 +19861,8 @@ msgstr "You can request a data export once every 7 days. You'll receive an email
 msgid "You can request a new export once every 7 days"
 msgstr "You can request a new export once every 7 days"
 
-#: src/components/pages/InviteLoginPage.tsx:224
-#: src/components/pages/InviteRegisterPage.tsx:117
+#: src/components/pages/InviteLoginPage.tsx:227
+#: src/components/pages/InviteRegisterPage.tsx:119
 msgid "You can still create an account or log in. If invites are re-enabled later, you can use this same link to join."
 msgstr "You can still create an account or log in. If invites are re-enabled later, you can use this same link to join."
 
@@ -19867,7 +19888,7 @@ msgid "You can't interact with reactions in search results as it might disrupt t
 msgstr "You can't interact with reactions in search results as it might disrupt the space-time continuum."
 
 #: src/components/layout/ChannelItem.tsx:204
-#: src/components/layout/ChannelItem.tsx:375
+#: src/components/layout/ChannelItem.tsx:374
 #: src/stores/voice/MediaEngineFacade.ts:158
 #: src/stores/voice/MediaEngineFacade.ts:576
 msgid "You can't join while you're on timeout."
