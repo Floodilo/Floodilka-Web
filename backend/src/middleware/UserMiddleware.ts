@@ -21,6 +21,7 @@ import type {Context} from 'hono';
 import {createMiddleware} from 'hono/factory';
 import type {HonoEnv} from '~/App';
 import {getMetricsService} from '~/infrastructure/MetricsService';
+import {Logger} from '~/Logger';
 import type {User} from '~/Models';
 import * as IpUtils from '~/utils/IpUtils';
 import {resolveClientPlatform} from '~/utils/PlatformUtils';
@@ -69,14 +70,16 @@ function setUserInContext(ctx: Context<HonoEnv>, user: User, trackActivity: bool
 		const now = new Date();
 		const userRepository = ctx.get('userRepository');
 		const redisActivityTracker = ctx.get('redisActivityTracker');
-		void Promise.all([
+		Promise.all([
 			userRepository.updateLastActiveAt({
 				userId: user.id,
 				lastActiveAt: now,
 				lastActiveIp: IpUtils.requireClientIp(ctx.req.raw),
 			}),
 			redisActivityTracker.updateActivity(user.id, now),
-		]);
+		]).catch((err) => {
+			Logger.warn({err}, 'activity tracking failed');
+		});
 	}
 }
 

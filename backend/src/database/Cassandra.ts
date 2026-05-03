@@ -224,6 +224,10 @@ const clientOptions: cassandra.ClientOptions = {
 	contactPoints: Config.cassandra.hosts.split(','),
 	keyspace: Config.cassandra.keyspace,
 	localDataCenter: Config.cassandra.localDc,
+	queryOptions: {
+		consistency: cassandra.types.consistencies.localQuorum,
+		serialConsistency: cassandra.types.consistencies.localSerial,
+	},
 	encoding: {
 		map: Map,
 		set: Set,
