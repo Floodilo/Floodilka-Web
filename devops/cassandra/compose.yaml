@@ -9,7 +9,7 @@ services:
       - CASSANDRA_DC=dc1
       - CASSANDRA_RACK=rack1
       - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
-      - CASSANDRA_SEEDS=cassandra
+      - CASSANDRA_SEEDS=cassandra,192.168.0.87,192.168.0.191
       - MAX_HEAP_SIZE=4G
       - HEAP_NEWSIZE=800M
       - CASSANDRA_BROADCAST_ADDRESS=cassandra
@@ -59,14 +59,13 @@ services:
 
   cassandra-backup:
     image: ${CASSANDRA_BACKUP_IMAGE:-floodilka-cassandra-backup:latest}
+    env_file:
+      - /var/www/floodilka/.env
+      - .env
     environment:
-      - AGE_PUBLIC_KEY
-      - AWS_ACCESS_KEY_ID
-      - AWS_SECRET_ACCESS_KEY
-      - AWS_S3_ENDPOINT
-      - AWS_S3_BUCKET
+      - AGE_PUBLIC_KEY=age1agt86fuf292ee8qq3ef5yc6gnx2l3azp6hryy082l6ntx9gxd5hsuqg27v
+      - AWS_S3_BUCKET=floodilka-bucket
       - AWS_S3_PREFIX=backups/cassandra
-      - CASSANDRA_PASSWORD
     volumes:
       - cassandra_data:/var/lib/cassandra:ro
     networks:
