@@ -9,7 +9,7 @@ services:
       - CASSANDRA_DC=dc1
       - CASSANDRA_RACK=rack1
       - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
-      - CASSANDRA_SEEDS=cassandra,192.168.0.87,192.168.0.191
+      - CASSANDRA_SEEDS=cassandra
       - MAX_HEAP_SIZE=4G
       - HEAP_NEWSIZE=800M
       - CASSANDRA_BROADCAST_ADDRESS=cassandra
