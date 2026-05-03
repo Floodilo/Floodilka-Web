@@ -12,7 +12,7 @@ services:
       - CASSANDRA_SEEDS=cassandra,192.168.0.87,192.168.0.191
       - MAX_HEAP_SIZE=4G
       - HEAP_NEWSIZE=800M
-      - CASSANDRA_BROADCAST_ADDRESS=cassandra
+      - CASSANDRA_BROADCAST_ADDRESS=192.168.0.61
       - CASSANDRA_LISTEN_ADDRESS=cassandra
       - CASSANDRA_RPC_ADDRESS=0.0.0.0
       - CASSANDRA_AUTHENTICATOR=PasswordAuthenticator
@@ -26,6 +26,10 @@ services:
     ports:
       - target: 9042
         published: 9042
+        protocol: tcp
+        mode: host
+      - target: 7000
+        published: 7000
         protocol: tcp
         mode: host
     deploy:
