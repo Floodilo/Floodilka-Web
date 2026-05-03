@@ -18,7 +18,7 @@
  */
 
 import {createUserID, type UserID} from '~/BrandedTypes';
-import {buildPatchFromData, Db, executeVersionedUpdate, fetchMany, fetchOne} from '~/database/Cassandra';
+import {buildPatchFromData, Db, executeVersionedUpdate, fetchMany, fetchOne, upsertOne} from '~/database/Cassandra';
 import {EMPTY_USER_ROW, USER_COLUMNS, type UserRow} from '~/database/CassandraTypes';
 import {User} from '~/Models';
 import {Users} from '~/Tables';
@@ -148,6 +148,6 @@ export class UserDataRepository {
 			...(lastActiveIp !== undefined ? {last_active_ip: Db.set(lastActiveIp)} : {}),
 		};
 
-		await this.patchUser(userId, patch);
+		await upsertOne(Users.patchByPk({user_id: userId}, patch));
 	}
 }
