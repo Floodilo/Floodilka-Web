@@ -26,6 +26,7 @@ import type {UserRow} from '~/database/CassandraTypes';
 import type {ApplicationRow} from '~/database/types/OAuth2Types';
 import {
 	BotUserNotFoundError,
+	InputValidationError,
 	UnclaimedAccountRestrictedError,
 	UnknownApplicationError,
 } from '~/Errors';
@@ -36,6 +37,7 @@ import type {UserCacheService} from '~/infrastructure/UserCacheService';
 import {Logger} from '~/Logger';
 import type {Application} from '~/models/Application';
 import type {User} from '~/models/User';
+import {NewUsernameType} from '~/Schema';
 import type {IUserRepository} from '~/user/IUserRepository';
 import type {UserService} from '~/user/UserService';
 import {generateRandomUsername} from '~/utils/UsernameGenerator';
@@ -458,6 +460,13 @@ export class ApplicationService {
 		const updates: Partial<UserRow> = {};
 
 		if (args.username !== undefined && args.username !== botUser.username) {
+			const strict = NewUsernameType.safeParse(args.username);
+			if (!strict.success) {
+				throw InputValidationError.create(
+					'username',
+					strict.error.issues[0]?.message ?? 'Недопустимое имя пользователя',
+				);
+			}
 			updates.username = args.username;
 		}
 

@@ -26,6 +26,7 @@ import {InputValidationError} from '~/Errors';
 import {SudoModeRequiredError} from '~/errors/SudoModeRequiredError';
 import type {IRateLimitService} from '~/infrastructure/IRateLimitService';
 import type {AuthSession, User} from '~/Models';
+import {NewUsernameType} from '~/Schema';
 import type {UserUpdateRequest} from '~/user/UserModel';
 import type {IUserAccountRepository} from '../repositories/IUserAccountRepository';
 
@@ -149,6 +150,11 @@ export class UserAccountSecurityService {
 	}): Promise<string> {
 		if (user.username.toLowerCase() === username.toLowerCase()) {
 			return username;
+		}
+
+		const strict = NewUsernameType.safeParse(username);
+		if (!strict.success) {
+			throw InputValidationError.create('username', strict.error.issues[0]?.message ?? 'Недопустимое имя пользователя');
 		}
 
 		const rateLimit = await this.deps.rateLimitService.checkLimit({
