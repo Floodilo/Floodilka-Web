@@ -19,13 +19,13 @@
 
 import {uint8ArrayToBase64} from 'uint8array-extras';
 import type {AuthSession} from '~/Models';
-import {createStringType, EmailType, GlobalNameType, PasswordType, UsernameType, z} from '~/Schema';
+import {createStringType, EmailType, GlobalNameType, NewUsernameType, PasswordType, z} from '~/Schema';
 import {getLocationLabelFromIp} from '~/utils/IpUtils';
 import {resolveSessionClientInfo} from '~/utils/UserAgentUtils';
 
 export const RegisterRequest = z.object({
 	email: EmailType.optional(),
-	username: UsernameType.optional(),
+	username: NewUsernameType.optional(),
 	global_name: GlobalNameType.optional(),
 	password: PasswordType.optional(),
 	date_of_birth: createStringType(10, 10).refine((value) => /^\d{4}-\d{2}-\d{2}$/.test(value), 'Invalid date format'),

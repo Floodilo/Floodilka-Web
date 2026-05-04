@@ -17,10 +17,10 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {UsernameType} from '~/Schema';
+import {NewUsernameType} from '~/Schema';
 import {transliterate as tr} from 'transliteration';
 
-const MAX_USERNAME_LENGTH = 32;
+const MAX_USERNAME_LENGTH = 20;
 
 function sanitizeDisplayName(globalName: string): string | null {
 	const trimmed = globalName.trim();
@@ -34,7 +34,7 @@ function sanitizeDisplayName(globalName: string): string | null {
 		sanitized = sanitized.substring(0, MAX_USERNAME_LENGTH);
 	}
 
-	const validation = UsernameType.safeParse(sanitized);
+	const validation = NewUsernameType.safeParse(sanitized);
 	if (!validation.success) {
 		return null;
 	}

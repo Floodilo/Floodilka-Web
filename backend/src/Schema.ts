@@ -185,6 +185,24 @@ export const UsernameType = z
 		return !value.includes('floodilka') && !value.includes('system message');
 	}, 'Username cannot contain "floodilka" or "system message"');
 
+export const NewUsernameType = z
+	.string()
+	.transform((value) => value.trim().toLowerCase())
+	.refine(
+		(value) => value.length >= 3 && value.length <= 20,
+		'Имя пользователя должно содержать от 3 до 20 символов',
+	)
+	.refine(
+		(value) => FLOODILKA_TAG_REGEX.test(value),
+		'Имя пользователя может содержать только английские буквы (a-z), цифры (0-9) и точку',
+	)
+	.refine((value) => !value.includes('..'), 'Имя пользователя не может содержать две или более точек подряд')
+	.refine((value) => value !== 'everyone' && value !== 'here', 'Это имя зарезервировано')
+	.refine(
+		(value) => !value.includes('floodilka') && !value.includes('system message'),
+		'Имя пользователя не может содержать «floodilka» или «system message»',
+	);
+
 export const GlobalNameType = z
 	.string()
 	.transform(sanitizeUsername)
