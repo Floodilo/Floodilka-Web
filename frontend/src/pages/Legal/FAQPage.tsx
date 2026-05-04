@@ -17,7 +17,7 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {useEffect, useLayoutEffect, useState} from 'react';
+import {type ReactNode, useEffect, useLayoutEffect, useState} from 'react';
 import {useSEO} from '~/hooks/useSEO';
 import {LandingHeader} from '~/pages/Landing/components/LandingHeader';
 import {LandingFooter} from '~/pages/Landing/components/LandingFooter';
@@ -26,7 +26,7 @@ import styles from './FAQPage.module.css';
 
 interface FAQItem {
 	question: string;
-	answer: string;
+	answer: ReactNode;
 }
 
 const FAQ_ITEMS: FAQItem[] = [
@@ -67,8 +67,15 @@ const FAQ_ITEMS: FAQItem[] = [
 	},
 	{
 		question: 'Безопасна ли Флудилка?',
-		answer:
-			'Да. Все соединения шифруются. Мы не передаём данные пользователей третьим лицам. Клиентский код распространяется под лицензией AGPL-3.0 — открытость и прозрачность.',
+		answer: (
+			<>
+				Да. Все соединения шифруются. Мы не передаём данные пользователей третьим лицам. Исходный код веб-клиента и веб-инфраструктуры распространяется под лицензией AGPL-3.0 — открытость и прозрачность. Репозиторий:{' '}
+				<a href="https://github.com/Floodilka/Floodilka-Web" target="_blank" rel="noopener noreferrer">
+					github.com/Floodilka/Floodilka-Web
+				</a>
+				.
+			</>
+		),
 	},
 	{
 		question: 'Поддерживает ли Флудилка стримы и демонстрацию экрана?',
