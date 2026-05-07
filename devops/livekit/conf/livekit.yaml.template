@@ -9,12 +9,37 @@ rtc:
   node_ip: ${NODE_IP}
   enable_loopback_candidate: false
 
+# Phase 8 distributed mode: shared Valkey HA Sentinel cluster (Phase 5).
+# All 3 LiveKit nodes (lk-1/2/3 in 192.168.0.0/24) coordinate through the
+# same Valkey master — Sentinel handles failover automatically.
+# Coordination latency is sub-2ms (same private subnet as Valkey HA).
 redis:
-  address: valkey:6379
+  sentinel_master_name: ${VALKEY_MASTER_NAME}
+  sentinel_addresses:
+    - 192.168.0.18:26379
+    - 192.168.0.201:26379
+    - 192.168.0.223:26379
+  sentinel_username: ''
+  sentinel_password: ${VALKEY_PASSWORD}
   username: ''
-  password: ${REDIS_PASSWORD}
+  password: ${VALKEY_PASSWORD}
   db: 0
   use_tls: false
+
+# Region tag — selector below uses this to keep clients within a region.
+# Single region for now (Москва ru-msk-1). Add more entries to `regions`
+# below + tag additional nodes when geo-spread becomes a need.
+region: ${LIVEKIT_REGION}
+
+# Discord-style placement: pick the least-loaded node in the region for
+# each new room. Once a room lands on a node, LiveKit pins it there for
+# its lifetime — sticky-per-room out of the box. The backend additionally
+# pins per-channel via voiceRoomStore.pinRoomServer (see VoiceService.ts).
+node_selector:
+  kind: regionaware
+  sort_by: sysload
+  algorithm: lowest
+  sysload_limit: 0.7
 
 turn:
   enabled: true
@@ -41,3 +66,8 @@ webhook:
   api_key: ${LIVEKIT_API_KEY_PROD}
   urls:
     - ${LIVEKIT_WEBHOOK_URL_PROD}
+
+# Prometheus metrics exposed on :6789 (separate from public :7880).
+# Scraped by the existing Prometheus on monitoring node — see
+# floodilka-infra/roles/prometheus for the scrape config.
+prometheus_port: 6789

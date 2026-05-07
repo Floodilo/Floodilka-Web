@@ -38,7 +38,7 @@ apps:
             handle:
               - handler: reverse_proxy
                 upstreams:
-                  - dial: 'livekit:7880'
+                  - dial: '127.0.0.1:7880'
 
   layer4:
     servers:

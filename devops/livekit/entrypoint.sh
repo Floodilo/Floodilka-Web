@@ -24,6 +24,9 @@ set -e
 
 sed -e "s|\${NODE_IP}|${NODE_IP}|g" \
     -e "s|\${REDIS_PASSWORD}|${REDIS_PASSWORD}|g" \
+    -e "s|\${VALKEY_MASTER_NAME}|${VALKEY_MASTER_NAME}|g" \
+    -e "s|\${VALKEY_PASSWORD}|${VALKEY_PASSWORD}|g" \
+    -e "s|\${LIVEKIT_REGION}|${LIVEKIT_REGION}|g" \
     -e "s|\${LIVEKIT_API_KEY}|${LIVEKIT_API_KEY}|g" \
     -e "s|\${LIVEKIT_API_SECRET}|${LIVEKIT_API_SECRET}|g" \
     -e "s|\${LIVEKIT_API_KEY_PROD}|${LIVEKIT_API_KEY_PROD}|g" \
@@ -31,6 +34,7 @@ sed -e "s|\${NODE_IP}|${NODE_IP}|g" \
     -e "s|\${LIVEKIT_WEBHOOK_URL}|${LIVEKIT_WEBHOOK_URL}|g" \
     -e "s|\${LIVEKIT_WEBHOOK_URL_PROD}|${LIVEKIT_WEBHOOK_URL_PROD}|g" \
     -e "s|\${LIVEKIT_DOMAIN_TURN}|${LIVEKIT_DOMAIN_TURN}|g" \
+    -e "s|\${LIVEKIT_DOMAIN_TURN_PROD}|${LIVEKIT_DOMAIN_TURN_PROD}|g" \
     /etc/livekit.yaml.template > /tmp/livekit.yaml
 
 exec /livekit-server --config /tmp/livekit.yaml "$@"
