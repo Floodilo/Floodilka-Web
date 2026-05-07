@@ -164,7 +164,7 @@ handle_dm_disconnect(ConnectionId, _UserId, VoiceStates, State) ->
                     gen_server:cast(SessionPid, {call_unmonitor, ChannelIdValue}),
                     spawn(fun() ->
                         try
-                            case gen_server:call(call_manager, {lookup, ChannelIdValue}, 5000) of
+                            case call_router:lookup(ChannelIdValue, 5000) of
                                 {ok, CallPid} ->
                                     gen_server:call(CallPid, {leave, SessionId}, 5000);
                                 _ ->
@@ -353,7 +353,7 @@ maybe_spawn_join_call(true, ChannelId, UserId, VoiceState, SessionId, SessionPid
 maybe_update_call_voice_state(ChannelId, UserId, VoiceState) ->
     spawn(fun() ->
         try
-            case gen_server:call(call_manager, {lookup, ChannelId}, 5000) of
+            case call_router:lookup(ChannelId, 5000) of
                 {ok, CallPid} ->
                     gen_server:call(CallPid, {update_voice_state, UserId, VoiceState}, 5000);
                 _ ->
@@ -614,7 +614,7 @@ join_or_create_call(_ChannelId, UserId, _VoiceState, _SessionId, _SessionPid, 0)
     ok;
 join_or_create_call(ChannelId, UserId, VoiceState, SessionId, SessionPid, Retries) ->
     ConnectionId = maps:get(<<"connection_id">>, VoiceState, undefined),
-    case gen_server:call(call_manager, {lookup, ChannelId}, 5000) of
+    case call_router:lookup(ChannelId, 5000) of
         {ok, CallPid} ->
             JoinMsg =
                 case ConnectionId of

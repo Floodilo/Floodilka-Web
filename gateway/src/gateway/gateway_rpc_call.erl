@@ -24,7 +24,7 @@
 
 execute_method(<<"call.get">>, #{<<"channel_id">> := ChannelIdBin}) ->
     ChannelId = validation:snowflake_or_throw(<<"channel_id">>, ChannelIdBin),
-    case gen_server:call(call_manager, {lookup, ChannelId}, 5000) of
+    case call_router:lookup(ChannelId, 5000) of
         {ok, Pid} ->
             case gen_server:call(Pid, {get_state}, 5000) of
                 {ok, CallData} ->
@@ -59,7 +59,7 @@ execute_method(<<"call.create">>, Params) ->
         recipients => Recipients
     },
 
-    case gen_server:call(call_manager, {create, ChannelId, CallData}, 10000) of
+    case call_router:create(ChannelId, CallData, 10000) of
         {ok, Pid} ->
             case gen_server:call(Pid, {get_state}, 5000) of
                 {ok, CallState} ->
@@ -76,7 +76,7 @@ execute_method(<<"call.update_region">>, #{
     <<"channel_id">> := ChannelIdBin, <<"region">> := Region
 }) ->
     ChannelId = validation:snowflake_or_throw(<<"channel_id">>, ChannelIdBin),
-    case gen_server:call(call_manager, {lookup, ChannelId}, 5000) of
+    case call_router:lookup(ChannelId, 5000) of
         {ok, Pid} ->
             case gen_server:call(Pid, {update_region, Region}, 5000) of
                 ok ->
@@ -93,7 +93,7 @@ execute_method(<<"call.ring">>, Params) ->
     ChannelId = validation:snowflake_or_throw(<<"channel_id">>, ChannelIdBin),
     Recipients = validation:snowflake_list_or_throw(<<"recipients">>, RecipientsBin),
 
-    case gen_server:call(call_manager, {lookup, ChannelId}, 5000) of
+    case call_router:lookup(ChannelId, 5000) of
         {ok, Pid} ->
             case gen_server:call(Pid, {ring_recipients, Recipients}, 5000) of
                 ok ->
@@ -110,7 +110,7 @@ execute_method(<<"call.stop_ringing">>, Params) ->
     ChannelId = validation:snowflake_or_throw(<<"channel_id">>, ChannelIdBin),
     Recipients = validation:snowflake_list_or_throw(<<"recipients">>, RecipientsBin),
 
-    case gen_server:call(call_manager, {lookup, ChannelId}, 5000) of
+    case call_router:lookup(ChannelId, 5000) of
         {ok, Pid} ->
             case gen_server:call(Pid, {stop_ringing, Recipients}, 5000) of
                 ok ->
@@ -135,7 +135,7 @@ execute_method(<<"call.join">>, Params) ->
 
     case gen_server:call(session_manager, {lookup, SessionId}, 5000) of
         {ok, SessionPid} ->
-            case gen_server:call(call_manager, {lookup, ChannelId}, 5000) of
+            case call_router:lookup(ChannelId, 5000) of
                 {ok, CallPid} ->
                     case
                         gen_server:call(
@@ -156,7 +156,7 @@ execute_method(<<"call.join">>, Params) ->
 execute_method(<<"call.leave">>, #{<<"channel_id">> := ChannelIdBin, <<"session_id">> := SessionId}) ->
     ChannelId = validation:snowflake_or_throw(<<"channel_id">>, ChannelIdBin),
 
-    case gen_server:call(call_manager, {lookup, ChannelId}, 5000) of
+    case call_router:lookup(ChannelId, 5000) of
         {ok, Pid} ->
             case gen_server:call(Pid, {leave, SessionId}, 5000) of
                 ok ->
@@ -169,7 +169,7 @@ execute_method(<<"call.leave">>, #{<<"channel_id">> := ChannelIdBin, <<"session_
     end;
 execute_method(<<"call.delete">>, #{<<"channel_id">> := ChannelIdBin}) ->
     ChannelId = validation:snowflake_or_throw(<<"channel_id">>, ChannelIdBin),
-    case gen_server:call(call_manager, {terminate_call, ChannelId}, 5000) of
+    case call_router:terminate_call(ChannelId, 5000) of
         ok ->
             true;
         {error, not_found} ->
@@ -184,7 +184,7 @@ execute_method(<<"call.confirm_connection">>, Params) ->
         "[gateway_rpc_call] call.confirm_connection channel_id=~p connection_id=~p",
         [ChannelId, ConnectionId]
     ),
-    case gen_server:call(call_manager, {lookup, ChannelId}, 5000) of
+    case call_router:lookup(ChannelId, 5000) of
         {ok, Pid} ->
             gen_server:call(Pid, {confirm_connection, ConnectionId}, 5000);
         {error, not_found} ->
@@ -206,7 +206,7 @@ execute_method(<<"call.disconnect_user_if_in_channel">>, Params) ->
     ChannelId = validation:snowflake_or_throw(<<"channel_id">>, ChannelIdBin),
     UserId = validation:snowflake_or_throw(<<"user_id">>, UserIdBin),
     ConnectionId = maps:get(<<"connection_id">>, Params, undefined),
-    case gen_server:call(call_manager, {lookup, ChannelId}, 5000) of
+    case call_router:lookup(ChannelId, 5000) of
         {ok, Pid} ->
             gen_server:call(
                 Pid, {disconnect_user_if_in_channel, UserId, ChannelId, ConnectionId}, 5000

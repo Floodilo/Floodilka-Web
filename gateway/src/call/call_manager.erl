@@ -60,13 +60,25 @@ init([]) ->
         | ok
         | {ok, non_neg_integer()}.
 handle_call({create, ChannelId, CallData}, _From, State) ->
-    do_create_call(ChannelId, CallData, State);
+    case ensure_owner(ChannelId) of
+        ok -> do_create_call(ChannelId, CallData, State);
+        Err -> {reply, Err, State}
+    end;
 handle_call({lookup, ChannelId}, _From, State) ->
-    do_lookup_call(ChannelId, State);
+    case ensure_owner(ChannelId) of
+        ok -> do_lookup_call(ChannelId, State);
+        Err -> {reply, Err, State}
+    end;
 handle_call({get_or_create, ChannelId, CallData}, _From, State) ->
-    do_get_or_create_call(ChannelId, CallData, State);
+    case ensure_owner(ChannelId) of
+        ok -> do_get_or_create_call(ChannelId, CallData, State);
+        Err -> {reply, Err, State}
+    end;
 handle_call({terminate_call, ChannelId}, _From, State) ->
-    do_terminate_call(ChannelId, State);
+    case ensure_owner(ChannelId) of
+        ok -> do_terminate_call(ChannelId, State);
+        Err -> {reply, Err, State}
+    end;
 handle_call(get_local_count, _From, #{calls := Calls} = State) ->
     {reply, {ok, process_registry:get_count(Calls)}, State};
 handle_call(get_global_count, _From, #{calls := Calls} = State) ->
@@ -112,6 +124,13 @@ code_change(_OldVsn, {state, Calls}, _Extra) ->
     {ok, #{calls => Calls}};
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+-spec ensure_owner(channel_id()) -> ok | {error, {not_owner, node()}}.
+ensure_owner(ChannelId) ->
+    case hash_ring:owner_node(ChannelId) of
+        Self when Self =:= node() -> ok;
+        Owner -> {error, {not_owner, Owner}}
+    end.
 
 -spec do_create_call(channel_id(), call_data(), state()) ->
     {reply, {ok, pid()} | {error, already_exists | term()}, state()}.

@@ -234,7 +234,7 @@ handle_cast({terminate_force}, State) ->
 handle_cast({call_connect, ChannelIdBin}, State) ->
     case validation:validate_snowflake(<<"channel_id">>, ChannelIdBin) of
         {ok, ChannelId} ->
-            case gen_server:call(call_manager, {lookup, ChannelId}, 5000) of
+            case call_router:lookup(ChannelId, 5000) of
                 {ok, CallPid} ->
                     case gen_server:call(CallPid, {get_state}, 5000) of
                         {ok, CallData} ->

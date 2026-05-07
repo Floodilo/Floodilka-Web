@@ -252,7 +252,7 @@ retry_or_fail(GuildId, Attempt, State, FailureFun) ->
     end.
 
 attempt_call_reconnect(ChannelId, Attempt, _SessionId, State) ->
-    case gen_server:call(call_manager, {lookup, ChannelId}, 5000) of
+    case call_router:lookup(ChannelId, 5000) of
         {ok, CallPid} ->
             connect_to_call_process(CallPid, ChannelId, State);
         not_found ->

@@ -398,7 +398,7 @@ dispatch_call_creates_for_channels(PrivateChannels, SessionId, State) ->
 
 dispatch_call_create_for_channel(ChannelId, _SessionId, State) ->
     try
-        case gen_server:call(call_manager, {lookup, ChannelId}, 5000) of
+        case call_router:lookup(ChannelId, 5000) of
             {ok, CallPid} ->
                 dispatch_call_create_from_pid(CallPid, State);
             _ ->
