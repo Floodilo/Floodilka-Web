@@ -89,9 +89,17 @@ init([]) ->
         shutdown => 5000,
         type => worker
     },
+    HashRing = #{
+        id => hash_ring,
+        start => {hash_ring, start_link, []},
+        restart => permanent,
+        shutdown => 5000,
+        type => worker
+    },
     {ok,
         {{one_for_one, 5, 10}, [
             ClusterBootstrap,
+            HashRing,
             SessionManager,
             PresenceCache,
             PresenceBus,
