@@ -10,9 +10,8 @@ services:
         soft: 65536
         hard: 65536
     environment:
-      - RELEASE_NODE=floodilka_gateway@gateway
       - CLUSTER_NAME=floodilka_gateway
-      - CLUSTER_DISCOVERY_DNS=gateway
+      - CLUSTER_DISCOVERY_DNS=tasks.gateway
       - NODE_COOKIE=floodilka_prod_cookie
       - LOGGER_LEVEL=info
       - FLOODILKA_API_HOST=api:8080
@@ -23,14 +22,18 @@ services:
       - floodilka-shared
     stop_grace_period: 15s
     deploy:
-      replicas: 1
+      replicas: 3
+      endpoint_mode: dnsrr
       placement:
         constraints:
-          - node.labels.role == infra
+          - node.labels.role == gateway
+        preferences:
+          - spread: node.hostname
       update_config:
-        order: stop-first
+        order: start-first
         failure_action: rollback
-        monitor: 15s
+        monitor: 30s
+        parallelism: 1
       restart_policy:
         condition: any
         delay: 10s
