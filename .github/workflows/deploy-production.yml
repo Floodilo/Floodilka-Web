@@ -16,6 +16,14 @@ on:
           - desktop-all
           - desktop-win
           - desktop-mac
+      gateway_strategy:
+        description: 'Gateway deploy strategy'
+        required: false
+        default: 'hot-reload'
+        type: choice
+        options:
+          - hot-reload
+          - full-restart
 
 concurrency:
   group: deploy-production
@@ -282,6 +290,16 @@ jobs:
                docker tag ghcr.io/floodilka/floodilka-backend:${SHA} floodilka-backend:${SHA}'"
           done
 
+          # Phase 7.13: gateway runs on 3 dedicated nodes (gw-1/2/3).
+          # Same propagation pattern as backend — pull + tag on each node so
+          # docker service update can schedule tasks there immediately.
+          for node_ip in 192.168.0.130 192.168.0.216 192.168.0.4; do
+            ssh production "ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 root@${node_ip} \
+              'docker pull ghcr.io/floodilka/floodilka-gateway:${SHA} && \
+               docker tag ghcr.io/floodilka/floodilka-gateway:${SHA} floodilka-gateway:latest && \
+               docker tag ghcr.io/floodilka/floodilka-gateway:${SHA} floodilka-gateway:${SHA}'"
+          done
+
           ssh production "
             docker stack deploy -c /var/www/floodilka/devops/backend/compose.yaml backend &&
             docker stack deploy -c /var/www/floodilka/devops/media-proxy/compose.yaml media &&
@@ -301,25 +319,37 @@ jobs:
           # Rolling update Worker (stop-first, блокирующий)
           ssh production "docker service update --image floodilka-backend:${SHA} backend_worker"
 
-          # Gateway hot reload (zero downtime, no restart). Suitable for
-          # function-body changes only — anything that adds new supervisor
-          # children, new applications, or changes init/1 must be deployed
-          # via `docker service update --image floodilka-gateway:<sha> gateway_gateway`
-          # which forces a full container restart (~15-30s WS downtime).
-          ssh production "
-            docker rm -f gw-extract 2>/dev/null || true &&
-            docker create --name gw-extract floodilka-gateway:latest &&
-            docker cp gw-extract:/opt/floodilka_gateway/lib/floodilka_gateway-0.0.0/ebin /tmp/gw-beams &&
-            docker rm gw-extract &&
-            CONTAINER_ID=\$(docker ps -q -f name=gateway_gateway --no-trunc | head -1) &&
-            docker cp /tmp/gw-beams/. \$CONTAINER_ID:/opt/floodilka_gateway/lib/floodilka_gateway-0.0.0/ebin/ &&
-            docker exec \$CONTAINER_ID curl -sf \
-              -X POST http://localhost:8081/_admin/reload \
-              -H 'Content-Type: application/json' \
-              -H 'Authorization: Bearer ${GATEWAY_ADMIN_SECRET}' \
-              -d '{}' &&
-            rm -rf /tmp/gw-beams
-          " || echo "Gateway hot reload skipped (container may have restarted from config change)"
+          # Gateway deploy strategy:
+          #   hot-reload (default): replace .beam files in the running BEAM and
+          #     POST /_admin/reload — zero downtime. Only safe for function-body
+          #     changes; new supervisor children / init/1 changes / new
+          #     applications WILL NOT START until a real container restart, and
+          #     the partly-loaded code will likely crash on first call.
+          #   full-restart: rolling docker service update --image. Swarm spawns
+          #     new tasks one-by-one with start-first, healthcheck them, then
+          #     stops the old. With replicas:3 and Caddy lb_retries this is
+          #     effectively zero-downtime — ~33% of WS clients reconnect per
+          #     replica restart, no 5xx.
+          if [[ "${{ inputs.gateway_strategy }}" == "full-restart" ]]; then
+            echo "Gateway: full-restart strategy (rolling image swap)"
+            ssh production "docker service update --image floodilka-gateway:${SHA} gateway_gateway"
+          else
+            echo "Gateway: hot-reload strategy"
+            ssh production "
+              docker rm -f gw-extract 2>/dev/null || true &&
+              docker create --name gw-extract floodilka-gateway:latest &&
+              docker cp gw-extract:/opt/floodilka_gateway/lib/floodilka_gateway-0.0.0/ebin /tmp/gw-beams &&
+              docker rm gw-extract &&
+              CONTAINER_ID=\$(docker ps -q -f name=gateway_gateway --no-trunc | head -1) &&
+              docker cp /tmp/gw-beams/. \$CONTAINER_ID:/opt/floodilka_gateway/lib/floodilka_gateway-0.0.0/ebin/ &&
+              docker exec \$CONTAINER_ID curl -sf \
+                -X POST http://localhost:8081/_admin/reload \
+                -H 'Content-Type: application/json' \
+                -H 'Authorization: Bearer ${GATEWAY_ADMIN_SECRET}' \
+                -d '{}' &&
+              rm -rf /tmp/gw-beams
+            " || echo "Gateway hot reload skipped (container may have restarted from config change)"
+          fi
 
           # Rolling update remaining services (start-first, parallel)
           ssh production "docker service update --image floodilka-media-proxy:${SHA} media_media --detach"
