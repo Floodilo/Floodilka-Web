@@ -96,10 +96,26 @@ init([]) ->
         shutdown => 5000,
         type => worker
     },
+    Pg = #{
+        id => floodilka_pg,
+        start => {pg, start_link, [gateway_pg:scope()]},
+        restart => permanent,
+        shutdown => 5000,
+        type => worker
+    },
+    ManifoldSup = #{
+        id => manifold_sup,
+        start => {manifold_sup, start_link, []},
+        restart => permanent,
+        shutdown => 5000,
+        type => supervisor
+    },
     {ok,
         {{one_for_one, 5, 10}, [
             ClusterBootstrap,
             HashRing,
+            Pg,
+            ManifoldSup,
             SessionManager,
             PresenceCache,
             PresenceBus,
