@@ -297,7 +297,7 @@ lookup_guild(GuildId, SessionState) ->
         {Pid, _Ref} when is_pid(Pid) ->
             {ok, Pid};
         undefined ->
-            case guild_manager:lookup(GuildId) of
+            case guild_router:lookup(GuildId) of
                 {ok, Pid} when is_pid(Pid) -> {ok, Pid};
                 _ -> {error, not_found}
             end;

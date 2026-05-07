@@ -47,6 +47,12 @@
     start_or_lookup/2,
     lookup/1,
     lookup/2,
+    stop_guild/1,
+    stop_guild/2,
+    reload_guild/1,
+    reload_guild/2,
+    shutdown_guild/1,
+    shutdown_guild/2,
     owner_node/1,
     is_local/1
 ]).
@@ -70,6 +76,30 @@ lookup(GuildId) ->
 -spec lookup(guild_id(), pos_integer()) -> {ok, pid()} | {error, term()}.
 lookup(GuildId, Timeout) ->
     route_call(GuildId, {lookup, GuildId}, Timeout).
+
+-spec stop_guild(guild_id()) -> ok | {error, term()}.
+stop_guild(GuildId) ->
+    stop_guild(GuildId, ?GUILD_CALL_TIMEOUT).
+
+-spec stop_guild(guild_id(), pos_integer()) -> ok | {error, term()}.
+stop_guild(GuildId, Timeout) ->
+    route_call(GuildId, {stop_guild, GuildId}, Timeout).
+
+-spec reload_guild(guild_id()) -> ok | {error, term()}.
+reload_guild(GuildId) ->
+    reload_guild(GuildId, ?GUILD_CALL_TIMEOUT).
+
+-spec reload_guild(guild_id(), pos_integer()) -> ok | {error, term()}.
+reload_guild(GuildId, Timeout) ->
+    route_call(GuildId, {reload_guild, GuildId}, Timeout).
+
+-spec shutdown_guild(guild_id()) -> ok | {error, term()}.
+shutdown_guild(GuildId) ->
+    shutdown_guild(GuildId, ?GUILD_CALL_TIMEOUT).
+
+-spec shutdown_guild(guild_id(), pos_integer()) -> ok | {error, term()}.
+shutdown_guild(GuildId, Timeout) ->
+    route_call(GuildId, {shutdown_guild, GuildId}, Timeout).
 
 -spec owner_node(guild_id()) -> node().
 owner_node(GuildId) ->

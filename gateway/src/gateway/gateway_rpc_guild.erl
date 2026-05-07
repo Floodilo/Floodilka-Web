@@ -26,7 +26,7 @@ execute_method(<<"guild.dispatch">>, #{
     <<"guild_id">> := GuildIdBin, <<"event">> := Event, <<"data">> := Data
 }) ->
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             EventAtom = constants:dispatch_event_atom(Event),
             case gen_server:call(Pid, {dispatch, #{event => EventAtom, data => Data}}, 10000) of
@@ -38,7 +38,7 @@ execute_method(<<"guild.dispatch">>, #{
     end;
 execute_method(<<"guild.get_counts">>, #{<<"guild_id">> := GuildIdBin}) ->
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             case gen_server:call(Pid, {get_counts}, 10000) of
                 #{member_count := MemberCount, presence_count := PresenceCount} ->
@@ -56,7 +56,7 @@ execute_method(<<"guild.get_data">>, #{<<"guild_id">> := GuildIdBin, <<"user_id"
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
     case validation:validate_optional_snowflake(UserIdBin) of
         {ok, UserId} ->
-            case guild_manager:start_or_lookup(GuildId) of
+            case guild_router:start_or_lookup(GuildId) of
                 {ok, Pid} ->
                     Request = #{user_id => UserId},
                     case gen_server:call(Pid, {get_guild_data, Request}, 10000) of
@@ -76,7 +76,7 @@ execute_method(<<"guild.get_data">>, #{<<"guild_id">> := GuildIdBin, <<"user_id"
 execute_method(<<"guild.get_member">>, #{<<"guild_id">> := GuildIdBin, <<"user_id">> := UserIdBin}) ->
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
     UserId = validation:snowflake_or_throw(<<"user_id">>, UserIdBin),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             Request = #{user_id => UserId},
             case gen_server:call(Pid, {get_guild_member, Request}, 10000) of
@@ -96,7 +96,7 @@ execute_method(<<"guild.get_member">>, #{<<"guild_id">> := GuildIdBin, <<"user_i
 execute_method(<<"guild.has_member">>, #{<<"guild_id">> := GuildIdBin, <<"user_id">> := UserIdBin}) ->
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
     UserId = validation:snowflake_or_throw(<<"user_id">>, UserIdBin),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             Request = #{user_id => UserId},
             case gen_server:call(Pid, {has_member, Request}, 10000) of
@@ -112,7 +112,7 @@ execute_method(<<"guild.list_members">>, #{
     <<"guild_id">> := GuildIdBin, <<"limit">> := Limit, <<"offset">> := Offset
 }) ->
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             Request = #{limit => Limit, offset => Offset},
             case gen_server:call(Pid, {list_guild_members, Request}, 10000) of
@@ -129,7 +129,7 @@ execute_method(<<"guild.list_members">>, #{
     end;
 execute_method(<<"guild.start">>, #{<<"guild_id">> := GuildIdBin}) ->
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, _Pid} ->
             true;
         _ ->
@@ -137,7 +137,7 @@ execute_method(<<"guild.start">>, #{<<"guild_id">> := GuildIdBin}) ->
     end;
 execute_method(<<"guild.stop">>, #{<<"guild_id">> := GuildIdBin}) ->
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
-    case gen_server:call(guild_manager, {stop_guild, GuildId}, 10000) of
+    case guild_router:stop_guild(GuildId, 10000) of
         ok ->
             true;
         _ ->
@@ -145,11 +145,11 @@ execute_method(<<"guild.stop">>, #{<<"guild_id">> := GuildIdBin}) ->
     end;
 execute_method(<<"guild.reload">>, #{<<"guild_id">> := GuildIdBin}) ->
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
-    case gen_server:call(guild_manager, {reload_guild, GuildId}, 10000) of
+    case guild_router:reload_guild(GuildId, 10000) of
         ok ->
             true;
         {error, not_found} ->
-            case guild_manager:start_or_lookup(GuildId, 20000) of
+            case guild_router:start_or_lookup(GuildId, 20000) of
                 {ok, _Pid} -> true;
                 _ -> throw({error, <<"Failed to reload guild">>})
             end;
@@ -166,11 +166,11 @@ execute_method(<<"guild.reload_all">>, #{<<"guild_ids">> := GuildIdsBin}) ->
     end;
 execute_method(<<"guild.shutdown">>, #{<<"guild_id">> := GuildIdBin}) ->
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
-    case gen_server:call(guild_manager, {shutdown_guild, GuildId}, 10000) of
+    case guild_router:shutdown_guild(GuildId, 10000) of
         ok ->
             true;
         {error, timeout} ->
-            case gen_server:call(guild_manager, {stop_guild, GuildId}, 10000) of
+            case guild_router:stop_guild(GuildId, 10000) of
                 ok -> true;
                 _ -> throw({error, <<"Failed to shutdown guild">>})
             end;
@@ -189,7 +189,7 @@ execute_method(<<"guild.get_user_permissions">>, #{
             _ ->
                 validation:snowflake_or_throw(<<"channel_id">>, ChannelIdBin)
         end,
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             Request = #{user_id => UserId, channel_id => ChannelId},
             case gen_server:call(Pid, {get_user_permissions, Request}, 10000) of
@@ -217,7 +217,7 @@ execute_method(<<"guild.check_permission">>, #{
             _ ->
                 validation:snowflake_or_throw(<<"channel_id">>, ChannelIdBin)
         end,
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             Request = #{
                 user_id => UserId,
@@ -243,7 +243,7 @@ execute_method(<<"guild.can_manage_roles">>, #{
     UserId = validation:snowflake_or_throw(<<"user_id">>, UserIdBin),
     TargetUserId = validation:snowflake_or_throw(<<"target_user_id">>, TargetUserIdBin),
     RoleId = validation:snowflake_or_throw(<<"role_id">>, RoleIdBin),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             Request = #{
                 user_id => UserId,
@@ -267,7 +267,7 @@ execute_method(<<"guild.can_manage_role">>, #{
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
     UserId = validation:snowflake_or_throw(<<"user_id">>, UserIdBin),
     RoleId = validation:snowflake_or_throw(<<"role_id">>, RoleIdBin),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             Request = #{user_id => UserId, role_id => RoleId},
             case gen_server:call(Pid, {can_manage_role, Request}, 10000) of
@@ -284,7 +284,7 @@ execute_method(<<"guild.get_assignable_roles">>, #{
 }) ->
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
     UserId = validation:snowflake_or_throw(<<"user_id">>, UserIdBin),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             Request = #{user_id => UserId},
             case gen_server:call(Pid, {get_assignable_roles, Request}, 10000) of
@@ -306,7 +306,7 @@ execute_method(<<"guild.get_user_max_role_position">>, #{
 }) ->
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
     UserId = validation:snowflake_or_throw(<<"user_id">>, UserIdBin),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             Request = #{user_id => UserId},
             case gen_server:call(Pid, {get_user_max_role_position, Request}, 10000) of
@@ -323,7 +323,7 @@ execute_method(<<"guild.get_members_with_role">>, #{
 }) ->
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
     RoleId = validation:snowflake_or_throw(<<"role_id">>, RoleIdBin),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             Request = #{role_id => RoleId},
             case gen_server:call(Pid, {get_members_with_role, Request}, 10000) of
@@ -348,7 +348,7 @@ execute_method(<<"guild.check_target_member">>, #{
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
     UserId = validation:snowflake_or_throw(<<"user_id">>, UserIdBin),
     TargetUserId = validation:snowflake_or_throw(<<"target_user_id">>, TargetUserIdBin),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             Request = #{user_id => UserId, target_user_id => TargetUserId},
             case gen_server:call(Pid, {check_target_member, Request}, 10000) of
@@ -365,7 +365,7 @@ execute_method(<<"guild.get_viewable_channels">>, #{
 }) ->
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
     UserId = validation:snowflake_or_throw(<<"user_id">>, UserIdBin),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             Request = #{user_id => UserId},
             case gen_server:call(Pid, {get_viewable_channels, Request}, 10000) of
@@ -392,7 +392,7 @@ execute_method(<<"guild.get_users_to_mention_by_roles">>, #{
     ChannelId = validation:snowflake_or_throw(<<"channel_id">>, ChannelIdBin),
     AuthorId = validation:snowflake_or_throw(<<"author_id">>, AuthorIdBin),
     RoleIdsList = validation:snowflake_list_or_throw(<<"role_ids">>, RoleIds),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             Request = #{
                 channel_id => ChannelId,
@@ -423,7 +423,7 @@ execute_method(<<"guild.get_users_to_mention_by_user_ids">>, #{
     ChannelId = validation:snowflake_or_throw(<<"channel_id">>, ChannelIdBin),
     AuthorId = validation:snowflake_or_throw(<<"author_id">>, AuthorIdBin),
     UserIdsList = validation:snowflake_list_or_throw(<<"user_ids">>, UserIds),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             Request = #{
                 channel_id => ChannelId,
@@ -450,7 +450,7 @@ execute_method(<<"guild.get_all_users_to_mention">>, #{
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
     ChannelId = validation:snowflake_or_throw(<<"channel_id">>, ChannelIdBin),
     AuthorId = validation:snowflake_or_throw(<<"author_id">>, AuthorIdBin),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             Request = #{
                 channel_id => ChannelId,
@@ -484,7 +484,7 @@ execute_method(<<"guild.resolve_all_mentions">>, #{
     AuthorId = validation:snowflake_or_throw(<<"author_id">>, AuthorIdBin),
     RoleIdsList = validation:snowflake_list_or_throw(<<"role_ids">>, RoleIds),
     UserIdsList = validation:snowflake_list_or_throw(<<"user_ids">>, UserIds),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             Request = #{
                 channel_id => ChannelId,
@@ -510,7 +510,7 @@ execute_method(<<"guild.resolve_all_mentions">>, #{
     end;
 execute_method(<<"guild.get_vanity_url_channel">>, #{<<"guild_id">> := GuildIdBin}) ->
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             case gen_server:call(Pid, {get_vanity_url_channel}, 10000) of
                 #{channel_id := ChannelId} when ChannelId =/= null ->
@@ -525,7 +525,7 @@ execute_method(<<"guild.get_vanity_url_channel">>, #{<<"guild_id">> := GuildIdBi
     end;
 execute_method(<<"guild.get_first_viewable_text_channel">>, #{<<"guild_id">> := GuildIdBin}) ->
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             case gen_server:call(Pid, {get_first_viewable_text_channel}, 10000) of
                 #{channel_id := ChannelId} when ChannelId =/= null ->
@@ -549,7 +549,7 @@ execute_method(
 ) ->
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
     UserId = validation:snowflake_or_throw(<<"user_id">>, UserIdBin),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             Request = #{user_id => UserId, mute => Mute, deaf => Deaf},
             case gen_server:call(Pid, {update_member_voice, Request}, 10000) of
@@ -571,7 +571,7 @@ execute_method(
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
     UserId = validation:snowflake_or_throw(<<"user_id">>, UserIdBin),
     ConnectionId = maps:get(<<"connection_id">>, Params, null),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             Request = #{user_id => UserId, connection_id => ConnectionId},
             case gen_server:call(Pid, {disconnect_voice_user, Request}, 10000) of
@@ -597,7 +597,7 @@ execute_method(
         <<"expected_channel_id">>, ExpectedChannelIdBin
     ),
     ConnectionId = maps:get(<<"connection_id">>, Params, undefined),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             Request =
                 case ConnectionId of
@@ -630,7 +630,7 @@ execute_method(<<"guild.disconnect_all_voice_users_in_channel">>, #{
 }) ->
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
     ChannelId = validation:snowflake_or_throw(<<"channel_id">>, ChannelIdBin),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             Request = #{channel_id => ChannelId},
             case gen_server:call(Pid, {disconnect_all_voice_users_in_channel, Request}, 10000) of
@@ -646,7 +646,7 @@ execute_method(<<"guild.confirm_voice_connection_from_livekit">>, Params) ->
     GuildIdBin = maps:get(<<"guild_id">>, Params),
     ConnectionId = maps:get(<<"connection_id">>, Params),
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             Request = #{connection_id => ConnectionId},
             case gen_server:call(Pid, {confirm_voice_connection_from_livekit, Request}, 10000) of
@@ -673,7 +673,7 @@ execute_method(<<"guild.move_member">>, #{
     ModeratorId = validation:snowflake_or_throw(<<"moderator_id">>, ModeratorIdBin),
     case validation:validate_optional_snowflake(ChannelIdBin) of
         {ok, ChannelId} ->
-            case guild_manager:start_or_lookup(GuildId) of
+            case guild_router:start_or_lookup(GuildId) of
                 {ok, Pid} ->
                     Request = #{
                         user_id => UserId,
@@ -722,7 +722,7 @@ execute_method(<<"guild.get_voice_state">>, #{
 }) ->
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
     UserId = validation:snowflake_or_throw(<<"user_id">>, UserIdBin),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             Request = #{user_id => UserId},
             case gen_server:call(Pid, {get_voice_state, Request}, 10000) of
@@ -742,7 +742,7 @@ execute_method(<<"guild.switch_voice_region">>, #{
 }) ->
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
     ChannelId = validation:snowflake_or_throw(<<"channel_id">>, ChannelIdBin),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             Request = #{channel_id => ChannelId},
             case gen_server:call(Pid, {switch_voice_region, Request}, 10000) of
@@ -763,7 +763,7 @@ execute_method(<<"guild.get_category_channel_count">>, #{
 }) ->
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
     CategoryId = validation:snowflake_or_throw(<<"category_id">>, CategoryIdBin),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             Request = #{category_id => CategoryId},
             case gen_server:call(Pid, {get_category_channel_count, Request}, 10000) of
@@ -777,7 +777,7 @@ execute_method(<<"guild.get_category_channel_count">>, #{
     end;
 execute_method(<<"guild.get_channel_count">>, #{<<"guild_id">> := GuildIdBin}) ->
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
-    case guild_manager:start_or_lookup(GuildId) of
+    case guild_router:start_or_lookup(GuildId) of
         {ok, Pid} ->
             case gen_server:call(Pid, {get_channel_count}, 10000) of
                 #{count := Count} ->

@@ -175,7 +175,7 @@ maybe_spawn_guild_connect(GuildId, Attempt, SessionId, UserId, State) ->
 do_guild_connect(SessionPid, GuildId, Attempt, SessionId, UserId, Bot, InitialGuildId) ->
     Result =
         try
-            case guild_manager:start_or_lookup(GuildId) of
+            case guild_router:start_or_lookup(GuildId) of
                 {ok, GuildPid} ->
                     ActiveGuilds = build_initial_active_guilds(InitialGuildId, GuildId),
                     Request = #{

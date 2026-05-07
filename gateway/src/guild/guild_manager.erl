@@ -56,7 +56,10 @@ start_or_lookup(GuildId) ->
 
 -spec start_or_lookup(guild_id(), pos_integer()) -> {ok, pid()} | {error, term()}.
 start_or_lookup(GuildId, Timeout) ->
-    call_shard(GuildId, {start_or_lookup, GuildId}, Timeout).
+    case ensure_owner(GuildId) of
+        ok -> call_shard(GuildId, {start_or_lookup, GuildId}, Timeout);
+        Err -> Err
+    end.
 
 -spec lookup(guild_id()) -> {ok, pid()} | {error, term()}.
 lookup(GuildId) ->
@@ -64,11 +67,22 @@ lookup(GuildId) ->
 
 -spec lookup(guild_id(), pos_integer()) -> {ok, pid()} | {error, term()}.
 lookup(GuildId, Timeout) ->
-    case lookup_cached_guild_pid(GuildId) of
-        {ok, GuildPid} ->
-            {ok, GuildPid};
-        not_found ->
-            call_shard(GuildId, {lookup, GuildId}, Timeout)
+    case ensure_owner(GuildId) of
+        ok ->
+            case lookup_cached_guild_pid(GuildId) of
+                {ok, GuildPid} ->
+                    {ok, GuildPid};
+                not_found ->
+                    call_shard(GuildId, {lookup, GuildId}, Timeout)
+            end;
+        Err -> Err
+    end.
+
+-spec ensure_owner(guild_id()) -> ok | {error, {not_owner, node()}}.
+ensure_owner(GuildId) ->
+    case hash_ring:owner_node(GuildId) of
+        Self when Self =:= node() -> ok;
+        Owner -> {error, {not_owner, Owner}}
     end.
 
 -spec init(list()) -> {ok, state()}.
@@ -85,20 +99,15 @@ init([]) ->
 
 -spec handle_call(term(), gen_server:from(), state()) -> {reply, term(), state()}.
 handle_call({start_or_lookup, GuildId} = Request, _From, State) ->
-    {Reply, NewState} = forward_call(GuildId, Request, State),
-    {reply, Reply, NewState};
+    handle_per_guild(GuildId, Request, State);
 handle_call({lookup, GuildId} = Request, _From, State) ->
-    {Reply, NewState} = forward_call(GuildId, Request, State),
-    {reply, Reply, NewState};
+    handle_per_guild(GuildId, Request, State);
 handle_call({stop_guild, GuildId} = Request, _From, State) ->
-    {Reply, NewState} = forward_call(GuildId, Request, State),
-    {reply, Reply, NewState};
+    handle_per_guild(GuildId, Request, State);
 handle_call({reload_guild, GuildId} = Request, _From, State) ->
-    {Reply, NewState} = forward_call(GuildId, Request, State),
-    {reply, Reply, NewState};
+    handle_per_guild(GuildId, Request, State);
 handle_call({shutdown_guild, GuildId} = Request, _From, State) ->
-    {Reply, NewState} = forward_call(GuildId, Request, State),
-    {reply, Reply, NewState};
+    handle_per_guild(GuildId, Request, State);
 handle_call({reload_all_guilds, GuildIds}, _From, State) ->
     {Reply, NewState} = handle_reload_all(GuildIds, State),
     {reply, Reply, NewState};
@@ -243,6 +252,16 @@ call_via_manager(Request, Timeout) ->
             {error, unavailable};
         Reply ->
             Reply
+    end.
+
+-spec handle_per_guild(guild_id(), term(), state()) -> {reply, term(), state()}.
+handle_per_guild(GuildId, Request, State) ->
+    case ensure_owner(GuildId) of
+        ok ->
+            {Reply, NewState} = forward_call(GuildId, Request, State),
+            {reply, Reply, NewState};
+        Err ->
+            {reply, Err, State}
     end.
 
 -spec forward_call(guild_id(), term(), state()) -> {term(), state()}.
