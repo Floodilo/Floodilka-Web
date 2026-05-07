@@ -75,32 +75,11 @@ handle_call({session_connect, Request}, {Pid, _}, State) ->
     Result = presence_session:handle_session_connect(Request, Pid, State),
     publish_global_if_needed(Result);
 handle_call({terminate_session, SessionIdHashes}, _From, State) ->
-    Sessions = maps:get(sessions, State),
-    SessionPids = [maps:get(pid, S) || S <- maps:values(Sessions)],
-    lists:foreach(
-        fun(Pid) when is_pid(Pid) ->
-            gen_server:cast(Pid, {terminate, SessionIdHashes})
-        end,
-        SessionPids
-    ),
+    broadcast_to_user_sessions({terminate, SessionIdHashes}, State),
     {reply, ok, State};
 handle_call({dispatch, EventAtom, Data}, _From, State) ->
-    Sessions = maps:get(sessions, State),
     UserId = maps:get(user_id, State),
-
-    SessionPids = [maps:get(pid, S) || S <- maps:values(Sessions)],
-
-    lists:foreach(
-        fun(Pid) when is_pid(Pid) ->
-            case erlang:is_process_alive(Pid) of
-                true ->
-                    gen_server:cast(Pid, {dispatch, EventAtom, Data});
-                false ->
-                    ok
-            end
-        end,
-        SessionPids
-    ),
+    broadcast_to_user_sessions({dispatch, EventAtom, Data}, State),
 
     case EventAtom of
         user_update ->
@@ -147,29 +126,14 @@ handle_call({remove_temporary_guild, GuildId}, _From, State) ->
     NewState = maps:put(temporary_guild_ids, NewTemporaryGuildIds, LeftState),
     {reply, LeaveReply, NewState};
 handle_call({terminate, SessionIdHashes}, _From, State) ->
-    Sessions = maps:get(sessions, State),
-    SessionPids = [maps:get(pid, S) || S <- maps:values(Sessions)],
-    lists:foreach(
-        fun(Pid) when is_pid(Pid) ->
-            gen_server:cast(Pid, {terminate, SessionIdHashes})
-        end,
-        SessionPids
-    ),
+    broadcast_to_user_sessions({terminate, SessionIdHashes}, State),
     {stop, normal, ok, State};
 handle_call(_, _From, State) ->
     {reply, ok, State}.
 
 handle_cast({dispatch, Event, Data}, State) ->
-    Sessions = maps:get(sessions, State),
     UserId = maps:get(user_id, State),
-
-    SessionPids = [maps:get(pid, S) || S <- maps:values(Sessions)],
-    lists:foreach(
-        fun(Pid) when is_pid(Pid) ->
-            gen_server:cast(Pid, {dispatch, Event, Data})
-        end,
-        SessionPids
-    ),
+    broadcast_to_user_sessions({dispatch, Event, Data}, State),
 
     case Event of
         user_update ->
@@ -204,24 +168,10 @@ handle_cast({presence_update, Request}, State) ->
     Result = presence_session:handle_presence_update(UpdatedRequest, StateWithCustomStatus),
     publish_global_if_needed(Result);
 handle_cast({terminate_session, SessionIdHashes}, State) ->
-    Sessions = maps:get(sessions, State),
-    SessionPids = [maps:get(pid, S) || S <- maps:values(Sessions)],
-    lists:foreach(
-        fun(Pid) when is_pid(Pid) ->
-            gen_server:cast(Pid, {terminate, SessionIdHashes})
-        end,
-        SessionPids
-    ),
+    broadcast_to_user_sessions({terminate, SessionIdHashes}, State),
     {noreply, State};
 handle_cast({terminate_all_sessions}, State) ->
-    Sessions = maps:get(sessions, State),
-    SessionPids = [maps:get(pid, S) || S <- maps:values(Sessions)],
-    lists:foreach(
-        fun(Pid) when is_pid(Pid) ->
-            gen_server:cast(Pid, {terminate_force})
-        end,
-        SessionPids
-    ),
+    broadcast_to_user_sessions({terminate_force}, State),
     {noreply, State};
 handle_cast({sync_friends, FriendIds}, State) ->
     NewState = sync_friend_subscriptions(FriendIds, State),
@@ -235,14 +185,7 @@ handle_cast(_, State) ->
 handle_info({presence, TargetId, Payload}, State) ->
     dispatch_global_presence(TargetId, Payload, State);
 handle_info({initial_presences, Presences}, State) ->
-    Sessions = maps:get(sessions, State),
-    SessionPids = [maps:get(pid, S) || S <- maps:values(Sessions)],
-    lists:foreach(
-        fun(Pid) when is_pid(Pid) ->
-            gen_server:cast(Pid, {initial_global_presences, Presences})
-        end,
-        SessionPids
-    ),
+    broadcast_to_user_sessions({initial_global_presences, Presences}, State),
     {noreply, State};
 handle_info({'DOWN', Ref, process, _Pid, Reason}, State) ->
     handle_process_down(Ref, Reason, State);
@@ -449,14 +392,7 @@ dispatch_global_presence(TargetId, Payload, State) ->
             {noreply, State};
         false ->
             cache_if_visible(TargetId, Payload),
-            Sessions = maps:get(sessions, State),
-            SessionPids = [maps:get(pid, S) || S <- maps:values(Sessions)],
-            lists:foreach(
-                fun(Pid) when is_pid(Pid) ->
-                    gen_server:cast(Pid, {dispatch, presence_update, Payload})
-                end,
-                SessionPids
-            ),
+            broadcast_to_user_sessions({dispatch, presence_update, Payload}, State),
             {noreply, State}
     end.
 
@@ -773,15 +709,21 @@ maybe_force_offline(UserIds, State) ->
     ).
 
 notify_sessions_presence(Payload, State) ->
-    Sessions = maps:get(sessions, State, #{}),
-    SessionPids = [maps:get(pid, S) || S <- maps:values(Sessions)],
-    lists:foreach(
-        fun(Pid) when is_pid(Pid) ->
-            gen_server:cast(Pid, {dispatch, presence_update, Payload})
-        end,
-        SessionPids
-    ),
+    broadcast_to_user_sessions({dispatch, presence_update, Payload}, State),
     State.
+
+broadcast_to_user_sessions(Msg, State) ->
+    Sessions = maps:get(sessions, State, #{}),
+    Pids = [
+        Pid
+     || S <- maps:values(Sessions),
+        (Pid = maps:get(pid, S, undefined)) =/= undefined,
+        is_pid(Pid)
+    ],
+    case Pids of
+        [] -> ok;
+        _ -> manifold:cast(Pids, Msg)
+    end.
 
 fetch_initial_presences(PresencePid, State) ->
     case maps:get(is_bot, State, false) of
