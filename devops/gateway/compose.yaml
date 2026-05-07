@@ -10,10 +10,9 @@ services:
         soft: 65536
         hard: 65536
     environment:
-      # RELEASE_NODE is computed by prod-entrypoint.sh from container IP
-      # so each replica gets a unique distributed-Erlang name.
+      - RELEASE_NODE=floodilka_gateway@gateway
       - CLUSTER_NAME=floodilka_gateway
-      - CLUSTER_DISCOVERY_DNS=tasks.gateway
+      - CLUSTER_DISCOVERY_DNS=gateway
       - NODE_COOKIE=floodilka_prod_cookie
       - LOGGER_LEVEL=info
       - FLOODILKA_API_HOST=api:8080
@@ -24,22 +23,14 @@ services:
       - floodilka-shared
     stop_grace_period: 15s
     deploy:
-      # Scaled back to 1 replica until application-layer cluster awareness
-      # is implemented (presence_cache, voice rooms, guild presence, push
-      # subscriptions are all per-node ETS today — see project_phase7_complete.md
-      # tech-debt section "TD-gw-app-layer-cluster-awareness").
       replicas: 1
-      endpoint_mode: dnsrr
       placement:
         constraints:
-          - node.labels.role == gateway
-        preferences:
-          - spread: node.hostname
+          - node.labels.role == infra
       update_config:
-        order: start-first
+        order: stop-first
         failure_action: rollback
-        monitor: 30s
-        parallelism: 1
+        monitor: 15s
       restart_policy:
         condition: any
         delay: 10s
