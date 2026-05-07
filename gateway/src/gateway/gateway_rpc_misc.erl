@@ -36,13 +36,12 @@ execute_method(<<"process.memory_stats">>, Params) ->
 execute_method(<<"process.node_stats">>, _Params) ->
     get_local_node_stats();
 execute_method(<<"process.get_all_voice_states">>, _Params) ->
-    GuildVoiceStates = collect_all_guild_voice_states(),
+    %% Voice states live on the owning node for each guild / call. Aggregate
+    %% across every gateway node so the admin voice monitor sees the whole
+    %% cluster, not just whichever replica caught the RPC.
+    GuildVoiceStates = cluster_stats:collect_call(guild_manager, get_all_voice_states, 5000),
 
-    CallVoiceStates =
-        case catch gen_server:call(call_manager, get_all_call_states, 5000) of
-            {ok, CallResults} -> CallResults;
-            _ -> []
-        end,
+    CallVoiceStates = cluster_stats:collect_call(call_manager, get_all_call_states, 5000),
 
     FormattedGuilds = lists:map(fun format_guild_voice_data/1, GuildVoiceStates),
     FormattedCalls = lists:map(fun format_call_voice_data/1, CallVoiceStates),
@@ -53,29 +52,13 @@ execute_method(<<"process.get_all_voice_states">>, _Params) ->
     }.
 
 get_local_node_stats() ->
-    SessionCount =
-        case gen_server:call(session_manager, get_global_count, 1000) of
-            {ok, SC} -> SC;
-            _ -> 0
-        end,
-
-    GuildCount =
-        case gen_server:call(guild_manager, get_global_count, 1000) of
-            {ok, GC} -> GC;
-            _ -> 0
-        end,
-
-    PresenceCount =
-        case gen_server:call(presence_manager, get_global_count, 1000) of
-            {ok, PC} -> PC;
-            _ -> 0
-        end,
-
-    CallCount =
-        case gen_server:call(call_manager, get_global_count, 1000) of
-            {ok, CC} -> CC;
-            _ -> 0
-        end,
+    %% Cluster-wide totals. Each manager's get_global_count returns the
+    %% local node's count; cluster_stats fans out across every gateway
+    %% node and sums the answers.
+    SessionCount = cluster_stats:sum_call(session_manager, get_global_count, 1000),
+    GuildCount = cluster_stats:sum_call(guild_manager, get_global_count, 1000),
+    PresenceCount = cluster_stats:sum_call(presence_manager, get_global_count, 1000),
+    CallCount = cluster_stats:sum_call(call_manager, get_global_count, 1000),
 
     MemoryInfo = erlang:memory(),
     TotalMemory = proplists:get_value(total, MemoryInfo, 0),
@@ -97,57 +80,6 @@ get_local_node_stats() ->
         <<"process_limit">> => erlang:system_info(process_limit),
         <<"uptime_seconds">> => element(1, erlang:statistics(wall_clock)) div 1000
     }.
-
-collect_all_guild_voice_states() ->
-    ShardPids = get_shard_pids(),
-    Parent = self(),
-    Refs = lists:map(
-        fun(Pid) ->
-            Ref = make_ref(),
-            spawn(fun() ->
-                Result = case catch gen_server:call(Pid, get_all_voice_states, 10000) of
-                    {ok, R} -> R;
-                    _ -> []
-                end,
-                Parent ! {voice_states_result, Ref, Result}
-            end),
-            Ref
-        end,
-        ShardPids
-    ),
-    lists:flatmap(
-        fun(Ref) ->
-            receive
-                {voice_states_result, Ref, Result} -> Result
-            after 12000 ->
-                []
-            end
-        end,
-        Refs
-    ).
-
-get_shard_pids() ->
-    try
-        case ets:lookup(guild_manager_shard_table, shard_count) of
-            [{shard_count, Count}] when is_integer(Count), Count > 0 ->
-                lists:filtermap(
-                    fun(Index) ->
-                        case ets:lookup(guild_manager_shard_table, {shard_pid, Index}) of
-                            [{{shard_pid, Index}, Pid}] when is_pid(Pid) ->
-                                case erlang:is_process_alive(Pid) of
-                                    true -> {true, Pid};
-                                    false -> false
-                                end;
-                            _ -> false
-                        end
-                    end,
-                    lists:seq(0, Count - 1)
-                );
-            _ -> []
-        end
-    catch
-        error:badarg -> []
-    end.
 
 format_guild_voice_data(GuildData) ->
     #{

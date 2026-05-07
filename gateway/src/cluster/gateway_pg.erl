@@ -76,9 +76,20 @@ join(Group, Pids) when is_list(Pids) ->
         _ -> pg:join(?SCOPE, Group, Local)
     end.
 
+%% @doc Leave the group. Same locality constraint as join — pg:leave/3
+%% crashes for remote pids; we defensively skip them.
 -spec leave(group(), pid() | [pid()]) -> ok | not_joined.
-leave(Group, PidOrPids) ->
-    pg:leave(?SCOPE, Group, PidOrPids).
+leave(Group, Pid) when is_pid(Pid) ->
+    case node(Pid) =:= node() of
+        true -> pg:leave(?SCOPE, Group, Pid);
+        false -> ok
+    end;
+leave(Group, Pids) when is_list(Pids) ->
+    Local = [P || P <- Pids, is_pid(P), node(P) =:= node()],
+    case Local of
+        [] -> ok;
+        _ -> pg:leave(?SCOPE, Group, Local)
+    end.
 
 %% @doc Returns pids in the group across the entire cluster — local and remote.
 -spec members(group()) -> [pid()].

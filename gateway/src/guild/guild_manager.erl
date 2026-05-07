@@ -117,6 +117,9 @@ handle_call(get_local_count, _From, State) ->
 handle_call(get_global_count, _From, State) ->
     {Count, NewState} = aggregate_counts(get_global_count, State),
     {reply, {ok, Count}, NewState};
+handle_call(get_all_voice_states, _From, State) ->
+    {Reply, NewState} = aggregate_voice_states(State),
+    {reply, {ok, Reply}, NewState};
 handle_call(Request, _From, State) ->
     logger:warning("[guild_manager] unknown request ~p", [Request]),
     {reply, ok, State}.
@@ -323,6 +326,21 @@ ensure_shard_for_index(Index, State) ->
 -spec select_shard(guild_id(), pos_integer()) -> non_neg_integer().
 select_shard(GuildId, Count) when Count > 0 ->
     rendezvous_router:select(GuildId, Count).
+
+-spec aggregate_voice_states(state()) -> {[term()], state()}.
+aggregate_voice_states(State) ->
+    Shards = maps:get(shards, State),
+    Results = lists:flatmap(
+        fun(ShardMap) ->
+            Pid = maps:get(pid, ShardMap),
+            case catch gen_server:call(Pid, get_all_voice_states, 10000) of
+                {ok, R} when is_list(R) -> R;
+                _ -> []
+            end
+        end,
+        maps:values(Shards)
+    ),
+    {Results, State}.
 
 -spec aggregate_counts(term(), state()) -> {non_neg_integer(), state()}.
 aggregate_counts(Request, State) ->
