@@ -89,9 +89,17 @@ init([]) ->
         shutdown => 5000,
         type => worker
     },
+    PresenceReplicator = #{
+        id => {cluster_state_replicator, presence},
+        start => {cluster_state_replicator, start_link, [presence]},
+        restart => permanent,
+        shutdown => 5000,
+        type => worker
+    },
     {ok,
         {{one_for_one, 5, 10}, [
             ClusterBootstrap,
+            PresenceReplicator,
             SessionManager,
             PresenceCache,
             PresenceBus,
