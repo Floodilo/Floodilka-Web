@@ -55,9 +55,26 @@
 -spec scope() -> atom().
 scope() -> ?SCOPE.
 
+%% @doc Join a process to the group. The Pid MUST be local to this node —
+%% pg:join itself enforces that and crashes with {nolocal, Pid} otherwise.
+%% This function applies a defensive guard: remote pids are silently skipped
+%% so a misplaced caller (e.g. one running inside a guild_process on the
+%% guild-owner node, with a session pid from a different gateway node) can
+%% never crash the calling gen_server. Such callers should be relocated to
+%% run on the pid's own node — see session_connection for the correct
+%% placement of guild/presence joins.
 -spec join(group(), pid() | [pid()]) -> ok.
-join(Group, PidOrPids) ->
-    pg:join(?SCOPE, Group, PidOrPids).
+join(Group, Pid) when is_pid(Pid) ->
+    case node(Pid) =:= node() of
+        true -> pg:join(?SCOPE, Group, Pid);
+        false -> ok
+    end;
+join(Group, Pids) when is_list(Pids) ->
+    Local = [P || P <- Pids, is_pid(P), node(P) =:= node()],
+    case Local of
+        [] -> ok;
+        _ -> pg:join(?SCOPE, Group, Local)
+    end.
 
 -spec leave(group(), pid() | [pid()]) -> ok | not_joined.
 leave(Group, PidOrPids) ->

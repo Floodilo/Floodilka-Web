@@ -72,8 +72,6 @@ handle_session_connect(Request, Pid, State) ->
             NewSessions = maps:put(SessionId, SessionData, Sessions),
             State1 = maps:put(sessions, NewSessions, State),
 
-            gateway_pg:join({guild, GuildId}, Pid),
-
             State2 = subscribe_to_user_presence(UserId, State1),
 
             case is_guild_unavailable_for_user(UserId, State2) of

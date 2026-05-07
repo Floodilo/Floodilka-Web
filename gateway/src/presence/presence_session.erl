@@ -54,9 +54,6 @@ handle_session_connect(Request, Pid, State) ->
             NewSessions = maps:put(SessionId, SessionEntry, Sessions),
             NewState = maps:put(sessions, NewSessions, State),
 
-            UserId = maps:get(user_id, State),
-            gateway_pg:join({user, UserId}, Pid),
-
             SessionsData = presence_status:collect_sessions_for_replace(NewSessions),
             {reply, {ok, SessionsData}, NewState}
     end.

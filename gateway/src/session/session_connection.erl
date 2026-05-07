@@ -52,6 +52,7 @@ handle_presence_connect(Attempt, State) ->
 
     case presence_router:start_or_lookup(UserId, PresenceRequest, 5000) of
         {ok, Pid} ->
+            gateway_pg:join({user, UserId}, self()),
             try
                 case
                     gen_server:call(
@@ -184,6 +185,7 @@ do_guild_connect(SessionPid, GuildId, Attempt, SessionId, UserId, Bot, InitialGu
                         initial_guild_id => InitialGuildId,
                         active_guilds => ActiveGuilds
                     },
+                    gateway_pg:join({guild, GuildId}, SessionPid),
                     case gen_server:call(GuildPid, {session_connect, Request}, 10000) of
                         {ok, unavailable, UnavailableResponse} ->
                             {ok_unavailable, GuildPid, UnavailableResponse};
