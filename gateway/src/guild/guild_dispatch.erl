@@ -208,18 +208,22 @@ dispatch_bulk_update(FilteredSessions, Event, FinalData, UpdatedState) ->
     ).
 
 dispatch_standard(FilteredSessions, Event, FinalData, GuildId, State) ->
-    lists:foreach(
+    Pids = lists:filtermap(
         fun({_Sid, SessionData}) ->
             Pid = maps:get(pid, SessionData),
-            case is_pid(Pid) andalso should_receive_event(Event, FinalData, GuildId, SessionData, State) of
-                true ->
-                    gen_server:cast(Pid, {dispatch, Event, FinalData});
-                false ->
-                    ok
+            case
+                is_pid(Pid) andalso should_receive_event(Event, FinalData, GuildId, SessionData, State)
+            of
+                true -> {true, Pid};
+                false -> false
             end
         end,
         FilteredSessions
-    ).
+    ),
+    case Pids of
+        [] -> ok;
+        _ -> manifold:cast(Pids, {dispatch, Event, FinalData})
+    end.
 
 maybe_send_push_notifications(message_create, FinalData, GuildId, UpdatedState) ->
     spawn(fun() ->

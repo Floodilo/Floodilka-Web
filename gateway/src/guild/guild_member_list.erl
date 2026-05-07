@@ -241,27 +241,25 @@ broadcast_member_list_updates(_UserId, OldState, UpdatedState) ->
 -spec send_member_list_update_to_sessions(list_id(), map(), map(), map(), guild_state()) -> ok.
 send_member_list_update_to_sessions(ListId, ListSubs, Sessions, Payload, State) ->
     ChannelId = list_id_channel_id(ListId),
-    maps:foreach(
-        fun(SessionId, _Ranges) ->
+    Pids = maps:fold(
+        fun(SessionId, _Ranges, Acc) ->
             case maps:get(SessionId, Sessions, undefined) of
-                #{pid := SessionPid} = SessionData ->
-                    case is_pid(SessionPid) of
-                        true ->
-                            case session_can_view_channel(SessionData, ChannelId, State) of
-                                true ->
-                                    gen_server:cast(SessionPid, {dispatch, guild_member_list_update, Payload});
-                                false ->
-                                    ok
-                            end;
-                        false ->
-                            ok
+                #{pid := SessionPid} = SessionData when is_pid(SessionPid) ->
+                    case session_can_view_channel(SessionData, ChannelId, State) of
+                        true -> [SessionPid | Acc];
+                        false -> Acc
                     end;
                 _ ->
-                    ok
+                    Acc
             end
         end,
+        [],
         ListSubs
-    ).
+    ),
+    case Pids of
+        [] -> ok;
+        _ -> manifold:cast(Pids, {dispatch, guild_member_list_update, Payload})
+    end.
 
  -spec member_list_delta(list_id(), guild_state(), guild_state(), user_id()) ->
     {non_neg_integer(), non_neg_integer(), [group_item()], [list_item()], boolean()}.
