@@ -698,6 +698,7 @@ handle_join_internal(UserId, VoiceState, SessionId, SessionPid, ConnectionId, St
 
     SessionRef = monitor(process, SessionPid),
     NewSessions = maps:put(SessionId, {UserId, SessionPid, SessionRef}, CleanedSessions),
+    gateway_pg:join({voice, BaseState#state.channel_id}, SessionPid),
     NewParticipantsHistory = sets:add_element(UserId, BaseState#state.participants_history),
 
     NewPending =

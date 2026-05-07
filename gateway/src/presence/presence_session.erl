@@ -54,6 +54,9 @@ handle_session_connect(Request, Pid, State) ->
             NewSessions = maps:put(SessionId, SessionEntry, Sessions),
             NewState = maps:put(sessions, NewSessions, State),
 
+            UserId = maps:get(user_id, State),
+            gateway_pg:join({user, UserId}, Pid),
+
             SessionsData = presence_status:collect_sessions_for_replace(NewSessions),
             {reply, {ok, SessionsData}, NewState}
     end.
@@ -77,34 +80,27 @@ handle_presence_update(Request, State) ->
 dispatch_sessions_replace(State) ->
     Sessions = maps:get(sessions, State),
     SessionsData = presence_status:collect_sessions_for_replace(Sessions),
-    SessionPids = [maps:get(pid, S) || S <- maps:values(Sessions)],
-
-    lists:foreach(
-        fun(Pid) when is_pid(Pid) ->
-            gen_server:cast(Pid, {dispatch, sessions_replace, SessionsData})
-        end,
-        SessionPids
-    ).
+    cast_to_session_pids(Sessions, {dispatch, sessions_replace, SessionsData}).
 
 notify_sessions_guild_join(GuildId, State) ->
     Sessions = maps:get(sessions, State),
-    SessionPids = [maps:get(pid, S) || S <- maps:values(Sessions)],
-    lists:foreach(
-        fun(Pid) when is_pid(Pid) ->
-            gen_server:cast(Pid, {guild_join, GuildId})
-        end,
-        SessionPids
-    ).
+    cast_to_session_pids(Sessions, {guild_join, GuildId}).
 
 notify_sessions_guild_leave(GuildId, State) ->
     Sessions = maps:get(sessions, State),
-    SessionPids = [maps:get(pid, S) || S <- maps:values(Sessions)],
-    lists:foreach(
-        fun(Pid) when is_pid(Pid) ->
-            gen_server:cast(Pid, {guild_leave, GuildId})
-        end,
-        SessionPids
-    ).
+    cast_to_session_pids(Sessions, {guild_leave, GuildId}).
+
+cast_to_session_pids(Sessions, Msg) ->
+    Pids = [
+        Pid
+     || S <- maps:values(Sessions),
+        (Pid = maps:get(pid, S, undefined)) =/= undefined,
+        is_pid(Pid)
+    ],
+    case Pids of
+        [] -> ok;
+        _ -> manifold:cast(Pids, Msg)
+    end.
 
 find_session_by_ref(Ref, Sessions) ->
     maps:fold(
