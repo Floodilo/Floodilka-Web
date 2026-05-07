@@ -301,13 +301,25 @@ jobs:
           # Rolling update Worker (stop-first, блокирующий)
           ssh production "docker service update --image floodilka-backend:${SHA} backend_worker"
 
-          # Phase 7.13j cutover: hot reload cannot start the new
-          # supervisor children (hash_ring / pg / manifold_sup) introduced in
-          # 7.13a-i, so we force a full image-based restart instead. This
-          # accepts ~15-30s WS downtime under stop-first; clients reconnect
-          # automatically. Revert this block to hot reload after the cutover
-          # has soaked.
-          ssh production "docker service update --image floodilka-gateway:${SHA} gateway_gateway"
+          # Gateway hot reload (zero downtime, no restart). Suitable for
+          # function-body changes only — anything that adds new supervisor
+          # children, new applications, or changes init/1 must be deployed
+          # via `docker service update --image floodilka-gateway:<sha> gateway_gateway`
+          # which forces a full container restart (~15-30s WS downtime).
+          ssh production "
+            docker rm -f gw-extract 2>/dev/null || true &&
+            docker create --name gw-extract floodilka-gateway:latest &&
+            docker cp gw-extract:/opt/floodilka_gateway/lib/floodilka_gateway-0.0.0/ebin /tmp/gw-beams &&
+            docker rm gw-extract &&
+            CONTAINER_ID=\$(docker ps -q -f name=gateway_gateway --no-trunc | head -1) &&
+            docker cp /tmp/gw-beams/. \$CONTAINER_ID:/opt/floodilka_gateway/lib/floodilka_gateway-0.0.0/ebin/ &&
+            docker exec \$CONTAINER_ID curl -sf \
+              -X POST http://localhost:8081/_admin/reload \
+              -H 'Content-Type: application/json' \
+              -H 'Authorization: Bearer ${GATEWAY_ADMIN_SECRET}' \
+              -d '{}' &&
+            rm -rf /tmp/gw-beams
+          " || echo "Gateway hot reload skipped (container may have restarted from config change)"
 
           # Rolling update remaining services (start-first, parallel)
           ssh production "docker service update --image floodilka-media-proxy:${SHA} media_media --detach"
