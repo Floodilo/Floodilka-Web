@@ -168,9 +168,13 @@ handle_cast({guild_data_fetched, GuildId, Result}, State) ->
                 {ok, Pid, NewState} ->
                     lists:foreach(fun(From) -> gen_server:reply(From, {ok, Pid}) end, Requests),
                     NewPending = maps:remove(GuildId, Pending),
-                    NewGuilds = maps:get(guilds, NewState),
-                    CleanGuilds = maps:remove(GuildId, NewGuilds),
-                    {noreply, NewState#{pending_requests => NewPending, guilds => CleanGuilds}};
+                    %% start_guild already replaced the `loading` placeholder
+                    %% with `{Pid, Ref}` keyed by GuildId; do NOT remove it
+                    %% here — that would leave the guild_process orphaned in
+                    %% the registry and break get_global_count /
+                    %% get_all_voice_states (process_registry:get_count
+                    %% would always return 0).
+                    {noreply, NewState#{pending_requests => NewPending}};
                 {error, Reason} ->
                     logger:error("[guild_manager] Failed to start guild ~p: ~p", [GuildId, Reason]),
                     lists:foreach(
