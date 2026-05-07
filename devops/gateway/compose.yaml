@@ -24,7 +24,11 @@ services:
       - floodilka-shared
     stop_grace_period: 15s
     deploy:
-      replicas: 3
+      # Scaled back to 1 replica until application-layer cluster awareness
+      # is implemented (presence_cache, voice rooms, guild presence, push
+      # subscriptions are all per-node ETS today — see project_phase7_complete.md
+      # tech-debt section "TD-gw-app-layer-cluster-awareness").
+      replicas: 1
       endpoint_mode: dnsrr
       placement:
         constraints:
