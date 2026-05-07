@@ -72,6 +72,7 @@ collect_call(RegisteredName, Request, Timeout) ->
     lists:foldl(
         fun
             ({ok, List}, Acc) when is_list(List) -> List ++ Acc;
+            (List, Acc) when is_list(List) -> List ++ Acc;
             (_, Acc) -> Acc
         end,
         [],

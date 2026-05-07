@@ -37,19 +37,51 @@ start_link() ->
 
 -spec put(integer(), map()) -> ok.
 put(UserId, Presence) when is_integer(UserId), is_map(Presence) ->
-    gen_server:call(?MODULE, {put, UserId, Presence}, ?DEFAULT_GEN_SERVER_TIMEOUT).
+    route(UserId, {put, UserId, Presence}, ok).
 
 -spec delete(integer()) -> ok.
 delete(UserId) when is_integer(UserId) ->
-    gen_server:call(?MODULE, {delete, UserId}, ?DEFAULT_GEN_SERVER_TIMEOUT).
+    route(UserId, {delete, UserId}, ok).
 
 -spec get(integer()) -> {ok, map()} | not_found.
 get(UserId) when is_integer(UserId) ->
-    gen_server:call(?MODULE, {get, UserId}, ?DEFAULT_GEN_SERVER_TIMEOUT).
+    route(UserId, {get, UserId}, not_found).
 
 -spec bulk_get([term()]) -> [map()].
 bulk_get(UserIds) when is_list(UserIds) ->
-    gen_server:call(?MODULE, {bulk_get, UserIds}, ?DEFAULT_GEN_SERVER_TIMEOUT).
+    %% Split user ids by owner node and fan out one bulk_get per node so we
+    %% only pay one cross-node round-trip per remote owner. Local-owned ids
+    %% go straight to the local gen_server. Order is not preserved (callers
+    %% don't rely on it — they consume by user id).
+    ByNode = lists:foldl(
+        fun(UserId, Acc) when is_integer(UserId) ->
+            Owner = hash_ring:owner_node(UserId),
+            maps:update_with(Owner, fun(L) -> [UserId | L] end, [UserId], Acc);
+           (_, Acc) -> Acc
+        end,
+        #{},
+        UserIds
+    ),
+    Self = node(),
+    maps:fold(
+        fun
+            (Node, Ids, Acc) when Node =:= Self ->
+                case catch gen_server:call(?MODULE, {bulk_get, Ids}, ?DEFAULT_GEN_SERVER_TIMEOUT) of
+                    L when is_list(L) -> L ++ Acc;
+                    _ -> Acc
+                end;
+            (Node, Ids, Acc) ->
+                try erpc:call(Node, gen_server, call,
+                    [?MODULE, {bulk_get, Ids}, ?DEFAULT_GEN_SERVER_TIMEOUT],
+                    ?DEFAULT_GEN_SERVER_TIMEOUT + 1000) of
+                    L when is_list(L) -> L ++ Acc;
+                    _ -> Acc
+                catch _:_ -> Acc
+                end
+        end,
+        [],
+        ByNode
+    ).
 
 -spec get_memory_stats() -> {ok, map()} | {error, term()}.
 get_memory_stats() ->
@@ -57,7 +89,27 @@ get_memory_stats() ->
 
 -spec get_all_user_ids() -> [integer()].
 get_all_user_ids() ->
-    gen_server:call(?MODULE, get_all_user_ids, ?DEFAULT_GEN_SERVER_TIMEOUT).
+    %% Admin / introspection — aggregate from every node so the resulting
+    %% list is the true set of users currently cached cluster-wide.
+    cluster_stats:collect_call(?MODULE, get_all_user_ids, ?DEFAULT_GEN_SERVER_TIMEOUT).
+
+%% Owner-routed gen_server:call. Falls back to FailureValue for any cross-
+%% node / timeout error so caller paths (presence subscribe, member list
+%% render) never crash on a transient cluster hiccup.
+-spec route(integer(), term(), term()) -> term().
+route(UserId, Request, FailureValue) ->
+    Owner = hash_ring:owner_node(UserId),
+    case Owner =:= node() of
+        true ->
+            gen_server:call(?MODULE, Request, ?DEFAULT_GEN_SERVER_TIMEOUT);
+        false ->
+            try erpc:call(Owner, gen_server, call,
+                [?MODULE, Request, ?DEFAULT_GEN_SERVER_TIMEOUT],
+                ?DEFAULT_GEN_SERVER_TIMEOUT + 1000) of
+                Reply -> Reply
+            catch _:_ -> FailureValue
+            end
+    end.
 
 -spec init(list()) -> {ok, state()}.
 init([]) ->
