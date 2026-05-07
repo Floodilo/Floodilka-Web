@@ -38,7 +38,7 @@ execute_method(<<"presence.join_guild">>, #{
 }) ->
     UserId = validation:snowflake_or_throw(<<"user_id">>, UserIdBin),
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
-    case gen_server:call(presence_manager, {lookup, UserId}, 10000) of
+    case presence_router:lookup(UserId, 10000) of
         {ok, Pid} ->
             case gen_server:call(Pid, {join_guild, GuildId}, 10000) of
                 ok -> true;
@@ -56,7 +56,7 @@ execute_method(<<"presence.leave_guild">>, #{
 }) ->
     UserId = validation:snowflake_or_throw(<<"user_id">>, UserIdBin),
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
-    case gen_server:call(presence_manager, {lookup, UserId}, 10000) of
+    case presence_router:lookup(UserId, 10000) of
         {ok, Pid} ->
             case gen_server:call(Pid, {leave_guild, GuildId}, 10000) of
                 ok -> true;
@@ -73,7 +73,7 @@ execute_method(<<"presence.terminate_sessions">>, #{
     <<"user_id">> := UserIdBin, <<"session_id_hashes">> := SessionIdHashes
 }) ->
     UserId = validation:snowflake_or_throw(<<"user_id">>, UserIdBin),
-    case gen_server:call(presence_manager, {lookup, UserId}, 10000) of
+    case presence_router:lookup(UserId, 10000) of
         {ok, Pid} ->
             case gen_server:call(Pid, {terminate_session, SessionIdHashes}, 10000) of
                 ok -> true;
@@ -96,7 +96,7 @@ execute_method(<<"presence.terminate_all_sessions">>, #{
     end;
 execute_method(<<"presence.has_active">>, #{<<"user_id">> := UserIdBin}) ->
     UserId = validation:snowflake_or_throw(<<"user_id">>, UserIdBin),
-    case gen_server:call(presence_manager, {lookup, UserId}, 10000) of
+    case presence_router:lookup(UserId, 10000) of
         {ok, _Pid} ->
             #{<<"has_active">> => true};
         _ ->
@@ -107,7 +107,7 @@ execute_method(<<"presence.add_temporary_guild">>, #{
 }) ->
     UserId = validation:snowflake_or_throw(<<"user_id">>, UserIdBin),
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
-    case gen_server:call(presence_manager, {lookup, UserId}, 10000) of
+    case presence_router:lookup(UserId, 10000) of
         {ok, Pid} ->
             case gen_server:call(Pid, {add_temporary_guild, GuildId}, 10000) of
                 ok -> true;
@@ -125,7 +125,7 @@ execute_method(<<"presence.remove_temporary_guild">>, #{
 }) ->
     UserId = validation:snowflake_or_throw(<<"user_id">>, UserIdBin),
     GuildId = validation:snowflake_or_throw(<<"guild_id">>, GuildIdBin),
-    case gen_server:call(presence_manager, {lookup, UserId}, 10000) of
+    case presence_router:lookup(UserId, 10000) of
         {ok, Pid} ->
             case gen_server:call(Pid, {remove_temporary_guild, GuildId}, 10000) of
                 ok -> true;
@@ -154,7 +154,7 @@ execute_method(<<"presence.sync_group_dm_recipients">>, #{
             }
          || {ChannelIdBin, Recipients} <- maps:to_list(RecipientsByChannel)
         ]),
-    case gen_server:call(presence_manager, {lookup, UserId}, 10000) of
+    case presence_router:lookup(UserId, 10000) of
         {ok, Pid} ->
             gen_server:cast(Pid, {sync_group_dm_recipients, NormalizedRecipients}),
             true;

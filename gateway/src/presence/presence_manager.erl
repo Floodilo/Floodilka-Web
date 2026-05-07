@@ -35,17 +35,17 @@
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
--spec lookup(user_id()) -> {ok, pid()} | {error, not_found}.
+-spec lookup(user_id()) -> {ok, pid()} | {error, term()}.
 lookup(UserId) ->
-    gen_server:call(?MODULE, {lookup, UserId}, ?DEFAULT_GEN_SERVER_TIMEOUT).
+    presence_router:lookup(UserId).
 
 -spec terminate_all_sessions(user_id()) -> ok | {error, term()}.
 terminate_all_sessions(UserId) ->
-    gen_server:call(?MODULE, {terminate_all_sessions, UserId}, ?DEFAULT_GEN_SERVER_TIMEOUT).
+    presence_router:terminate_all_sessions(UserId).
 
--spec dispatch_to_user(user_id(), event_type(), term()) -> ok | {error, not_found}.
+-spec dispatch_to_user(user_id(), event_type(), term()) -> ok | {error, term()}.
 dispatch_to_user(UserId, Event, Data) ->
-    gen_server:call(?MODULE, {dispatch, UserId, Event, Data}, ?DEFAULT_GEN_SERVER_TIMEOUT).
+    presence_router:dispatch_to_user(UserId, Event, Data).
 
 -spec init(list()) -> {ok, state()}.
 init([]) ->
@@ -70,19 +70,15 @@ init([]) ->
     {ok, #{shards => ShardMap, shard_count => ShardCount}}.
 
 -spec handle_call(term(), gen_server:from(), state()) -> {reply, term(), state()}.
-handle_call({lookup, UserId}, _From, State) ->
-    {Reply, NewState} = forward_call(UserId, {lookup, UserId}, State),
-    {reply, Reply, NewState};
+handle_call({lookup, UserId} = Request, _From, State) ->
+    handle_per_user(UserId, Request, State);
 handle_call({dispatch, UserId, Event, Data}, _From, State) ->
-    {Reply, NewState} = forward_call(UserId, {dispatch, UserId, Event, Data}, State),
-    {reply, Reply, NewState};
+    handle_per_user(UserId, {dispatch, UserId, Event, Data}, State);
 handle_call({terminate_all_sessions, UserId}, _From, State) ->
-    {Reply, NewState} = forward_call(UserId, {terminate_all_sessions, UserId}, State),
-    {reply, Reply, NewState};
+    handle_per_user(UserId, {terminate_all_sessions, UserId}, State);
 handle_call({start_or_lookup, _} = Request, _From, State) ->
     Key = extract_user_id(Request),
-    {Reply, NewState} = forward_call(Key, Request, State),
-    {reply, Reply, NewState};
+    handle_per_user(Key, Request, State);
 handle_call(get_local_count, _From, State) ->
     {Count, NewState} = aggregate_counts(get_local_count, State),
     {reply, {ok, Count}, NewState};
@@ -175,6 +171,23 @@ restart_shard(Index, State) ->
             logger:error("[presence_manager] failed to restart shard ~p: ~p", [Index, Reason]),
             Dummy = #{pid => spawn(fun() -> exit(normal) end), ref => make_ref()},
             {Dummy, State}
+    end.
+
+-spec handle_per_user(user_id(), term(), state()) -> {reply, term(), state()}.
+handle_per_user(UserId, Request, State) ->
+    case ensure_owner(UserId) of
+        ok ->
+            {Reply, NewState} = forward_call(UserId, Request, State),
+            {reply, Reply, NewState};
+        Err ->
+            {reply, Err, State}
+    end.
+
+-spec ensure_owner(user_id()) -> ok | {error, {not_owner, node()}}.
+ensure_owner(UserId) ->
+    case hash_ring:owner_node(UserId) of
+        Self when Self =:= node() -> ok;
+        Owner -> {error, {not_owner, Owner}}
     end.
 
 -spec forward_call(user_id(), term(), state()) -> {term(), state()}.

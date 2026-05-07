@@ -41,18 +41,16 @@ handle_presence_connect(Attempt, State) ->
     FriendIds = presence_targets:friend_ids_from_state(State),
     GroupDmRecipients = presence_targets:group_dm_recipients_from_state(State),
 
-    Message =
-        {start_or_lookup, #{
-            user_id => UserId,
-            user_data => UserData,
-            guild_ids => maps:keys(Guilds),
-            status => Status,
-            friend_ids => FriendIds,
-            group_dm_recipients => GroupDmRecipients,
-            custom_status => maps:get(custom_status, State, null)
-        }},
+    PresenceRequest = #{
+        user_data => UserData,
+        guild_ids => maps:keys(Guilds),
+        status => Status,
+        friend_ids => FriendIds,
+        group_dm_recipients => GroupDmRecipients,
+        custom_status => maps:get(custom_status, State, null)
+    },
 
-    case gen_server:call(presence_manager, Message, 5000) of
+    case presence_router:start_or_lookup(UserId, PresenceRequest, 5000) of
         {ok, Pid} ->
             try
                 case
