@@ -322,7 +322,11 @@ handle_info({pending_connection_timeout, ConnectionId}, State) ->
 
             case maps:get(SessionId, State#state.sessions, undefined) of
                 {UserId, SessionPid, _Ref} when is_pid(SessionPid) ->
-                    case erlang:is_process_alive(SessionPid) of
+                    %% SessionPid lives on the session's gateway node, which is
+                    %% NOT the same node as this call gen_server in the cluster
+                    %% case (~67% of joins). Use cluster-safe liveness check
+                    %% — erlang:is_process_alive/1 would crash on remote pids.
+                    case process_registry:is_alive(SessionPid) of
                         true ->
                             logger:warning(
                                 "[call] Pending connection ~p timed out, session alive; "

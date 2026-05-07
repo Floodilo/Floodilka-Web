@@ -26,7 +26,8 @@
     lookup_or_monitor/3,
     safe_unregister/1,
     cleanup_on_down/2,
-    get_count/1
+    get_count/1,
+    is_alive/1
 ]).
 
 -type process_id() :: integer() | binary() | string().
@@ -36,6 +37,33 @@
 -type lookup_result() :: {ok, pid(), reference(), process_map()} | {error, not_found}.
 
 -export_type([process_id/0, process_prefix/0, process_map/0]).
+
+%% @doc Cluster-safe replacement for erlang:is_process_alive/1.
+%%
+%% erlang:is_process_alive/1 ONLY accepts a local pid — it raises
+%% `badarg` for a remote pid, which crashes whatever gen_server made
+%% the call. This wrapper transparently handles both:
+%%   - local pid: direct erlang:is_process_alive/1
+%%   - remote pid: erpc:call to the remote node, with a hard 1s timeout
+%%   - dead/unreachable remote node: treated as `false` (process not alive)
+%%
+%% Use this everywhere you check liveness of a pid that *could* be remote
+%% — that means anywhere the pid was received from another node via
+%% gen_server message, distribution, pg, or stored in shared state that
+%% can outlive the originating node.
+-spec is_alive(pid()) -> boolean().
+is_alive(Pid) when is_pid(Pid) ->
+    case node(Pid) =:= node() of
+        true ->
+            erlang:is_process_alive(Pid);
+        false ->
+            try erpc:call(node(Pid), erlang, is_process_alive, [Pid], 1000) of
+                Result when is_boolean(Result) -> Result;
+                _ -> false
+            catch
+                _:_ -> false
+            end
+    end.
 
 -spec build_process_name(process_prefix(), process_id()) -> atom().
 build_process_name(Prefix, Id) when is_atom(Prefix), is_integer(Id) ->
