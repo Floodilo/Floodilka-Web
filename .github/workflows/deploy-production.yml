@@ -334,21 +334,47 @@ jobs:
             echo "Gateway: full-restart strategy (rolling image swap)"
             ssh production "docker service update --image floodilka-gateway:${SHA} gateway_gateway"
           else
-            echo "Gateway: hot-reload strategy"
+            echo "Gateway: hot-reload strategy (per-node sequential)"
+
             ssh production "
-              docker rm -f gw-extract 2>/dev/null || true &&
-              docker create --name gw-extract floodilka-gateway:latest &&
-              docker cp gw-extract:/opt/floodilka_gateway/lib/floodilka_gateway-0.0.0/ebin /tmp/gw-beams &&
-              docker rm gw-extract &&
-              CONTAINER_ID=\$(docker ps -q -f name=gateway_gateway --no-trunc | head -1) &&
-              docker cp /tmp/gw-beams/. \$CONTAINER_ID:/opt/floodilka_gateway/lib/floodilka_gateway-0.0.0/ebin/ &&
-              docker exec \$CONTAINER_ID curl -sf \
-                -X POST http://localhost:8081/_admin/reload \
-                -H 'Content-Type: application/json' \
-                -H 'Authorization: Bearer ${GATEWAY_ADMIN_SECRET}' \
-                -d '{}' &&
+              set -e
+              docker rm -f gw-extract 2>/dev/null || true
+              docker create --name gw-extract floodilka-gateway:${SHA}
               rm -rf /tmp/gw-beams
-            " || echo "Gateway hot reload skipped (container may have restarted from config change)"
+              docker cp gw-extract:/opt/floodilka_gateway/lib/floodilka_gateway-0.0.0/ebin /tmp/gw-beams
+              docker rm gw-extract
+            "
+
+            HOT_RELOAD_FAILED=0
+            for gw_ip in 192.168.0.130 192.168.0.216 192.168.0.4; do
+              echo "Hot-reload on gw ${gw_ip}..."
+              ssh production "
+                ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 root@${gw_ip} 'rm -rf /tmp/gw-beams && mkdir -p /tmp/gw-beams' &&
+                scp -o StrictHostKeyChecking=accept-new -r /tmp/gw-beams/. root@${gw_ip}:/tmp/gw-beams/ &&
+                ssh -o StrictHostKeyChecking=accept-new root@${gw_ip} '
+                  set -e
+                  CONTAINER_ID=\$(docker ps -q -f name=gateway_gateway --no-trunc | head -1)
+                  if [ -z \"\$CONTAINER_ID\" ]; then
+                    echo \"No gateway container running on this node\" >&2
+                    exit 1
+                  fi
+                  docker cp /tmp/gw-beams/. \$CONTAINER_ID:/opt/floodilka_gateway/lib/floodilka_gateway-0.0.0/ebin/
+                  docker exec \$CONTAINER_ID curl -sf \
+                    -X POST http://localhost:8081/_admin/reload \
+                    -H \"Content-Type: application/json\" \
+                    -H \"Authorization: Bearer ${GATEWAY_ADMIN_SECRET}\" \
+                    -d \"{}\"
+                  rm -rf /tmp/gw-beams
+                '
+              " || { echo "::error::Hot-reload failed on ${gw_ip}"; HOT_RELOAD_FAILED=1; }
+            done
+
+            ssh production "rm -rf /tmp/gw-beams"
+
+            if [ "$HOT_RELOAD_FAILED" = "1" ]; then
+              echo "::error::One or more gateway nodes did not reload. Re-run with gateway_strategy=full-restart to recover."
+              exit 1
+            fi
           fi
 
           # Rolling update remaining services (start-first, parallel)
