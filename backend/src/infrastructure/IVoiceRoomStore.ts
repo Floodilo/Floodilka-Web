@@ -29,7 +29,7 @@ export abstract class IVoiceRoomStore {
 		regionId: string,
 		serverId: string,
 		endpoint: string,
-	): Promise<void>;
+	): Promise<{regionId: string; serverId: string; endpoint: string}>;
 
 	abstract getPinnedRoomServer(
 		guildId: GuildID | undefined,

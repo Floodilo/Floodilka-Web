@@ -45,25 +45,46 @@ export class VoiceRoomStore {
 		regionId: string,
 		serverId: string,
 		endpoint: string,
-	): Promise<void> {
+	): Promise<{regionId: string; serverId: string; endpoint: string}> {
 		const key = this.getRoomKey(guildId, channelId);
-		const previous = await this.getPinnedRoomServer(guildId, channelId);
+		const payload = JSON.stringify({
+			regionId,
+			serverId,
+			endpoint,
+			updatedAt: new Date().toISOString(),
+		});
 
-		if (previous) {
-			await this.removeOccupancy(previous.regionId, previous.serverId, guildId, channelId);
+		const previousRaw = await this.redis.set(key, payload, 'NX', 'GET');
+
+		if (previousRaw === null) {
+			await this.addOccupancy(regionId, serverId, guildId, channelId);
+			return {regionId, serverId, endpoint};
 		}
 
-		await this.redis.set(
-			key,
-			JSON.stringify({
-				regionId,
-				serverId,
-				endpoint,
-				updatedAt: new Date().toISOString(),
-			}),
-		);
+		const previous = this.parsePinPayload(previousRaw);
+		if (!previous) {
+			await this.redis.set(key, payload);
+			await this.addOccupancy(regionId, serverId, guildId, channelId);
+			return {regionId, serverId, endpoint};
+		}
 
-		await this.addOccupancy(regionId, serverId, guildId, channelId);
+		return previous;
+	}
+
+	private parsePinPayload(raw: string): {regionId: string; serverId: string; endpoint: string} | null {
+		try {
+			const parsed = JSON.parse(raw) as {regionId?: string; serverId?: string; endpoint?: string};
+			if (!parsed.regionId || !parsed.serverId || !parsed.endpoint) {
+				return null;
+			}
+			return {
+				regionId: parsed.regionId,
+				serverId: parsed.serverId,
+				endpoint: parsed.endpoint,
+			};
+		} catch {
+			return null;
+		}
 	}
 
 	async getPinnedRoomServer(
@@ -73,17 +94,7 @@ export class VoiceRoomStore {
 		const key = this.getRoomKey(guildId, channelId);
 		const data = await this.redis.get(key);
 		if (!data) return null;
-
-		const parsed = JSON.parse(data) as {regionId?: string; serverId?: string; endpoint?: string};
-		if (!parsed.regionId || !parsed.serverId || !parsed.endpoint) {
-			return null;
-		}
-
-		return {
-			regionId: parsed.regionId,
-			serverId: parsed.serverId,
-			endpoint: parsed.endpoint,
-		};
+		return this.parsePinPayload(data);
 	}
 
 	async deleteRoomServer(guildId: GuildID | undefined, channelId: ChannelID): Promise<void> {

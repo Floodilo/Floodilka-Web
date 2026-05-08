@@ -219,11 +219,16 @@ export class VoiceService {
 				throw new FeatureTemporarilyDisabledError();
 			}
 
-			regionId = serverSelection.regionId;
-			serverId = serverSelection.server.serverId;
-			serverEndpoint = serverSelection.server.endpoint;
-
-			await this.voiceRoomStore.pinRoomServer(guildId, channelId, regionId, serverId, serverEndpoint);
+			const claimed = await this.voiceRoomStore.pinRoomServer(
+				guildId,
+				channelId,
+				serverSelection.regionId,
+				serverSelection.server.serverId,
+				serverSelection.server.endpoint,
+			);
+			regionId = claimed.regionId;
+			serverId = claimed.serverId;
+			serverEndpoint = claimed.endpoint;
 		}
 
 		if (!serverId || !regionId || !serverEndpoint) {

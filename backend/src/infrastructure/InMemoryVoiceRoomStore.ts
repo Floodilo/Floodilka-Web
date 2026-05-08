@@ -26,10 +26,12 @@ export class InMemoryVoiceRoomStore {
 	async pinRoomServer(
 		_guildId: GuildID | undefined,
 		_channelId: ChannelID,
-		_regionId: string,
-		_serverId: string,
-		_endpoint: string,
-	): Promise<void> {}
+		regionId: string,
+		serverId: string,
+		endpoint: string,
+	): Promise<{regionId: string; serverId: string; endpoint: string}> {
+		return {regionId, serverId, endpoint};
+	}
 
 	async getPinnedRoomServer(
 		_guildId: GuildID | undefined,
