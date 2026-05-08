@@ -9,20 +9,8 @@ storage:
 
 apps:
   tls:
-    automation:
-      policies:
-        - subjects:
-            - '${LIVEKIT_DOMAIN}'
-            - '${LIVEKIT_DOMAIN_TURN}'
-            - '${LIVEKIT_DOMAIN_PROD}'
-            - '${LIVEKIT_DOMAIN_TURN_PROD}'
-          issuers:
-            - module: acme
-          on_demand: false
     certificates:
       automate:
-        - '${LIVEKIT_DOMAIN}'
-        - '${LIVEKIT_DOMAIN_TURN}'
         - '${LIVEKIT_DOMAIN_PROD}'
         - '${LIVEKIT_DOMAIN_TURN_PROD}'
 
@@ -33,7 +21,6 @@ apps:
         routes:
           - match:
               - host:
-                  - '${LIVEKIT_DOMAIN}'
                   - '${LIVEKIT_DOMAIN_PROD}'
             handle:
               - handler: reverse_proxy
@@ -48,10 +35,9 @@ apps:
           - match:
               - tls:
                   sni:
-                    - '${LIVEKIT_DOMAIN_TURN}'
                     - '${LIVEKIT_DOMAIN_TURN_PROD}'
             handle:
               - handler: tls
               - handler: proxy
                 upstreams:
-                  - dial: ['livekit:5349']
+                  - dial: ['127.0.0.1:5350']

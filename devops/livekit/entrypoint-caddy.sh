@@ -22,9 +22,7 @@
 
 set -e
 
-sed -e "s|\${LIVEKIT_DOMAIN}|${LIVEKIT_DOMAIN}|g" \
-    -e "s|\${LIVEKIT_DOMAIN_TURN}|${LIVEKIT_DOMAIN_TURN}|g" \
-    -e "s|\${LIVEKIT_DOMAIN_PROD}|${LIVEKIT_DOMAIN_PROD}|g" \
+sed -e "s|\${LIVEKIT_DOMAIN_PROD}|${LIVEKIT_DOMAIN_PROD}|g" \
     -e "s|\${LIVEKIT_DOMAIN_TURN_PROD}|${LIVEKIT_DOMAIN_TURN_PROD}|g" \
     /etc/caddy.yaml.template > /etc/caddy.yaml
 
