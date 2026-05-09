@@ -25,6 +25,7 @@ import {Config} from '~/Config';
 import {AVATAR_EXTENSIONS, AVATAR_MAX_SIZE} from '~/Constants';
 import {InputValidationError} from '~/Errors';
 import {Logger} from '~/Logger';
+import {transcodeToLoopedMp4} from '~/utils/FfmpegUtils';
 import type {IAssetDeletionQueue} from './IAssetDeletionQueue';
 import type {IMediaService} from './IMediaService';
 import type {IStorageService} from './IStorageService';
@@ -32,6 +33,13 @@ import type {IStorageService} from './IStorageService';
 export type AssetType = 'avatar' | 'banner' | 'nameplate' | 'icon' | 'splash' | 'embed_splash';
 
 export type EntityType = 'user' | 'guild' | 'guild_member';
+
+const ASSETS_WITH_VIDEO_COMPANION: ReadonlySet<AssetType> = new Set(['avatar', 'icon']);
+
+const AVATAR_VIDEO_TARGET_SIZE = 320;
+const AVATAR_VIDEO_MAX_DURATION_SECONDS = 3;
+const AVATAR_VIDEO_BITRATE_KBPS = 300;
+const AVATAR_VIDEO_MAX_BYTES = 512 * 1024;
 
 const ASSET_TYPE_TO_PREFIX: Record<AssetType, string> = {
 	avatar: 'avatars',
@@ -63,6 +71,10 @@ export interface PreparedAssetUpload {
 	width?: number;
 	imageBuffer?: Uint8Array;
 	_uploaded: boolean;
+	newCompanionS3Keys?: Array<string>;
+	previousCompanionS3Keys?: Array<string>;
+	newCompanionCdnUrls?: Array<string>;
+	previousCompanionCdnUrls?: Array<string>;
 }
 
 export interface PrepareAssetUploadOptions {
@@ -95,6 +107,12 @@ export class EntityAssetService {
 
 		const previousS3Key = previousHash ? `${s3KeyBase}/${this.stripAnimationPrefix(previousHash)}` : null;
 		const previousCdnUrl = previousHash ? `${cdnUrlBase}/${previousHash}` : null;
+		const {keys: previousCompanionS3Keys, cdnUrls: previousCompanionCdnUrls} = this.buildCompanionKeysForHash(
+			s3KeyBase,
+			cdnUrlBase,
+			previousHash,
+			assetType,
+		);
 
 		if (!base64Image) {
 			return {
@@ -106,6 +124,10 @@ export class EntityAssetService {
 				newCdnUrl: null,
 				previousCdnUrl,
 				_uploaded: false,
+				newCompanionS3Keys: [],
+				previousCompanionS3Keys,
+				newCompanionCdnUrls: [],
+				previousCompanionCdnUrls,
 			};
 		}
 
@@ -132,6 +154,10 @@ export class EntityAssetService {
 				width,
 				_uploaded: false,
 				imageBuffer,
+				newCompanionS3Keys: [],
+				previousCompanionS3Keys,
+				newCompanionCdnUrls: [],
+				previousCompanionCdnUrls,
 			};
 		}
 
@@ -146,6 +172,17 @@ export class EntityAssetService {
 			throw InputValidationError.create(errorPath, 'Не удалось загрузить изображение. Попробуйте снова.');
 		}
 
+		const {keys: newCompanionS3Keys, cdnUrls: newCompanionCdnUrls} = await this.maybeUploadAnimatedCompanion({
+			assetType,
+			entityType,
+			s3KeyBase,
+			cdnUrlBase,
+			imageHashShort,
+			newHash,
+			imageBuffer,
+			isAnimated,
+		});
+
 		return {
 			newHash,
 			previousHash,
@@ -158,6 +195,10 @@ export class EntityAssetService {
 			width,
 			_uploaded: true,
 			imageBuffer,
+			newCompanionS3Keys,
+			previousCompanionS3Keys,
+			newCompanionCdnUrls,
+			previousCompanionCdnUrls,
 		};
 	}
 
@@ -172,32 +213,45 @@ export class EntityAssetService {
 			return;
 		}
 
-		if (deferDeletion) {
-			await this.assetDeletionQueue.queueDeletion({
-				s3Key: prepared.previousS3Key,
-				cdnUrl: prepared.previousCdnUrl,
-				reason: 'asset_replaced',
-			});
+		const previousCompanionKeys = prepared.previousCompanionS3Keys ?? [];
+		const previousCompanionUrls = prepared.previousCompanionCdnUrls ?? [];
+		const allKeys: Array<{key: string; cdnUrl: string | null}> = [
+			{key: prepared.previousS3Key, cdnUrl: prepared.previousCdnUrl},
+			...previousCompanionKeys.map((key, i) => ({key, cdnUrl: previousCompanionUrls[i] ?? null})),
+		];
 
-			Logger.debug(
-				{previousS3Key: prepared.previousS3Key, previousCdnUrl: prepared.previousCdnUrl},
-				'Queued old asset for deferred deletion',
-			);
-		} else {
-			await this.deleteAssetImmediately(prepared.previousS3Key, prepared.previousCdnUrl);
+		for (const {key, cdnUrl} of allKeys) {
+			if (deferDeletion) {
+				await this.assetDeletionQueue.queueDeletion({
+					s3Key: key,
+					cdnUrl,
+					reason: 'asset_replaced',
+				});
+
+				Logger.debug({previousS3Key: key, previousCdnUrl: cdnUrl}, 'Queued old asset for deferred deletion');
+			} else {
+				await this.deleteAssetImmediately(key, cdnUrl);
+			}
 		}
 	}
 
 	async rollbackAssetUpload(prepared: PreparedAssetUpload): Promise<void> {
-		if (!prepared._uploaded || !prepared.newS3Key) {
+		if (!prepared._uploaded) {
 			return;
 		}
 
-		try {
-			await this.storageService.deleteObject(Config.s3.buckets.cdn, prepared.newS3Key);
-			Logger.info({newS3Key: prepared.newS3Key}, 'Rolled back asset upload after DB failure');
-		} catch (error) {
-			Logger.error({error, newS3Key: prepared.newS3Key}, 'Failed to rollback asset upload - asset may be orphaned');
+		const keysToDelete: Array<string> = [
+			...(prepared.newS3Key ? [prepared.newS3Key] : []),
+			...(prepared.newCompanionS3Keys ?? []),
+		];
+
+		for (const key of keysToDelete) {
+			try {
+				await this.storageService.deleteObject(Config.s3.buckets.cdn, key);
+				Logger.info({newS3Key: key}, 'Rolled back asset upload after DB failure');
+			} catch (error) {
+				Logger.error({error, newS3Key: key}, 'Failed to rollback asset upload - asset may be orphaned');
+			}
 		}
 	}
 
@@ -278,10 +332,100 @@ export class EntityAssetService {
 			cdnUrl,
 			reason,
 		});
+
+		const s3KeyBase = this.buildS3KeyBase(assetType, entityType, entityId, guildId);
+		const cdnUrlBase = this.buildCdnUrlBase(assetType, entityType, entityId, guildId);
+		const {keys: companionKeys, cdnUrls: companionCdnUrls} = this.buildCompanionKeysForHash(
+			s3KeyBase,
+			cdnUrlBase,
+			hash,
+			assetType,
+		);
+		for (let i = 0; i < companionKeys.length; i++) {
+			await this.assetDeletionQueue.queueDeletion({
+				s3Key: companionKeys[i],
+				cdnUrl: companionCdnUrls[i] ?? null,
+				reason,
+			});
+		}
 	}
 
 	private stripAnimationPrefix(hash: string): string {
 		return hash.startsWith('a_') ? hash.substring(2) : hash;
+	}
+
+	private buildCompanionKeysForHash(
+		s3KeyBase: string,
+		cdnUrlBase: string,
+		hash: string | null,
+		assetType: AssetType,
+	): {keys: Array<string>; cdnUrls: Array<string>} {
+		if (!hash || !hash.startsWith('a_') || !ASSETS_WITH_VIDEO_COMPANION.has(assetType)) {
+			return {keys: [], cdnUrls: []};
+		}
+		const shortHash = this.stripAnimationPrefix(hash);
+		return {
+			keys: [`${s3KeyBase}/${shortHash}.mp4`],
+			cdnUrls: [`${cdnUrlBase}/${hash}.mp4`],
+		};
+	}
+
+	private async maybeUploadAnimatedCompanion(params: {
+		assetType: AssetType;
+		entityType: EntityType;
+		s3KeyBase: string;
+		cdnUrlBase: string;
+		imageHashShort: string;
+		newHash: string;
+		imageBuffer: Uint8Array;
+		isAnimated: boolean;
+	}): Promise<{keys: Array<string>; cdnUrls: Array<string>}> {
+		const {assetType, entityType, s3KeyBase, cdnUrlBase, imageHashShort, newHash, imageBuffer, isAnimated} = params;
+
+		if (!isAnimated || !ASSETS_WITH_VIDEO_COMPANION.has(assetType)) {
+			return {keys: [], cdnUrls: []};
+		}
+
+		try {
+			const transcoded = await transcodeToLoopedMp4({
+				input: imageBuffer,
+				targetWidth: AVATAR_VIDEO_TARGET_SIZE,
+				targetHeight: AVATAR_VIDEO_TARGET_SIZE,
+				maxDurationSeconds: AVATAR_VIDEO_MAX_DURATION_SECONDS,
+				targetBitrateKbps: AVATAR_VIDEO_BITRATE_KBPS,
+			});
+
+			if (transcoded.mp4.length > AVATAR_VIDEO_MAX_BYTES) {
+				Logger.warn(
+					{assetType, entityType, sizeBytes: transcoded.mp4.length, limit: AVATAR_VIDEO_MAX_BYTES},
+					'Animated asset video companion exceeds size cap; skipping companion upload',
+				);
+				return {keys: [], cdnUrls: []};
+			}
+
+			const companionKey = `${s3KeyBase}/${imageHashShort}.mp4`;
+			const companionCdnUrl = `${cdnUrlBase}/${newHash}.mp4`;
+
+			await this.storageService.uploadObject({
+				bucket: Config.s3.buckets.cdn,
+				key: companionKey,
+				body: transcoded.mp4,
+				contentType: 'video/mp4',
+			});
+
+			Logger.info(
+				{assetType, entityType, companionKey, sizeBytes: transcoded.mp4.length},
+				'Uploaded animated asset video companion',
+			);
+
+			return {keys: [companionKey], cdnUrls: [companionCdnUrl]};
+		} catch (error) {
+			Logger.error(
+				{error, assetType, entityType},
+				'Failed to generate or upload animated asset video companion; continuing with primary upload only',
+			);
+			return {keys: [], cdnUrls: []};
+		}
 	}
 
 	private buildS3KeyBase(assetType: AssetType, entityType: EntityType, entityId: bigint, guildId?: bigint): string {

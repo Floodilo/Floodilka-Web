@@ -276,11 +276,32 @@ export const createImageRouteHandler = (coalescer: InMemoryCoalescer) => {
 		const {size, quality, animated} = v.parse(ImageQuerySchema, ctx.req.query());
 
 		const parts = filename.split('.');
-		if (parts.length !== 2 || !MEDIA_TYPES.IMAGE.extensions.includes(parts[1])) {
+		if (parts.length !== 2) {
 			throw new HTTPException(400);
 		}
 
 		const [hash, ext] = parts;
+		const isVideo = ext === 'mp4';
+		const isImage = MEDIA_TYPES.IMAGE.extensions.includes(ext);
+
+		if (!isVideo && !isImage) {
+			throw new HTTPException(400);
+		}
+
+		if (isVideo) {
+			if (!hash.startsWith('a_')) {
+				throw new HTTPException(400);
+			}
+			const strippedHash = stripAnimationPrefix(hash);
+			const s3Key = `${pathPrefix}/${id}/${strippedHash}.mp4`;
+			const {data} = await readS3Object(Config.AWS_S3_BUCKET_CDN, s3Key);
+			assert(data instanceof Buffer);
+			const range = parseRange(ctx.req.header('Range') ?? '', data.length);
+			setHeaders(ctx, data.length, 'video/mp4', range);
+			const slice = range ? data.subarray(range.start, range.end + 1) : data;
+			return ctx.body(toBodyData(slice));
+		}
+
 		const strippedHash = stripAnimationPrefix(hash);
 		const cacheKey = `${pathPrefix}_${id}_${hash}_${ext}_${size}_${quality}_${aspectRatio}_${animated}`;
 		const s3Key = `${pathPrefix}/${id}/${strippedHash}`;
@@ -295,11 +316,32 @@ export const createGuildMemberImageRouteHandler = (coalescer: InMemoryCoalescer)
 		const {size, quality, animated} = v.parse(ImageQuerySchema, ctx.req.query());
 
 		const parts = filename.split('.');
-		if (parts.length !== 2 || !MEDIA_TYPES.IMAGE.extensions.includes(parts[1])) {
+		if (parts.length !== 2) {
 			throw new HTTPException(400);
 		}
 
 		const [hash, ext] = parts;
+		const isVideo = ext === 'mp4';
+		const isImage = MEDIA_TYPES.IMAGE.extensions.includes(ext);
+
+		if (!isVideo && !isImage) {
+			throw new HTTPException(400);
+		}
+
+		if (isVideo) {
+			if (!hash.startsWith('a_')) {
+				throw new HTTPException(400);
+			}
+			const strippedHash = stripAnimationPrefix(hash);
+			const s3Key = `guilds/${guild_id}/users/${user_id}/${pathPrefix}/${strippedHash}.mp4`;
+			const {data} = await readS3Object(Config.AWS_S3_BUCKET_CDN, s3Key);
+			assert(data instanceof Buffer);
+			const range = parseRange(ctx.req.header('Range') ?? '', data.length);
+			setHeaders(ctx, data.length, 'video/mp4', range);
+			const slice = range ? data.subarray(range.start, range.end + 1) : data;
+			return ctx.body(toBodyData(slice));
+		}
+
 		const strippedHash = stripAnimationPrefix(hash);
 		const cacheKey = `${pathPrefix}_${guild_id}_${user_id}_${hash}_${ext}_${size}_${quality}_${aspectRatio}_${animated}`;
 		const s3Key = `guilds/${guild_id}/users/${user_id}/${pathPrefix}/${strippedHash}`;
