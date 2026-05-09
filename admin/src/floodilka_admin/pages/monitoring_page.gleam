@@ -19,13 +19,14 @@
 //// along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
 
 import floodilka_admin/api/common
-import floodilka_admin/api/netdata
+import floodilka_admin/api/system
 import floodilka_admin/components/flash
 import floodilka_admin/components/layout
 import floodilka_admin/components/ui
 import floodilka_admin/web.{type Context, type Session}
 import gleam/float
 import gleam/int
+import gleam/list
 import gleam/option
 import lustre/attribute as a
 import lustre/element
@@ -38,15 +39,7 @@ pub fn view(
   current_admin: option.Option(common.UserLookupResult),
   flash_data: option.Option(flash.Flash),
 ) -> Response {
-  let prod_metrics = case netdata.get_prod_url() {
-    Ok(url) -> netdata.fetch_metrics(url)
-    Error(_) -> Error(Nil)
-  }
-
-  let livekit_metrics = case netdata.get_livekit_url() {
-    Ok(url) -> netdata.fetch_metrics(url)
-    Error(_) -> Error(Nil)
-  }
+  let nodes_result = system.get_system_nodes(ctx, session)
 
   let content =
     h.div([], [
@@ -56,10 +49,14 @@ pub fn view(
           element.text("Автообновление каждые 10 сек"),
         ]),
       ]),
-      h.div([a.class("space-y-6")], [
-        render_server_section("Прод сервер", prod_metrics),
-        render_server_section("LiveKit сервер", livekit_metrics),
-      ]),
+      case nodes_result {
+        Ok(resp) ->
+          case resp.source {
+            "prometheus" -> render_nodes_table(resp.nodes)
+            _ -> render_unavailable()
+          }
+        Error(_) -> render_error()
+      },
     ])
 
   let html =
@@ -76,103 +73,168 @@ pub fn view(
   wisp.html_response(element.to_document_string(html), 200)
 }
 
-fn render_server_section(
-  title: String,
-  metrics: Result(netdata.ServerMetrics, Nil),
-) {
+fn render_nodes_table(nodes: List(system.SystemNodeRow)) {
+  let header_cell = fn(text) {
+    h.th(
+      [
+        a.class(
+          "px-3 py-2 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider",
+        ),
+      ],
+      [element.text(text)],
+    )
+  }
+
   h.div(
-    [a.class("bg-white border border-neutral-200 rounded-lg shadow-sm p-6")],
+    [a.class("bg-white border border-neutral-200 rounded-lg shadow-sm mt-4")],
     [
-      ui.heading_section(title),
-      case metrics {
-        Ok(m) ->
-          h.div(
-            [a.class("grid grid-cols-1 md:grid-cols-3 gap-4 mt-4")],
-            [
-              stat_card_with_progress(
-                "CPU",
-                float_to_string_1(m.cpu_usage) <> "%",
-                "",
-                float.round(m.cpu_usage),
-              ),
-              stat_card_with_progress(
-                "Память",
-                float_to_string_1(m.ram_used_mb) <> " MB",
-                float_to_string_1(m.ram_total_mb) <> " MB всего",
-                float.round(m.ram_percent),
-              ),
-              stat_card_with_progress(
-                "Диск",
-                float_to_string_1(m.disk_used_gb) <> " GB",
-                float_to_string_1(m.disk_total_gb) <> " GB всего",
-                float.round(m.disk_percent),
-              ),
-            ],
-          )
-        Error(_) ->
-          h.div([a.class("mt-4 bg-red-50 border border-red-200 rounded-lg p-4 text-center")], [
-            h.p([a.class("text-red-800 text-sm")], [
-              element.text("Не удалось получить метрики. Проверьте переменные NETDATA_PROD_URL / NETDATA_LIVEKIT_URL"),
-            ]),
-          ])
-      },
+      h.table([a.class("min-w-full divide-y divide-neutral-200")], [
+        h.thead([a.class("bg-neutral-50")], [
+          h.tr([], [
+            header_cell("Нода"),
+            header_cell("CPU"),
+            header_cell("Память"),
+            header_cell("Диск"),
+            header_cell("Load 1m"),
+            header_cell("Uptime"),
+          ]),
+        ]),
+        h.tbody(
+          [a.class("divide-y divide-neutral-100")],
+          list.map(nodes, render_node_row),
+        ),
+      ]),
     ],
   )
 }
 
-fn stat_card_with_progress(
-  label: String,
-  value: String,
-  sub: String,
-  percentage: Int,
-) {
-  let bar_color = case percentage {
+fn render_node_row(node: system.SystemNodeRow) {
+  let mem_pct = percent_of(node.memory_used_bytes, node.memory_total_bytes)
+  let disk_pct = percent_of(node.disk_used_bytes, node.disk_total_bytes)
+  let cpu_pct = float.round(node.cpu_usage_percent)
+
+  h.tr([a.class("hover:bg-neutral-50")], [
+    h.td([a.class("px-3 py-2 text-sm font-medium text-neutral-900")], [
+      element.text(node.name),
+    ]),
+    h.td([a.class("px-3 py-2 text-sm")], [usage_bar(cpu_pct, percent_label(cpu_pct))]),
+    h.td([a.class("px-3 py-2 text-sm")], [
+      usage_bar(
+        mem_pct,
+        bytes_label(node.memory_used_bytes) <> " / " <> bytes_label(node.memory_total_bytes),
+      ),
+    ]),
+    h.td([a.class("px-3 py-2 text-sm")], [
+      usage_bar(
+        disk_pct,
+        bytes_label(node.disk_used_bytes) <> " / " <> bytes_label(node.disk_total_bytes),
+      ),
+    ]),
+    h.td([a.class("px-3 py-2 text-sm text-neutral-700")], [
+      element.text(float_to_string_2(node.load_avg1)),
+    ]),
+    h.td([a.class("px-3 py-2 text-sm text-neutral-500")], [
+      element.text(uptime_label(node.uptime_seconds)),
+    ]),
+  ])
+}
+
+fn usage_bar(percent: Int, label: String) {
+  let bar_color = case percent {
     p if p >= 80 -> "bg-red-500"
-    p if p >= 50 -> "bg-yellow-500"
+    p if p >= 60 -> "bg-yellow-500"
     _ -> "bg-green-500"
   }
 
-  let text_color = case percentage {
-    p if p >= 80 -> "text-red-600"
-    p if p >= 50 -> "text-yellow-600"
-    _ -> "text-green-600"
-  }
-
-  h.div([a.class("bg-neutral-50 rounded-lg p-4 border border-neutral-200")], [
-    h.div(
-      [a.class("text-xs text-neutral-600 uppercase tracking-wider mb-1")],
-      [element.text(label)],
-    ),
-    h.div([a.class("flex items-baseline gap-2")], [
-      h.div([a.class("text-xl font-bold text-neutral-900")], [
-        element.text(value),
-      ]),
-      h.span([a.class("text-sm font-medium " <> text_color)], [
-        element.text(int.to_string(percentage) <> "%"),
-      ]),
-    ]),
-    h.div([a.class("w-full bg-neutral-200 rounded-full h-1.5 mt-2")], [
+  h.div([a.class("flex items-center gap-2 min-w-[180px]")], [
+    h.div([a.class("flex-1 bg-neutral-200 rounded-full h-1.5")], [
       h.div(
         [
           a.class("h-1.5 rounded-full " <> bar_color),
-          a.attribute("style", "width: " <> int.to_string(percentage) <> "%"),
+          a.attribute("style", "width: " <> int.to_string(clamp_percent(percent)) <> "%"),
         ],
         [],
       ),
     ]),
-    case sub {
-      "" -> element.none()
-      _ -> h.div([a.class("text-xs text-neutral-500 mt-1")], [element.text(sub)])
-    },
+    h.span([a.class("text-xs text-neutral-600 whitespace-nowrap")], [
+      element.text(label),
+    ]),
   ])
+}
+
+fn render_unavailable() {
+  h.div(
+    [
+      a.class(
+        "mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center",
+      ),
+    ],
+    [
+      h.p([a.class("text-yellow-800 text-sm")], [
+        element.text(
+          "Prometheus не настроен (FLOODILKA_PROMETHEUS_URL). Метрики кластера недоступны.",
+        ),
+      ]),
+    ],
+  )
+}
+
+fn render_error() {
+  h.div(
+    [
+      a.class("mt-4 bg-red-50 border border-red-200 rounded-lg p-4 text-center"),
+    ],
+    [
+      h.p([a.class("text-red-800 text-sm")], [
+        element.text("Не удалось получить метрики кластера."),
+      ]),
+    ],
+  )
+}
+
+fn percent_of(used: Float, total: Float) -> Int {
+  case total >. 0.0 {
+    True -> float.round(used /. total *. 100.0)
+    False -> 0
+  }
+}
+
+fn clamp_percent(p: Int) -> Int {
+  case p {
+    n if n < 0 -> 0
+    n if n > 100 -> 100
+    n -> n
+  }
+}
+
+fn percent_label(p: Int) -> String {
+  int.to_string(clamp_percent(p)) <> "%"
+}
+
+fn bytes_label(bytes: Float) -> String {
+  let one_gb = 1_073_741_824.0
+  let one_mb = 1_048_576.0
+  case bytes >=. one_gb {
+    True -> float_to_string_1(bytes /. one_gb) <> " GB"
+    False -> float_to_string_1(bytes /. one_mb) <> " MB"
+  }
+}
+
+fn uptime_label(seconds: Int) -> String {
+  let days = seconds / 86_400
+  let hours = { seconds % 86_400 } / 3600
+  case days {
+    0 -> int.to_string(hours) <> "h"
+    _ -> int.to_string(days) <> "d " <> int.to_string(hours) <> "h"
+  }
 }
 
 fn float_to_string_1(value: Float) -> String {
   let rounded = float.round(value *. 10.0) |> int.to_float
-  let result = rounded /. 10.0
-  let str = float.to_string(result)
-  case str {
-    _ if result == 0.0 -> "0.0"
-    _ -> str
-  }
+  float.to_string(rounded /. 10.0)
+}
+
+fn float_to_string_2(value: Float) -> String {
+  let rounded = float.round(value *. 100.0) |> int.to_float
+  float.to_string(rounded /. 100.0)
 }

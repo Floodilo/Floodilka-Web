@@ -482,3 +482,74 @@ fn float_or_int_decoder() -> decode.Decoder(Float) {
     decode.int |> decode.map(int.to_float),
   ])
 }
+
+pub type SystemNodeRow {
+  SystemNodeRow(
+    name: String,
+    cpu_usage_percent: Float,
+    memory_used_bytes: Float,
+    memory_total_bytes: Float,
+    disk_used_bytes: Float,
+    disk_total_bytes: Float,
+    load_avg1: Float,
+    uptime_seconds: Int,
+  )
+}
+
+pub type SystemNodesResponse {
+  SystemNodesResponse(nodes: List(SystemNodeRow), source: String)
+}
+
+pub fn get_system_nodes(
+  ctx: Context,
+  session: Session,
+) -> Result(SystemNodesResponse, ApiError) {
+  let url = ctx.api_endpoint <> "/admin/system/nodes"
+
+  let assert Ok(req) = request.to(url)
+  let req =
+    req
+    |> request.set_method(http.Get)
+    |> request.set_header("authorization", "Bearer " <> session.access_token)
+
+  case httpc.send(req) {
+    Ok(resp) if resp.status == 200 -> {
+      let row_decoder = {
+        use name <- decode.field("name", decode.string)
+        use cpu <- decode.field("cpuUsagePercent", float_or_int_decoder())
+        use mem_used <- decode.field("memoryUsedBytes", float_or_int_decoder())
+        use mem_total <- decode.field("memoryTotalBytes", float_or_int_decoder())
+        use disk_used <- decode.field("diskUsedBytes", float_or_int_decoder())
+        use disk_total <- decode.field("diskTotalBytes", float_or_int_decoder())
+        use load1 <- decode.field("loadAvg1", float_or_int_decoder())
+        use uptime <- decode.field("uptimeSeconds", decode.int)
+        decode.success(SystemNodeRow(
+          name: name,
+          cpu_usage_percent: cpu,
+          memory_used_bytes: mem_used,
+          memory_total_bytes: mem_total,
+          disk_used_bytes: disk_used,
+          disk_total_bytes: disk_total,
+          load_avg1: load1,
+          uptime_seconds: uptime,
+        ))
+      }
+
+      let decoder = {
+        use rows <- decode.field("nodes", decode.list(row_decoder))
+        use source <- decode.field("source", decode.string)
+        decode.success(SystemNodesResponse(nodes: rows, source: source))
+      }
+
+      case json.parse(resp.body, decoder) {
+        Ok(result) -> Ok(result)
+        Error(_) -> Error(ServerError)
+      }
+    }
+    Ok(resp) if resp.status == 401 -> Error(Unauthorized)
+    Ok(resp) if resp.status == 403 -> Error(Forbidden("Forbidden"))
+    Ok(resp) if resp.status == 404 -> Error(NotFound)
+    Ok(_resp) -> Error(ServerError)
+    Error(_) -> Error(NetworkError)
+  }
+}
