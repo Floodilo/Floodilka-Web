@@ -22,14 +22,18 @@
 
 import * as fs from 'node:fs';
 import * as os from 'node:os';
+import {PrometheusQueryService} from '~/admin/services/PrometheusQueryService';
 import type {HonoApp} from '~/App';
 import {createUserID} from '~/BrandedTypes';
+import {Config} from '~/Config';
 import {AdminACLs} from '~/Constants';
 import {Logger} from '~/Logger';
 import {getUserSearchService} from '~/Meilisearch';
 import {requireAdminACL} from '~/middleware/AdminMiddleware';
 import {RateLimitMiddleware} from '~/middleware/RateLimitMiddleware';
 import {RateLimitConfigs} from '~/RateLimitConfig';
+
+const prometheus = new PrometheusQueryService(Config.prometheus.url);
 
 export const SystemAdminController = (app: HonoApp) => {
 	app.get(
@@ -40,14 +44,8 @@ export const SystemAdminController = (app: HonoApp) => {
 			const gatewayService = ctx.get('gatewayService');
 			const userRepository = ctx.get('userRepository');
 
-			const cpus = os.cpus();
-			const loadAvg = os.loadavg();
-			const totalMem = os.totalmem();
-			const freeMem = os.freemem();
-			const usedMem = totalMem - freeMem;
-
-			const [diskStats, gatewayStats, onlineUserIds, totalUserCount] = await Promise.all([
-				fs.promises.statfs('/').catch(() => null),
+			const [clusterStats, gatewayStats, onlineUserIds, totalUserCount] = await Promise.all([
+				prometheus.getClusterStatsSafe(),
 				gatewayService.getNodeStats().catch((err: unknown) => {
 					Logger.warn({err}, '[admin] failed to get gateway stats');
 					return null;
@@ -92,41 +90,42 @@ export const SystemAdminController = (app: HonoApp) => {
 				}
 			}
 
-			const disk = diskStats
+			const cpu = clusterStats
+				? {
+						count: Math.round(clusterStats.cpu.cores),
+						usage: Math.round(clusterStats.cpu.usagePercent * 10) / 10,
+						loadAvg: [clusterStats.cpu.loadAvg1, clusterStats.cpu.loadAvg5, clusterStats.cpu.loadAvg15],
+						model: 'cluster aggregate',
+					}
+				: localCpu();
+
+			const memory = clusterStats
+				? {
+						total: clusterStats.memory.totalBytes,
+						free: clusterStats.memory.freeBytes,
+						used: clusterStats.memory.usedBytes,
+						usagePercentage: clusterStats.memory.usagePercent,
+					}
+				: localMemory();
+
+			const disk = clusterStats
 				? {
 						root: {
-							total: Number(diskStats.bsize) * Number(diskStats.blocks),
-							used:
-								Number(diskStats.bsize) * Number(diskStats.blocks) -
-								Number(diskStats.bsize) * Number(diskStats.bfree),
-							available: Number(diskStats.bsize) * Number(diskStats.bavail),
-							usagePercentage:
-								diskStats.blocks > 0
-									? Math.round(
-											((Number(diskStats.blocks) - Number(diskStats.bfree)) / Number(diskStats.blocks)) * 100,
-										)
-									: 0,
+							total: clusterStats.disk.totalBytes,
+							used: clusterStats.disk.usedBytes,
+							available: clusterStats.disk.availableBytes,
+							usagePercentage: clusterStats.disk.usagePercent,
 						},
 					}
-				: null;
+				: localDisk();
 
-			const cpuUsage = calculateCpuUsage(cpus);
+			const uptime = clusterStats ? clusterStats.uptime : Math.floor(os.uptime());
 
 			return ctx.json({
-				cpu: {
-					count: cpus.length,
-					usage: cpuUsage,
-					loadAvg,
-					model: cpus[0]?.model ?? 'Unknown',
-				},
-				memory: {
-					total: totalMem,
-					free: freeMem,
-					used: usedMem,
-					usagePercentage: Math.round((usedMem / totalMem) * 100),
-				},
+				cpu,
+				memory,
 				disk,
-				uptime: Math.floor(os.uptime()),
+				uptime,
 				connections: gatewayStats?.sessions ?? 0,
 				presences: gatewayStats?.presences ?? 0,
 				guilds: gatewayStats?.guilds ?? 0,
@@ -144,19 +143,74 @@ export const SystemAdminController = (app: HonoApp) => {
 					total: totalUserCount,
 					list: onlineUsers,
 				},
+				source: clusterStats ? 'prometheus' : 'local',
 			});
+		},
+	);
+
+	app.get(
+		'/admin/system/nodes',
+		RateLimitMiddleware(RateLimitConfigs.ADMIN_LOOKUP),
+		requireAdminACL(AdminACLs.GATEWAY_MEMORY_STATS),
+		async (ctx) => {
+			if (!prometheus.isConfigured) {
+				return ctx.json({nodes: [], source: 'unavailable'}, 200);
+			}
+			try {
+				const rows = await prometheus.getPerNodeRows();
+				return ctx.json({nodes: rows, source: 'prometheus'});
+			} catch (err) {
+				Logger.warn({err}, '[admin] failed to fetch per-node stats from Prometheus');
+				return ctx.json({nodes: [], source: 'error'}, 200);
+			}
 		},
 	);
 };
 
-function calculateCpuUsage(cpus: Array<os.CpuInfo>): number {
+function localCpu() {
+	const cpus = os.cpus();
 	let totalIdle = 0;
 	let totalTick = 0;
-
-	for (const cpu of cpus) {
-		totalIdle += cpu.times.idle;
-		totalTick += cpu.times.user + cpu.times.nice + cpu.times.sys + cpu.times.idle + cpu.times.irq;
+	for (const c of cpus) {
+		totalIdle += c.times.idle;
+		totalTick += c.times.user + c.times.nice + c.times.sys + c.times.idle + c.times.irq;
 	}
+	const usage = totalTick > 0 ? Math.round(((totalTick - totalIdle) / totalTick) * 100 * 10) / 10 : 0;
+	return {
+		count: cpus.length,
+		usage,
+		loadAvg: os.loadavg(),
+		model: cpus[0]?.model ?? 'Unknown',
+	};
+}
 
-	return Math.round(((totalTick - totalIdle) / totalTick) * 100 * 10) / 10;
+function localMemory() {
+	const total = os.totalmem();
+	const free = os.freemem();
+	const used = total - free;
+	return {
+		total,
+		free,
+		used,
+		usagePercentage: total > 0 ? Math.round((used / total) * 100) : 0,
+	};
+}
+
+function localDisk() {
+	try {
+		const stat = fs.statfsSync('/');
+		const total = Number(stat.bsize) * Number(stat.blocks);
+		const used = total - Number(stat.bsize) * Number(stat.bfree);
+		const available = Number(stat.bsize) * Number(stat.bavail);
+		return {
+			root: {
+				total,
+				used,
+				available,
+				usagePercentage: total > 0 ? Math.round((used / total) * 100) : 0,
+			},
+		};
+	} catch {
+		return null;
+	}
 }

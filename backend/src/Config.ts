@@ -299,6 +299,10 @@ const ConfigSchema = z.object({
 	metrics: z.object({
 		host: z.string().optional(),
 	}),
+
+	prometheus: z.object({
+		url: z.string().optional(),
+	}),
 });
 
 function loadConfig() {
@@ -543,6 +547,10 @@ function loadConfig() {
 
 		metrics: {
 			host: optional('FLOODILKA_METRICS_HOST'),
+		},
+
+		prometheus: {
+			url: optional('FLOODILKA_PROMETHEUS_URL'),
 		},
 	});
 }
