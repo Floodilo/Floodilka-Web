@@ -102,26 +102,45 @@ const AvatarComponent = React.forwardRef<HTMLDivElement, AvatarProps>(
 			return AvatarUtils.getUserAvatarURL(user, true);
 		}, [user, customHoverAvatarUrl, guildId, guildMember]);
 
+		const hoverVideoUrl = React.useMemo(() => {
+			if (guildId && guildMember?.avatar) {
+				return AvatarUtils.getGuildMemberAvatarVideoURL({
+					guildId,
+					userId: user.id,
+					avatar: guildMember.avatar,
+				});
+			}
+			return AvatarUtils.getUserAvatarVideoURL(user);
+		}, [user, guildId, guildMember]);
+
 		const statusLabel = status != null ? getStatusTypeLabel(i18n, status) : null;
 
 		const [hoverRef, isHovering] = useHover();
 		const [isStaticLoaded, setIsStaticLoaded] = React.useState(ImageCacheUtils.hasImage(avatarUrl));
 		const [isAnimatedLoaded, setIsAnimatedLoaded] = React.useState(ImageCacheUtils.hasImage(hoverAvatarUrl));
 		const [shouldPlayAnimated, setShouldPlayAnimated] = React.useState(false);
+		const [videoFailed, setVideoFailed] = React.useState(false);
+
+		React.useEffect(() => {
+			setVideoFailed(false);
+		}, [hoverVideoUrl]);
+
+		const useVideoOverlay = hoverVideoUrl !== null && !videoFailed;
 
 		React.useEffect(() => {
 			ImageCacheUtils.loadImage(avatarUrl, () => setIsStaticLoaded(true));
-			if (isHovering || forceAnimate) {
+			if (!useVideoOverlay && (isHovering || forceAnimate)) {
 				ImageCacheUtils.loadImage(hoverAvatarUrl, () => setIsAnimatedLoaded(true));
 			}
-		}, [avatarUrl, hoverAvatarUrl, isHovering, forceAnimate]);
+		}, [avatarUrl, hoverAvatarUrl, isHovering, forceAnimate, useVideoOverlay]);
 
 		React.useEffect(() => {
-			setShouldPlayAnimated((isHovering || forceAnimate) && isAnimatedLoaded);
-		}, [isHovering, forceAnimate, isAnimatedLoaded]);
+			setShouldPlayAnimated((isHovering || forceAnimate) && (useVideoOverlay || isAnimatedLoaded));
+		}, [isHovering, forceAnimate, isAnimatedLoaded, useVideoOverlay]);
 
 		const safeAvatarUrl = avatarUrl || AvatarUtils.getUserAvatarURL({id: user.id, avatar: null}, false);
 		const safeHoverAvatarUrl = hoverAvatarUrl || undefined;
+		const effectiveHoverVideoUrl = useVideoOverlay ? hoverVideoUrl : null;
 
 		return (
 			<BaseAvatar
@@ -129,6 +148,8 @@ const AvatarComponent = React.forwardRef<HTMLDivElement, AvatarProps>(
 				size={size}
 				avatarUrl={safeAvatarUrl}
 				hoverAvatarUrl={safeHoverAvatarUrl}
+				hoverVideoUrl={effectiveHoverVideoUrl}
+				onHoverVideoError={() => setVideoFailed(true)}
 				status={status}
 				isMobileStatus={isMobileStatus}
 				shouldPlayAnimated={shouldPlayAnimated && isStaticLoaded}

@@ -24,6 +24,7 @@ declare const styles: {
   readonly "container": string;
   readonly "containerNoIcon": string;
   readonly "initials": string;
+  readonly "videoOverlay": string;
 };
 export = styles;
 

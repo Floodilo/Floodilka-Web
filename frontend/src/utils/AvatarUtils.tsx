@@ -134,6 +134,16 @@ export const getUserAvatarURL = ({id, avatar}: AvatarOptions, animated = false, 
 	});
 };
 
+export const getUserAvatarVideoURL = ({id, avatar}: AvatarOptions): string | null => {
+	if (!avatar || !avatar.startsWith('a_')) {
+		return null;
+	}
+	if (DeveloperOptionsStore.forceRenderPlaceholders) {
+		return null;
+	}
+	return mediaUrl(`avatars/${id}/${avatar}.mp4`);
+};
+
 export const getUserAvatarURLWithProxy = (
 	{id, avatar}: AvatarOptions,
 	mediaProxyEndpoint: string,
@@ -287,6 +297,16 @@ export const getGuildIconURL = ({id, icon}: IconOptions, animated = false) => {
 	});
 };
 
+export const getGuildIconVideoURL = ({id, icon}: IconOptions): string | null => {
+	if (!icon || !icon.startsWith('a_')) {
+		return null;
+	}
+	if (DeveloperOptionsStore.forceRenderPlaceholders) {
+		return null;
+	}
+	return mediaUrl(`icons/${id}/${icon}.mp4`);
+};
+
 export const getGuildBannerURL = ({id, banner}: {id: string; banner: string | null}, animated = false) => {
 	if (!banner) {
 		return null;
@@ -422,6 +442,24 @@ export const getGuildMemberAvatarURL = ({
 	});
 };
 
+export const getGuildMemberAvatarVideoURL = ({
+	guildId,
+	userId,
+	avatar,
+}: {
+	guildId: string;
+	userId: string;
+	avatar: string | null;
+}): string | null => {
+	if (!avatar || !avatar.startsWith('a_')) {
+		return null;
+	}
+	if (DeveloperOptionsStore.forceRenderPlaceholders) {
+		return null;
+	}
+	return mediaUrl(`guilds/${guildId}/users/${userId}/avatars/${avatar}.mp4`);
+};
+
 export const getGuildMemberBannerURL = ({
 	guildId,
 	userId,
@@ -480,7 +518,14 @@ export const getGuildMemberBannerAsset = ({
 
 	if (parsed.newFormat && parsed.animated) {
 		const videoUrl = getGuildMemberMediaURL({path: 'bnnrs', guildId, userId, hash: parsed.fullHash, format: 'mp4'});
-		const imageUrl = getGuildMemberMediaURL({path: 'bnnrs', guildId, userId, hash: parsed.fullHash, size, format: 'png'});
+		const imageUrl = getGuildMemberMediaURL({
+			path: 'bnnrs',
+			guildId,
+			userId,
+			hash: parsed.fullHash,
+			size,
+			format: 'png',
+		});
 		return {animated: true, videoUrl, imageUrl};
 	}
 

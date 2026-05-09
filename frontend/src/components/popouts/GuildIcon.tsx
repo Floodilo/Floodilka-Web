@@ -58,6 +58,7 @@ export const GuildIcon = observer(function GuildIcon({
 
 	const iconUrl = React.useMemo(() => (icon ? AvatarUtils.getGuildIconURL({id, icon}) : null), [id, icon]);
 	const hoverIconUrl = React.useMemo(() => (icon ? AvatarUtils.getGuildIconURL({id, icon}, true) : null), [id, icon]);
+	const hoverVideoUrl = React.useMemo(() => (icon ? AvatarUtils.getGuildIconVideoURL({id, icon}) : null), [id, icon]);
 
 	const [isStaticLoaded, setIsStaticLoaded] = React.useState(() =>
 		iconUrl ? ImageCacheUtils.hasImage(iconUrl) : false,
@@ -66,12 +67,16 @@ export const GuildIcon = observer(function GuildIcon({
 		hoverIconUrl ? ImageCacheUtils.hasImage(hoverIconUrl) : false,
 	);
 	const [shouldPlayAnimated, setShouldPlayAnimated] = React.useState(false);
+	const [videoFailed, setVideoFailed] = React.useState(false);
+
+	const useVideoOverlay = hoverVideoUrl !== null && !videoFailed;
 
 	React.useEffect(() => {
 		setIsStaticLoaded(iconUrl ? ImageCacheUtils.hasImage(iconUrl) : false);
 		setIsAnimatedLoaded(hoverIconUrl ? ImageCacheUtils.hasImage(hoverIconUrl) : false);
 		setShouldPlayAnimated(false);
-	}, [iconUrl, hoverIconUrl]);
+		setVideoFailed(false);
+	}, [iconUrl, hoverIconUrl, hoverVideoUrl]);
 
 	React.useEffect(() => {
 		if (!iconUrl || isStaticLoaded) return;
@@ -86,7 +91,7 @@ export const GuildIcon = observer(function GuildIcon({
 	}, [iconUrl, isStaticLoaded]);
 
 	React.useEffect(() => {
-		if (!isHovering || !hoverIconUrl || isAnimatedLoaded) return;
+		if (!isHovering || !hoverIconUrl || isAnimatedLoaded || useVideoOverlay) return;
 
 		let cancelled = false;
 		ImageCacheUtils.loadImage(hoverIconUrl, () => {
@@ -95,13 +100,13 @@ export const GuildIcon = observer(function GuildIcon({
 		return () => {
 			cancelled = true;
 		};
-	}, [isHovering, hoverIconUrl, isAnimatedLoaded]);
+	}, [isHovering, hoverIconUrl, isAnimatedLoaded, useVideoOverlay]);
 
 	React.useEffect(() => {
-		setShouldPlayAnimated(Boolean(isHovering && isAnimatedLoaded));
-	}, [isHovering, isAnimatedLoaded]);
+		setShouldPlayAnimated(Boolean(isHovering && (useVideoOverlay || isAnimatedLoaded)));
+	}, [isHovering, isAnimatedLoaded, useVideoOverlay]);
 
-	const activeUrl = shouldPlayAnimated && hoverIconUrl ? hoverIconUrl : iconUrl;
+	const activeUrl = shouldPlayAnimated && hoverIconUrl && !useVideoOverlay ? hoverIconUrl : iconUrl;
 
 	const styleVars: GuildIconStyleVars = {};
 	if (sizePx != null) {
@@ -110,6 +115,8 @@ export const GuildIcon = observer(function GuildIcon({
 	if (isStaticLoaded && activeUrl) {
 		styleVars['--guild-icon-image'] = `url(${activeUrl})`;
 	}
+
+	const showVideo = shouldPlayAnimated && useVideoOverlay && hoverVideoUrl !== null;
 
 	return (
 		<div
@@ -120,6 +127,18 @@ export const GuildIcon = observer(function GuildIcon({
 			style={styleVars}
 		>
 			{!icon && <span className={styles.initials}>{initials}</span>}
+			{showVideo && (
+				<video
+					key={hoverVideoUrl}
+					src={hoverVideoUrl}
+					autoPlay
+					loop
+					muted
+					playsInline
+					onError={() => setVideoFailed(true)}
+					className={styles.videoOverlay}
+				/>
+			)}
 		</div>
 	);
 });

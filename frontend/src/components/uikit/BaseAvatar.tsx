@@ -22,13 +22,13 @@
 
 import {useLingui} from '@lingui/react/macro';
 import {motion} from 'framer-motion';
+import {autorun} from 'mobx';
 import React from 'react';
 import type {StatusType} from '~/Constants';
 import {getStatusTypeLabel, normalizeStatus, StatusTypes} from '~/Constants';
 import {getStatusGeometry} from '~/components/uikit/AvatarStatusGeometry';
 import {getAvatarStatusLayout} from '~/components/uikit/AvatarStatusLayout';
 import {Tooltip} from '~/components/uikit/Tooltip/Tooltip';
-import {autorun} from 'mobx';
 import WindowStore from '~/stores/WindowStore';
 import typingStyles from '~/styles/Typing.module.css';
 import styles from './BaseAvatar.module.css';
@@ -37,6 +37,8 @@ interface BaseAvatarProps {
 	size: number;
 	avatarUrl: string;
 	hoverAvatarUrl?: string;
+	hoverVideoUrl?: string | null;
+	onHoverVideoError?: () => void;
 	status?: StatusType | string | null;
 	shouldPlayAnimated?: boolean;
 	isTyping?: boolean;
@@ -55,6 +57,8 @@ export const BaseAvatar = React.forwardRef<HTMLDivElement, BaseAvatarProps>(
 			size,
 			avatarUrl,
 			hoverAvatarUrl,
+			hoverVideoUrl = null,
+			onHoverVideoError,
 			status,
 			shouldPlayAnimated = false,
 			isTyping = false,
@@ -122,7 +126,12 @@ export const BaseAvatar = React.forwardRef<HTMLDivElement, BaseAvatarProps>(
 		const baseLeftCap = {cx: cutoutCx};
 		const typingLeftCap = {cx: cutoutCx - extendW};
 
-		const displayUrl = shouldPlayAnimated && hoverAvatarUrl && isVisible ? hoverAvatarUrl : avatarUrl;
+		const useVideoOverlay = Boolean(shouldPlayAnimated && hoverVideoUrl && isVisible);
+		const displayUrl = useVideoOverlay
+			? avatarUrl
+			: shouldPlayAnimated && hoverAvatarUrl && isVisible
+				? hoverAvatarUrl
+				: avatarUrl;
 
 		const avatarMaskId = shouldUseDynamicAvatarMask
 			? dynamicAvatarMaskId
@@ -208,6 +217,20 @@ export const BaseAvatar = React.forwardRef<HTMLDivElement, BaseAvatarProps>(
 						mask={`url(#${avatarMaskId})`}
 						preserveAspectRatio="xMidYMid slice"
 					/>
+					{useVideoOverlay && hoverVideoUrl && (
+						<foreignObject x={0} y={0} width={size} height={size} mask={`url(#${avatarMaskId})`}>
+							<video
+								key={hoverVideoUrl}
+								src={hoverVideoUrl}
+								autoPlay
+								loop
+								muted
+								playsInline
+								onError={onHoverVideoError}
+								className={styles.videoOverlay}
+							/>
+						</foreignObject>
+					)}
 				</svg>
 
 				<div className={styles.hoverOverlay} style={{borderRadius: '8px'}} />

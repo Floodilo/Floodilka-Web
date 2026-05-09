@@ -29,6 +29,7 @@ declare const styles: {
   readonly "statusContainer": string;
   readonly "typingDot": string;
   readonly "typingDots": string;
+  readonly "videoOverlay": string;
 };
 export = styles;
 
