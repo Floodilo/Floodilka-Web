@@ -58,6 +58,10 @@ function spyOnHandler(action: KeybindAction) {
 	return spy;
 }
 
+function setNavigatorPlatform(platform: string): void {
+	Object.defineProperty(navigator, 'platform', {value: platform, configurable: true});
+}
+
 describe('KeybindManager integration', () => {
 	beforeEach(async () => {
 		resetStores();
@@ -67,6 +71,7 @@ describe('KeybindManager integration', () => {
 
 	afterEach(() => {
 		KeybindManager.destroy();
+		delete (window as any).electron;
 	});
 
 	test('Ctrl+K fires quick_switcher handler', () => {
@@ -184,4 +189,26 @@ describe('KeybindManager integration', () => {
 		dispatchKey('keyup', {code: 'KeyL'});
 		expect(spy).toHaveBeenCalledTimes(2);
 	});
+
+	test('Windows global shortcut fallback does not register NumpadEnter as regular Enter', async () => {
+		setNavigatorPlatform('Win32');
+		const electronApi = {
+			platform: 'win32',
+			unregisterAllGlobalShortcuts: vi.fn(async () => undefined),
+			registerGlobalShortcut: vi.fn(async () => true),
+		};
+		Object.defineProperty(window, 'electron', {value: electronApi, configurable: true});
+
+		await (KeybindManager as any).refreshGlobalShortcuts([
+			{
+				id: 'toggle_mute:0',
+				action: 'toggle_mute',
+				combo: {key: 'Enter', code: 'NumpadEnter', enabled: true, global: true},
+				allowGlobal: true,
+			},
+		]);
+
+		expect(electronApi.registerGlobalShortcut).not.toHaveBeenCalled();
+	});
+
 });
