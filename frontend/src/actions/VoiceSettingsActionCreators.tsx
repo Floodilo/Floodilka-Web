@@ -22,6 +22,7 @@
 
 import VoiceSettingsStore from '~/stores/VoiceSettingsStore';
 import MediaEngineStore from '~/stores/voice/MediaEngineFacade';
+import VoiceAudioContextManager from '~/stores/voice/VoiceAudioContextManager';
 
 export const update = (
 	settings: Partial<{
@@ -42,6 +43,14 @@ export const update = (
 	}>,
 ): void => {
 	VoiceSettingsStore.updateSettings(settings);
+
+	if (settings.outputDeviceId !== undefined) {
+		VoiceAudioContextManager.setSinkId(VoiceSettingsStore.getOutputDeviceId());
+	}
+
+	if (settings.inputDeviceId !== undefined) {
+		MediaEngineStore.applyInputDevice();
+	}
 
 	if (settings.outputVolume !== undefined) {
 		MediaEngineStore.applyAllLocalAudioPreferences();

@@ -26,6 +26,7 @@ import {makeAutoObservable, runInAction} from 'mobx';
 import type {Subscription} from 'rxjs';
 import {timer} from 'rxjs';
 import {Logger} from '~/lib/Logger';
+import VoiceSettingsStore from '~/stores/VoiceSettingsStore';
 import VoiceAudioContextManager from './VoiceAudioContextManager';
 import {VoiceConnectionThrottle} from './VoiceConnectionThrottle';
 import {VoiceReconnectManager} from './VoiceReconnectManager';
@@ -221,6 +222,7 @@ class VoiceConnectionManager {
 		this.throttle.setInFlightConnect(true);
 
 		const roomOptions: RoomOptions = {adaptiveStream: true, dynacast: true};
+		VoiceAudioContextManager.setSinkId(VoiceSettingsStore.getOutputDeviceId());
 		const audioContext = VoiceAudioContextManager.get();
 		if (audioContext) {
 			roomOptions.webAudioMix = {audioContext};

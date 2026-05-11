@@ -418,6 +418,14 @@ class MediaEngineFacade {
 			});
 		}
 	}
+	applyInputDevice(): void {
+		const room = this.room;
+		if (room) {
+			VoiceMediaManager.applyInputDevice(room).catch((e) => {
+				logger.error('[applyInputDevice] Failed', e);
+			});
+		}
+	}
 	applyLocalInputVolume(): void {
 		VoiceMediaManager.applyLocalInputVolume();
 	}

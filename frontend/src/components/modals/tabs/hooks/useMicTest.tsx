@@ -23,6 +23,7 @@
 import React from 'react';
 import * as ModalActionCreators from '~/actions/ModalActionCreators';
 import {modal} from '~/actions/ModalActionCreators';
+import * as ToastActionCreators from '~/actions/ToastActionCreators';
 import {MicrophonePermissionDeniedModal} from '~/components/alerts/MicrophonePermissionDeniedModal';
 import MediaPermissionStore from '~/stores/MediaPermissionStore';
 import VoiceSettingsStore from '~/stores/VoiceSettingsStore';
@@ -247,9 +248,24 @@ export const useMicTest = (settings: MicTestSettings) => {
 		} catch (error) {
 			console.error('Error starting mic test:', error);
 
-			if (error instanceof Error && (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError')) {
-				MediaPermissionStore.markMicrophoneExplicitlyDenied();
-				ModalActionCreators.push(modal(() => <MicrophonePermissionDeniedModal />));
+			if (error instanceof Error) {
+				const name = error.name;
+				if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+					MediaPermissionStore.markMicrophoneExplicitlyDenied();
+					ModalActionCreators.push(modal(() => <MicrophonePermissionDeniedModal />));
+				} else if (name === 'NotReadableError' || name === 'TrackStartError' || name === 'AbortError') {
+					ToastActionCreators.error(
+						'Microphone is busy. Close other apps using it (Discord, Zoom, OBS) and try again.',
+					);
+				} else if (name === 'NotFoundError') {
+					ToastActionCreators.error('Selected microphone was not found. Pick another device in voice settings.');
+				} else if (name === 'OverconstrainedError') {
+					ToastActionCreators.error("Microphone doesn't support the requested settings.");
+				} else {
+					ToastActionCreators.error(`Failed to start microphone test: ${error.message || name}`);
+				}
+			} else {
+				ToastActionCreators.error('Failed to start microphone test.');
 			}
 
 			stop();

@@ -457,6 +457,40 @@ class VoiceMediaManager {
 		await this.setupInputGain(room);
 	}
 
+	async applyInputDevice(room: Room): Promise<void> {
+		const pub = room.localParticipant?.getTrackPublication(Track.Source.Microphone);
+		const track = pub?.track as LocalAudioTrack | undefined;
+		if (!track) return;
+
+		let deviceId = VoiceSettingsStore.getInputDeviceId();
+		const deviceState = VoiceDevicePermissionStore.getState();
+		const exists = deviceId === 'default' || deviceState.inputDevices.some((d) => d.deviceId === deviceId);
+		if (!exists && deviceState.inputDevices.length > 0) {
+			logger.warn('[applyInputDevice] Stored input device unavailable, falling back to default', {
+				storedDeviceId: deviceId,
+				availableCount: deviceState.inputDevices.length,
+			});
+			deviceId = 'default';
+		}
+
+		this.destroyNoiseFilter();
+
+		const useRNNoise = VoiceSettingsStore.noiseSuppression && RNNoiseProcessor.isSupported();
+		logger.info('[applyInputDevice] Switching input device', {deviceId, useRNNoise});
+
+		if (useRNNoise) {
+			this.noiseFilterProcessor = createRNNoiseProcessor();
+			await track.setProcessor(this.noiseFilterProcessor);
+			logger.info('[applyInputDevice] RNNoise processor attached');
+		} else {
+			await track.stopProcessor();
+		}
+
+		await track.restartTrack(getMicConstraints(deviceId));
+		reconcileTransmissionStateFn(room, this.getCurrentVoiceState());
+		await this.setupInputGain(room);
+	}
+
 	private destroyNoiseFilter(): void {
 		if (this.noiseFilterProcessor) {
 			this.noiseFilterProcessor.destroy().catch(() => {});

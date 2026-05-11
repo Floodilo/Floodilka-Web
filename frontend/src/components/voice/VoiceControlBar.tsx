@@ -67,7 +67,7 @@ import {VoiceCameraSettingsMenu, VoiceMoreOptionsMenu} from './VoiceSettingsMenu
 
 const VoiceControlBarInner = observer(function VoiceControlBarInner() {
 	const {t} = useLingui();
-	const {localParticipant, isCameraEnabled, isMicrophoneEnabled, isScreenShareEnabled} = useLocalParticipant();
+	const {localParticipant, isCameraEnabled, isScreenShareEnabled} = useLocalParticipant();
 
 	const voiceState = MediaEngineStore.getCurrentUserVoiceState();
 	const localSelfMute = LocalVoiceStateStore.selfMute;
@@ -102,37 +102,12 @@ const VoiceControlBarInner = observer(function VoiceControlBarInner() {
 		onOpenMobile: () => setAudioSettingsOpen(true),
 	});
 
-	const isMicrophoneEnabledRef = useRef(isMicrophoneEnabled);
 	const isCameraEnabledRef = useRef(isCameraEnabled);
-	const lastInputDeviceIdRef = useRef<string | null>(null);
 	const lastVideoDeviceIdRef = useRef<string | null>(null);
 
 	useEffect(() => {
-		isMicrophoneEnabledRef.current = isMicrophoneEnabled;
 		isCameraEnabledRef.current = isCameraEnabled;
 	});
-
-	useEffect(() => {
-		if (!localParticipant) return;
-		const nextDeviceId = voiceSettings.inputDeviceId;
-		if (lastInputDeviceIdRef.current === nextDeviceId) return;
-		lastInputDeviceIdRef.current = nextDeviceId;
-		if (!isMicrophoneEnabledRef.current || !nextDeviceId) return;
-
-		(async () => {
-			try {
-				await localParticipant.setMicrophoneEnabled(true, {
-					deviceId: nextDeviceId,
-					echoCancellation: true,
-					noiseSuppression: true,
-					autoGainControl: true,
-				});
-				MediaEngineStore.reconcileTransmissionState();
-			} catch (error) {
-				console.error('Failed to switch microphone:', error);
-			}
-		})();
-	}, [voiceSettings.inputDeviceId, localParticipant]);
 
 	useEffect(() => {
 		if (!localParticipant) return;

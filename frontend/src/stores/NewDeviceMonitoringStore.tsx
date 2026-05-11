@@ -26,11 +26,11 @@ import {Trans} from '@lingui/react/macro';
 import {makeAutoObservable, runInAction} from 'mobx';
 import * as ModalActionCreators from '~/actions/ModalActionCreators';
 import {modal} from '~/actions/ModalActionCreators';
+import * as VoiceSettingsActionCreators from '~/actions/VoiceSettingsActionCreators';
 import {ConfirmModal} from '~/components/modals/ConfirmModal';
 import {Checkbox} from '~/components/uikit/Checkbox/Checkbox';
 import {Logger} from '~/lib/Logger';
 import {makePersistent} from '~/lib/MobXPersistence';
-import VoiceSettingsStore from '~/stores/VoiceSettingsStore';
 import VoiceDevicePermissionStore, {type VoiceDeviceState} from '~/stores/voice/VoiceDevicePermissionStore';
 
 const logger = new Logger('NewDeviceMonitoringStore');
@@ -209,9 +209,9 @@ class NewDeviceMonitoringStore {
 					}
 					onPrimary={(dontAskAgain) => {
 						if (deviceType === 'input') {
-							VoiceSettingsStore.updateSettings({inputDeviceId: deviceId});
+							VoiceSettingsActionCreators.update({inputDeviceId: deviceId});
 						} else {
-							VoiceSettingsStore.updateSettings({outputDeviceId: deviceId});
+							VoiceSettingsActionCreators.update({outputDeviceId: deviceId});
 						}
 
 						if (dontAskAgain) {

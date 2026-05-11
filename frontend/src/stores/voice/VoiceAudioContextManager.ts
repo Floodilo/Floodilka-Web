@@ -26,6 +26,12 @@ const logger = new Logger('VoiceAudioContextManager');
 
 type AudioContextCtor = typeof AudioContext;
 
+type AudioContextOptionsWithSinkId = AudioContextOptions & {sinkId?: string};
+
+type AudioContextWithSinkId = AudioContext & {
+	setSinkId?: (sinkId: string | {type: 'none'}) => Promise<void>;
+};
+
 function resolveAudioContextCtor(): AudioContextCtor | null {
 	if (typeof window === 'undefined') return null;
 	const w = window as typeof window & {webkitAudioContext?: AudioContextCtor};
@@ -36,6 +42,7 @@ export class VoiceAudioContextManager {
 	private ctx: AudioContext | null = null;
 	private creationAttempted = false;
 	private gestureListenerAttached = false;
+	private desiredSinkId = 'default';
 
 	get(): AudioContext | null {
 		if (this.ctx) return this.ctx;
@@ -47,14 +54,55 @@ export class VoiceAudioContextManager {
 			logger.warn('AudioContext not supported — volume boost disabled');
 			return null;
 		}
+
+		const wantsExplicitSink = this.desiredSinkId !== 'default';
+		const options: AudioContextOptionsWithSinkId = {latencyHint: 'interactive'};
+		if (wantsExplicitSink) {
+			options.sinkId = this.desiredSinkId;
+		}
+
 		try {
-			this.ctx = new Ctor({latencyHint: 'interactive'});
+			this.ctx = new Ctor(options);
 		} catch (error) {
-			logger.warn('Failed to create AudioContext — volume boost disabled', {error});
-			return null;
+			if (wantsExplicitSink) {
+				logger.warn('Failed to create AudioContext with requested sink, retrying with default', {
+					error,
+					sinkId: this.desiredSinkId,
+				});
+				try {
+					this.ctx = new Ctor({latencyHint: 'interactive'});
+				} catch (retryError) {
+					logger.warn('Failed to create AudioContext — volume boost disabled', {error: retryError});
+					return null;
+				}
+				void this.applySinkId(this.desiredSinkId);
+			} else {
+				logger.warn('Failed to create AudioContext — volume boost disabled', {error});
+				return null;
+			}
 		}
 		this.attachGestureResumeListener();
 		return this.ctx;
+	}
+
+	setSinkId(deviceId: string | null | undefined): void {
+		const normalized = deviceId && deviceId.length > 0 ? deviceId : 'default';
+		if (this.desiredSinkId === normalized) return;
+		this.desiredSinkId = normalized;
+		if (this.ctx) {
+			void this.applySinkId(normalized);
+		}
+	}
+
+	private async applySinkId(deviceId: string): Promise<void> {
+		const ctx = this.ctx as AudioContextWithSinkId | null;
+		if (!ctx || typeof ctx.setSinkId !== 'function') return;
+		const sinkId = deviceId === 'default' ? '' : deviceId;
+		try {
+			await ctx.setSinkId(sinkId);
+		} catch (error) {
+			logger.warn('Failed to apply audio output sink', {deviceId, error});
+		}
 	}
 
 	isAvailable(): boolean {
