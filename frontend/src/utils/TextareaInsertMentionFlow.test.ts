@@ -1,23 +1,8 @@
 /*
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  * Copyright (C) 2020-2026 Fluxer Contributors
  * Copyright (C) 2026 Floodilka Contributors
- *
- * This file is part of Floodilka, a fork of Fluxer
- * (https://github.com/fluxerapp/fluxer).
- * Modified by Floodilka Contributors starting March 2026.
- *
- * Floodilka is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Floodilka is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
+ * Modified by Floodilka Contributors starting March 2026. See LICENSE and NOTICE.
  */
 
 import {beforeEach, describe, expect, it} from 'vitest';
@@ -50,9 +35,9 @@ describe('Textarea INSERT_MENTION Flow Integration', () => {
 	}
 
 	it('should handle first INSERT_MENTION', () => {
-		const result = simulateInsertMention('', 'Hampus#0001', '123');
+		const result = simulateInsertMention('', 'Player#0001', '123');
 
-		expect(result).toBe('@Hampus#0001');
+		expect(result).toBe('@Player#0001');
 		expect(manager.getSegments()).toHaveLength(1);
 		expect(manager.displayToActual(result)).toBe('<@123>');
 	});
@@ -60,13 +45,13 @@ describe('Textarea INSERT_MENTION Flow Integration', () => {
 	it('should handle two consecutive INSERT_MENTION calls', () => {
 		let value = '';
 
-		value = simulateInsertMention(value, 'Hampus#0001', '123');
-		expect(value).toBe('@Hampus#0001');
+		value = simulateInsertMention(value, 'Player#0001', '123');
+		expect(value).toBe('@Player#0001');
 
 		value += ' ';
 
-		value = simulateInsertMention(value, 'Hampus#0001', '123');
-		expect(value).toBe('@Hampus#0001 @Hampus#0001');
+		value = simulateInsertMention(value, 'Player#0001', '123');
+		expect(value).toBe('@Player#0001 @Player#0001');
 
 		const segments = manager.getSegments();
 		expect(segments).toHaveLength(2);
@@ -78,11 +63,11 @@ describe('Textarea INSERT_MENTION Flow Integration', () => {
 	it('should handle INSERT_MENTION without manually adding space between', () => {
 		let value = '';
 
-		value = simulateInsertMention(value, 'Hampus#0001', '123');
+		value = simulateInsertMention(value, 'Player#0001', '123');
 
-		value = simulateInsertMention(value, 'Hampus#0001', '123');
+		value = simulateInsertMention(value, 'Player#0001', '123');
 
-		expect(value).toBe('@Hampus#0001 @Hampus#0001');
+		expect(value).toBe('@Player#0001 @Player#0001');
 		const segments = manager.getSegments();
 		expect(segments).toHaveLength(2);
 		expect(manager.displayToActual(value)).toBe('<@123> <@123>');
@@ -91,11 +76,11 @@ describe('Textarea INSERT_MENTION Flow Integration', () => {
 	it('should handle three consecutive INSERT_MENTION calls', () => {
 		let value = '';
 
-		value = simulateInsertMention(value, 'Hampus#0001', '123');
-		value = simulateInsertMention(value, 'Hampus#0001', '123');
-		value = simulateInsertMention(value, 'Hampus#0001', '123');
+		value = simulateInsertMention(value, 'Player#0001', '123');
+		value = simulateInsertMention(value, 'Player#0001', '123');
+		value = simulateInsertMention(value, 'Player#0001', '123');
 
-		expect(value).toBe('@Hampus#0001 @Hampus#0001 @Hampus#0001');
+		expect(value).toBe('@Player#0001 @Player#0001 @Player#0001');
 		const segments = manager.getSegments();
 		expect(segments).toHaveLength(3);
 		expect(manager.displayToActual(value)).toBe('<@123> <@123> <@123>');
@@ -104,7 +89,7 @@ describe('Textarea INSERT_MENTION Flow Integration', () => {
 	it('should handle INSERT_MENTION with text changes in between via handleTextChange', () => {
 		let value = '';
 
-		value = simulateInsertMention(value, 'Hampus#0001', '123');
+		value = simulateInsertMention(value, 'Player#0001', '123');
 
 		const oldValue = value;
 		value = `${value} hello`;
@@ -113,7 +98,7 @@ describe('Textarea INSERT_MENTION Flow Integration', () => {
 
 		value = simulateInsertMention(value, 'Other#0002', '456');
 
-		expect(value).toBe('@Hampus#0001 hello @Other#0002');
+		expect(value).toBe('@Player#0001 hello @Other#0002');
 		const segments = manager.getSegments();
 		expect(segments).toHaveLength(2);
 		expect(manager.displayToActual(value)).toBe('<@123> hello <@456>');

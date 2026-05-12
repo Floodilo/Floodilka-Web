@@ -1,23 +1,8 @@
 /*
+ * SPDX-License-Identifier: AGPL-3.0-or-later
  * Copyright (C) 2020-2026 Fluxer Contributors
  * Copyright (C) 2026 Floodilka Contributors
- *
- * This file is part of Floodilka, a fork of Fluxer
- * (https://github.com/fluxerapp/fluxer).
- * Modified by Floodilka Contributors starting March 2026.
- *
- * Floodilka is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Floodilka is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
+ * Modified by Floodilka Contributors starting March 2026. See LICENSE and NOTICE.
  */
 
 import {beforeEach, describe, expect, it} from 'vitest';
@@ -68,49 +53,49 @@ describe('Textarea Autocomplete Flow Integration', () => {
 	}
 
 	it('should handle first mention autocomplete', () => {
-		const value = '@Hampus';
+		const value = '@Player';
 		const matchStart = 0;
 		const matchEnd = 7;
 
-		const result = simulateAutocompleteSelect(value, matchStart, matchEnd, '@Hampus#0001', '<@123>', 'user', '123');
+		const result = simulateAutocompleteSelect(value, matchStart, matchEnd, '@Player#0001', '<@123>', 'user', '123');
 
-		expect(result).toBe('@Hampus#0001 ');
+		expect(result).toBe('@Player#0001 ');
 		expect(manager.getSegments()).toHaveLength(1);
 		expect(manager.displayToActual(result)).toBe('<@123> ');
 	});
 
 	it('should handle second consecutive mention - the failing case', () => {
-		let value = '@Hampus';
-		let result = simulateAutocompleteSelect(value, 0, 7, '@Hampus#0001', '<@123>', 'user', '123');
-		expect(result).toBe('@Hampus#0001 ');
+		let value = '@Player';
+		let result = simulateAutocompleteSelect(value, 0, 7, '@Player#0001', '<@123>', 'user', '123');
+		expect(result).toBe('@Player#0001 ');
 		expect(manager.getSegments()).toHaveLength(1);
 
-		value = `${result}@Hampus`;
+		value = `${result}@Player`;
 		const matchStart = result.length;
 		const matchEnd = value.length;
 
-		result = simulateAutocompleteSelect(value, matchStart, matchEnd, '@Hampus#0001', '<@123>', 'user', '123');
+		result = simulateAutocompleteSelect(value, matchStart, matchEnd, '@Player#0001', '<@123>', 'user', '123');
 
-		expect(result).toBe('@Hampus#0001 @Hampus#0001 ');
+		expect(result).toBe('@Player#0001 @Player#0001 ');
 		const segments = manager.getSegments();
 		expect(segments).toHaveLength(2);
 		expect(manager.displayToActual(result)).toBe('<@123> <@123> ');
 	});
 
 	it('should handle three consecutive mentions', () => {
-		let value = '@Hampus';
+		let value = '@Player';
 		let prevLength = 0;
-		let result = simulateAutocompleteSelect(value, 0, 7, '@Hampus#0001', '<@123>', 'user', '123');
+		let result = simulateAutocompleteSelect(value, 0, 7, '@Player#0001', '<@123>', 'user', '123');
 
 		prevLength = result.length;
-		value = `${result}@Hampus`;
-		result = simulateAutocompleteSelect(value, prevLength, value.length, '@Hampus#0001', '<@123>', 'user', '123');
+		value = `${result}@Player`;
+		result = simulateAutocompleteSelect(value, prevLength, value.length, '@Player#0001', '<@123>', 'user', '123');
 
 		prevLength = result.length;
-		value = `${result}@Hampus`;
-		result = simulateAutocompleteSelect(value, prevLength, value.length, '@Hampus#0001', '<@123>', 'user', '123');
+		value = `${result}@Player`;
+		result = simulateAutocompleteSelect(value, prevLength, value.length, '@Player#0001', '<@123>', 'user', '123');
 
-		expect(result).toBe('@Hampus#0001 @Hampus#0001 @Hampus#0001 ');
+		expect(result).toBe('@Player#0001 @Player#0001 @Player#0001 ');
 		const segments = manager.getSegments();
 		expect(segments).toHaveLength(3);
 		expect(manager.displayToActual(result)).toBe('<@123> <@123> <@123> ');
@@ -143,14 +128,14 @@ describe('Textarea Autocomplete Flow Integration', () => {
 
 	it('should handle consecutive mentions', () => {
 		let value = '@H';
-		let result = simulateAutocompleteSelect(value, 0, 2, '@Hampus#0001', '<@123>', 'user', '123');
+		let result = simulateAutocompleteSelect(value, 0, 2, '@Player#0001', '<@123>', 'user', '123');
 
 		const prevLength = result.length;
 		value = `${result}@H`;
 
-		result = simulateAutocompleteSelect(value, prevLength, value.length, '@Hampus#0001', '<@123>', 'user', '123');
+		result = simulateAutocompleteSelect(value, prevLength, value.length, '@Player#0001', '<@123>', 'user', '123');
 
-		expect(result).toBe('@Hampus#0001 @Hampus#0001 ');
+		expect(result).toBe('@Player#0001 @Player#0001 ');
 		const segments = manager.getSegments();
 		expect(segments).toHaveLength(2);
 		expect(segments[0]).toMatchObject({id: '123', start: 0, end: 13});
@@ -162,10 +147,10 @@ describe('Textarea Autocomplete Flow Integration', () => {
 		let previousValue = '';
 		let value = '@H';
 
-		value = simulateAutocompleteSelect(value, 0, 2, '@Hampus#0001', '<@123>', 'user', '123');
+		value = simulateAutocompleteSelect(value, 0, 2, '@Player#0001', '<@123>', 'user', '123');
 		previousValue = value;
 
-		expect(value).toBe('@Hampus#0001 ');
+		expect(value).toBe('@Player#0001 ');
 		expect(manager.getSegments()).toHaveLength(1);
 
 		const newValue = `${value}@`;
@@ -185,11 +170,11 @@ describe('Textarea Autocomplete Flow Integration', () => {
 
 		expect(manager.getSegments()).toHaveLength(1);
 
-		const matchStart = '@Hampus#0001 '.length;
+		const matchStart = '@Player#0001 '.length;
 		const matchEnd = value.length;
-		value = simulateAutocompleteSelect(value, matchStart, matchEnd, '@Hampus#0001', '<@123>', 'user', '123');
+		value = simulateAutocompleteSelect(value, matchStart, matchEnd, '@Player#0001', '<@123>', 'user', '123');
 
-		expect(value).toBe('@Hampus#0001 @Hampus#0001 ');
+		expect(value).toBe('@Player#0001 @Player#0001 ');
 		expect(manager.getSegments()).toHaveLength(2);
 		expect(manager.displayToActual(value)).toBe('<@123> <@123> ');
 	});
@@ -197,8 +182,8 @@ describe('Textarea Autocomplete Flow Integration', () => {
 	it('should reproduce and fix the bug - regex match includes space', () => {
 		const MENTION_REGEX = /(^|\s)@(\S*)$/;
 
-		let value = '@Hampus#0001 ';
-		manager.insertSegment('', 0, '@Hampus#0001 ', '<@123> ', 'user', '123');
+		let value = '@Player#0001 ';
+		manager.insertSegment('', 0, '@Player#0001 ', '<@123> ', 'user', '123');
 
 		value += '@H';
 
@@ -214,7 +199,7 @@ describe('Textarea Autocomplete Flow Integration', () => {
 				value,
 				matchStart,
 				matchEnd,
-				'@Hampus#0001',
+				'@Player#0001',
 				'<@123>',
 				'user',
 				'123',
