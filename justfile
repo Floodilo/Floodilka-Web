@@ -89,3 +89,19 @@ go-integration-check:
   go test ./tests/integration/...
   $(go env GOPATH)/bin/staticcheck ./tests/integration/...
   $(go env GOPATH)/bin/golangci-lint run ./tests/integration/...
+
+dev-prod port="3000" upstream="https://floodilka.com":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  cd frontend
+  export PROD_API_PROXY=1
+  export PROD_API_UPSTREAM="{{upstream}}"
+  export PROD_API_PORT="{{port}}"
+  export PUBLIC_BOOTSTRAP_API_ENDPOINT=/api
+  pnpm wasm:codegen
+  pnpm generate:colors
+  pnpm generate:masks
+  pnpm generate:css-types
+  pnpm lingui:compile
+  lsof -ti :{{port}} | xargs kill -9 2>/dev/null || true
+  pnpm exec rspack serve --port {{port}}

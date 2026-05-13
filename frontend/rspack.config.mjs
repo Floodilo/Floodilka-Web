@@ -11,6 +11,7 @@ import {CopyRspackPlugin, DefinePlugin, HtmlRspackPlugin, SwcJsMinimizerRspackPl
 import ReactRefreshPlugin from '@rspack/plugin-react-refresh';
 import {createPoFileRule, getLinguiSwcPluginConfig} from './scripts/build/rspack/lingui.mjs';
 import {prerenderPlugin} from './scripts/build/rspack/prerender.mjs';
+import {createProdApiProxy} from './scripts/build/rspack/prod-api-proxy.mjs';
 import {staticFilesPlugin} from './scripts/build/rspack/static-files.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -398,6 +399,19 @@ export default () => {
 					static: {
 						directory: DIST_DIR,
 						watch: false,
+					},
+					setupMiddlewares: (middlewares) => {
+						if (process.env.PROD_API_PROXY === '1') {
+							const upstream = process.env.PROD_API_UPSTREAM || 'https://floodilka.com';
+							const port = process.env.PROD_API_PORT || '3000';
+							const proxy = createProdApiProxy({
+								upstream,
+								localOrigin: `http://localhost:${port}`,
+							});
+							middlewares.unshift({name: 'prod-api-proxy', middleware: proxy});
+							console.log(`\n  prod-api-proxy → ${upstream} (active on /api, /media, /pulse)\n`);
+						}
+						return middlewares;
 					},
 				}
 			: undefined,
