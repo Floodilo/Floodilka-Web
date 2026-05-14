@@ -92,5 +92,11 @@ livekit.yaml
 gateway/config/sys.config
 gateway/config/vm.args
 
+# Frontend generated artifacts (produced by `pnpm build` / `pnpm dev`)
+frontend/src/**/*.module.css.d.ts
+frontend/src/locales/*/messages.mjs
+frontend/src/components/uikit/SVGMasks.tsx
+frontend/src/components/uikit/AvatarStatusGeometry.ts
+
 # Claude Code local state
 .claude/
