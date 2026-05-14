@@ -94,8 +94,8 @@ jobs:
           pnpm generate:colors
           pnpm generate:masks
           pnpm generate:css-types
-          npx tsc --noEmit
           npx lingui compile
+          npx tsc --noEmit
           rm -rf dist
           npx rspack build --mode production
           npx tsx scripts/build-sw.mjs

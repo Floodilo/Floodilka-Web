@@ -76,8 +76,8 @@ jobs:
           pnpm generate:colors
           pnpm generate:masks
           pnpm generate:css-types
-          pnpm exec tsc --noEmit
           pnpm exec lingui compile --strict
+          pnpm exec tsc --noEmit
           if (Test-Path dist) { Remove-Item -Recurse -Force dist }
           pnpm exec rspack build --mode production
 
