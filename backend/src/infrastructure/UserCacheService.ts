@@ -6,7 +6,6 @@
  */
 
 import type {UserID} from '~/BrandedTypes';
-import {UserFlags} from '~/Constants';
 import {UnknownUserError} from '~/Errors';
 import type {ICacheService} from '~/infrastructure/ICacheService';
 import {InMemoryCoalescer} from '~/infrastructure/InMemoryCoalescer';
@@ -40,9 +39,6 @@ export class UserCacheService {
 		const userPartialResponse = await this.coalescer.coalesce(cacheKey, async () => {
 			const user = await this.userRepository.findUnique(userId);
 			if (!user) {
-				throw new UnknownUserError();
-			}
-			if (user.flags & UserFlags.DELETED) {
 				throw new UnknownUserError();
 			}
 			return mapUserToPartialResponse(user);
