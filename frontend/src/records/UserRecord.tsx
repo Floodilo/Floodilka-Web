@@ -1,8 +1,20 @@
 /*
- * SPDX-License-Identifier: AGPL-3.0-or-later
- * Copyright (C) 2020-2026 Fluxer Contributors
  * Copyright (C) 2026 Floodilka Contributors
- * Modified by Floodilka Contributors starting March 2026. See LICENSE and NOTICE.
+ *
+ * This file is part of Floodilka.
+ *
+ * Floodilka is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Floodilka is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import {
@@ -32,6 +44,7 @@ export type UserProfile = Readonly<{
 	bio: string | null;
 	banner: string | null;
 	banner_color?: number | null;
+	nameplate?: string | null;
 }>;
 
 export type UserPartial = Readonly<{
@@ -44,7 +57,6 @@ export type UserPartial = Readonly<{
 	system?: boolean;
 	flags: number;
 	premium_type?: number | null;
-	nameplate?: string | null;
 }>;
 
 export type RequiredAction =
@@ -69,6 +81,8 @@ export type UserPrivate = Readonly<
 			premium_since: string | null;
 			premium_until: string | null;
 			premium_will_cancel: boolean;
+			/** Failed renewal / payment retry while access continues (optional API field). */
+			premium_payment_grace?: boolean;
 			premium_billing_cycle: string | null;
 			premium_badge_hidden: boolean;
 			premium_badge_timestamp_hidden: boolean;
@@ -120,6 +134,7 @@ export class UserRecord {
 	private readonly _premiumSince?: Date | null;
 	private readonly _premiumUntil?: Date | null;
 	private readonly _premiumWillCancel?: boolean;
+	private readonly _premiumPaymentGrace?: boolean;
 	private readonly _premiumBillingCycle?: string | null;
 	readonly premiumBadgeHidden?: boolean;
 	readonly premiumBadgeTimestampHidden?: boolean;
@@ -158,6 +173,7 @@ export class UserRecord {
 		if ('premium_since' in user) this._premiumSince = user.premium_since ? new Date(user.premium_since) : null;
 		if ('premium_until' in user) this._premiumUntil = user.premium_until ? new Date(user.premium_until) : null;
 		if ('premium_will_cancel' in user) this._premiumWillCancel = user.premium_will_cancel;
+		if ('premium_payment_grace' in user) this._premiumPaymentGrace = user.premium_payment_grace;
 		if ('premium_billing_cycle' in user) this._premiumBillingCycle = user.premium_billing_cycle;
 		if ('premium_badge_hidden' in user) this.premiumBadgeHidden = user.premium_badge_hidden;
 		if ('premium_badge_timestamp_hidden' in user)
@@ -225,6 +241,10 @@ export class UserRecord {
 	get premiumWillCancel(): boolean | undefined {
 		const override = DeveloperOptionsStore.premiumWillCancelOverride;
 		return override != null ? override : this._premiumWillCancel;
+	}
+
+	get premiumPaymentGrace(): boolean {
+		return this._premiumPaymentGrace === true;
 	}
 
 	getPendingBulkMessageDeletion(): PendingBulkMessageDeletion | null {
@@ -306,14 +326,6 @@ export class UserRecord {
 								: this.bannerColor,
 					}
 				: {}),
-			...(this.nameplate !== undefined || 'nameplate' in updates
-				? {
-						nameplate:
-							'nameplate' in updates && updates.nameplate !== undefined
-								? (updates.nameplate as string | null)
-								: this.nameplate,
-					}
-				: {}),
 			...(this.globalName !== undefined || 'global_name' in updates
 				? {
 						global_name:
@@ -345,6 +357,9 @@ export class UserRecord {
 				: {}),
 			...(this._premiumWillCancel !== undefined || updates.premium_will_cancel !== undefined
 				? {premium_will_cancel: updates.premium_will_cancel ?? this._premiumWillCancel}
+				: {}),
+			...(this._premiumPaymentGrace !== undefined || updates.premium_payment_grace !== undefined
+				? {premium_payment_grace: updates.premium_payment_grace ?? this._premiumPaymentGrace}
 				: {}),
 			...(this._premiumBillingCycle !== undefined || updates.premium_billing_cycle !== undefined
 				? {premium_billing_cycle: updates.premium_billing_cycle ?? this._premiumBillingCycle}
@@ -471,7 +486,6 @@ export class UserRecord {
 			this.bio === other.bio &&
 			this.banner === other.banner &&
 			this.bannerColor === other.bannerColor &&
-			this.nameplate === other.nameplate &&
 			this.mfaEnabled === other.mfaEnabled &&
 			this.phone === other.phone &&
 			JSON.stringify(this.authenticatorTypes) === JSON.stringify(other.authenticatorTypes) &&
@@ -480,6 +494,7 @@ export class UserRecord {
 			this.premiumSince?.getTime() === other.premiumSince?.getTime() &&
 			this.premiumUntil?.getTime() === other.premiumUntil?.getTime() &&
 			this.premiumWillCancel === other.premiumWillCancel &&
+			this._premiumPaymentGrace === other._premiumPaymentGrace &&
 			this._premiumBillingCycle === other._premiumBillingCycle &&
 			this.premiumBadgeHidden === other.premiumBadgeHidden &&
 			this.premiumBadgeTimestampHidden === other.premiumBadgeTimestampHidden &&
@@ -525,7 +540,6 @@ export class UserRecord {
 			...(this.banner !== undefined ? {banner: this.banner} : {}),
 			...(this.avatarColor !== undefined ? {avatar_color: this.avatarColor} : {}),
 			...(this.bannerColor !== undefined ? {banner_color: this.bannerColor} : {}),
-			...(this.nameplate !== undefined ? {nameplate: this.nameplate} : {}),
 			...(this.mfaEnabled !== undefined ? {mfa_enabled: this.mfaEnabled} : {}),
 			...(this.phone !== undefined ? {phone: this.phone} : {}),
 			...(this.authenticatorTypes !== undefined ? {authenticator_types: this.authenticatorTypes} : {}),
@@ -534,6 +548,7 @@ export class UserRecord {
 			...(this._premiumSince !== undefined ? {premium_since: normalizeDate(this._premiumSince)} : {}),
 			...(this._premiumUntil !== undefined ? {premium_until: normalizeDate(this._premiumUntil)} : {}),
 			...(this._premiumWillCancel !== undefined ? {premium_will_cancel: this._premiumWillCancel} : {}),
+			...(this._premiumPaymentGrace !== undefined ? {premium_payment_grace: this._premiumPaymentGrace} : {}),
 			...(this._premiumBillingCycle !== undefined ? {premium_billing_cycle: this._premiumBillingCycle} : {}),
 			...(this.premiumBadgeHidden !== undefined ? {premium_badge_hidden: this.premiumBadgeHidden} : {}),
 			...(this.premiumBadgeTimestampHidden !== undefined

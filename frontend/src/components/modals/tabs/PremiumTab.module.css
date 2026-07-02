@@ -17,24 +17,15 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {makeAutoObservable} from 'mobx';
-import {makePersistent} from '~/lib/MobXPersistence';
-
-class DismissedUpsellStore {
-	pickerPremiumUpsellDismissed = false;
-
-	constructor() {
-		makeAutoObservable(this, {}, {autoBind: true});
-		this.initPersistence();
-	}
-
-	private async initPersistence(): Promise<void> {
-		await makePersistent(this, 'DismissedUpsellStore', ['pickerPremiumUpsellDismissed']);
-	}
-
-	dismissPickerPremiumUpsell(): void {
-		this.pickerPremiumUpsellDismissed = true;
-	}
+.root {
+	min-height: 100%;
+	width: 100%;
+	background-color: transparent;
+	box-shadow: none;
 }
 
-export default new DismissedUpsellStore();
+/* Тот же фон, что у сайдбара настроек */
+.rootSubscriptionManagement {
+	background-color: var(--background-global-color);
+	box-shadow: 0 0 0 100vmax var(--background-global-color);
+}

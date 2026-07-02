@@ -1,0 +1,78 @@
+/*
+ * Copyright (C) 2026 Floodilka Contributors
+ *
+ * This file is part of Floodilka.
+ *
+ * Floodilka is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Floodilka is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+.categoryRow {
+	display: grid;
+	box-sizing: border-box;
+	grid-template-columns: minmax(0, 1fr) var(--cmp-free, 6.25rem) var(--cmp-premium, 6.75rem);
+	column-gap: 0.5rem;
+	align-items: center;
+	margin-top: 0;
+	min-height: 0;
+	padding: var(--cmp-category-padding-top, 1.25rem) 0.625rem var(--cmp-category-padding-bottom, 0.25rem);
+	background-color: transparent;
+}
+
+.categoryRow:not(:first-child) {
+	margin-top: var(--cmp-category-gap-between, 20px);
+}
+
+.categoryRow:first-child {
+	padding-top: 0;
+}
+
+@media (min-width: 768px) {
+	.categoryRow {
+		column-gap: 0.625rem;
+		padding-inline: 0.75rem;
+	}
+}
+
+.feature {
+	min-width: 0;
+	box-sizing: border-box;
+	padding-right: var(--cmp-gap, 0.75rem);
+}
+
+.label {
+	margin: 0;
+	font-weight: 650;
+	font-size: calc(0.6875rem + 2px);
+	line-height: 1.35;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--text-primary);
+}
+
+@media (min-width: 768px) {
+	.label {
+		font-size: calc(0.75rem + 2px);
+	}
+}
+
+.freeCell {
+	box-sizing: border-box;
+	min-width: 0;
+}
+
+.thirdCell {
+	box-sizing: border-box;
+	min-width: 0;
+	align-self: stretch;
+}

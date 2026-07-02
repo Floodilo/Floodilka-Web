@@ -1,12 +1,25 @@
 /*
- * SPDX-License-Identifier: AGPL-3.0-or-later
- * Copyright (C) 2020-2026 Fluxer Contributors
  * Copyright (C) 2026 Floodilka Contributors
- * Modified by Floodilka Contributors starting March 2026. See LICENSE and NOTICE.
+ *
+ * This file is part of Floodilka.
+ *
+ * Floodilka is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Floodilka is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import React from 'react';
 import {clearPendingBulkDeletionNagbarDismissal} from '~/actions/NagbarActionCreators';
+import {UserPremiumTypes} from '~/Constants';
 import AppStorage from '~/lib/AppStorage';
 import DeveloperOptionsStore from '~/stores/DeveloperOptionsStore';
 import NagbarStore from '~/stores/NagbarStore';
@@ -79,7 +92,8 @@ export const useNagbarConditions = (): NagbarConditions => {
 	const canShowPremiumGracePeriod = (() => {
 		if (nagbarState.forceHidePremiumGracePeriod) return false;
 		if (nagbarState.forcePremiumGracePeriod) return true;
-		if (!user?.premiumUntil || user.premiumType === 2 || premiumWillCancel) return false;
+		if (!user?.premiumUntil || user.premiumType === UserPremiumTypes.GIFT || premiumWillCancel) return false;
+		if (user.premiumPaymentGrace && user.premiumType === UserPremiumTypes.SUBSCRIPTION) return true;
 		const now = new Date();
 		const expiryDate = new Date(user.premiumUntil);
 		const gracePeriodMs = 3 * 24 * 60 * 60 * 1000;
@@ -91,7 +105,8 @@ export const useNagbarConditions = (): NagbarConditions => {
 	const canShowPremiumExpired = (() => {
 		if (nagbarState.forceHidePremiumExpired) return false;
 		if (nagbarState.forcePremiumExpired) return true;
-		if (!user?.premiumUntil || user.premiumType === 2 || premiumWillCancel) return false;
+		if (!user?.premiumUntil || user.premiumType === UserPremiumTypes.GIFT || premiumWillCancel) return false;
+		if (user.premiumPaymentGrace && user.premiumType === UserPremiumTypes.SUBSCRIPTION) return false;
 		const now = new Date();
 		const expiryDate = new Date(user.premiumUntil);
 		const gracePeriodMs = 3 * 24 * 60 * 60 * 1000;

@@ -1,8 +1,20 @@
 /*
- * SPDX-License-Identifier: AGPL-3.0-or-later
- * Copyright (C) 2020-2026 Fluxer Contributors
  * Copyright (C) 2026 Floodilka Contributors
- * Modified by Floodilka Contributors starting March 2026. See LICENSE and NOTICE.
+ *
+ * This file is part of Floodilka.
+ *
+ * Floodilka is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Floodilka is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
 .section {
@@ -13,12 +25,35 @@
 	gap: 1rem;
 }
 
+.sectionEmbedded {
+	gap: 0;
+}
+
 .card {
 	width: 100%;
 	overflow: hidden;
 	border-radius: 0.75rem;
-	border: 1px solid var(--background-modifier-accent);
+	border: none;
 	padding: 1.25rem;
+}
+
+.cardEmbedded {
+	border: none;
+	border-radius: 22px;
+	background-color: var(--cell-color);
+	box-shadow: none;
+	padding: 1.125rem 1.25rem;
+}
+
+.gridBilling {
+	gap: 1rem 1.25rem;
+}
+
+@media (min-width: 1024px) {
+	.gridBilling {
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: flex-start;
+	}
 }
 
 .grid {
@@ -69,4 +104,19 @@
 		width: auto;
 		justify-self: end;
 	}
+}
+
+.buttonBilling {
+	border-radius: 10px !important;
+	background-color: rgba(255, 255, 255, 0.06) !important;
+	color: color-mix(in srgb, var(--text-primary) 90%, transparent) !important;
+	border: none !important;
+	font-weight: 500 !important;
+	box-shadow: none !important;
+}
+
+.buttonBilling:hover:not(:disabled),
+.buttonBilling:focus-visible:not(:disabled) {
+	background-color: rgba(255, 255, 255, 0.1) !important;
+	color: var(--text-primary) !important;
 }

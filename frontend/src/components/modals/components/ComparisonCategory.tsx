@@ -17,24 +17,21 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {makeAutoObservable} from 'mobx';
-import {makePersistent} from '~/lib/MobXPersistence';
+import {observer} from 'mobx-react-lite';
+import styles from './ComparisonCategory.module.css';
 
-class DismissedUpsellStore {
-	pickerPremiumUpsellDismissed = false;
-
-	constructor() {
-		makeAutoObservable(this, {}, {autoBind: true});
-		this.initPersistence();
-	}
-
-	private async initPersistence(): Promise<void> {
-		await makePersistent(this, 'DismissedUpsellStore', ['pickerPremiumUpsellDismissed']);
-	}
-
-	dismissPickerPremiumUpsell(): void {
-		this.pickerPremiumUpsellDismissed = true;
-	}
-}
-
-export default new DismissedUpsellStore();
+export const ComparisonCategory = observer(
+	({label, marginTopPx}: {label: string; marginTopPx?: number}) => (
+	<div
+		className={styles.categoryRow}
+		role="presentation"
+		style={marginTopPx !== undefined ? {marginTop: marginTopPx} : undefined}
+	>
+		<div className={styles.feature}>
+			<h3 className={styles.label}>{label}</h3>
+		</div>
+		<div className={styles.freeCell} aria-hidden />
+		<div className={styles.thirdCell} aria-hidden />
+	</div>
+	),
+);

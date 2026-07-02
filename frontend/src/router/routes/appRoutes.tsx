@@ -1,8 +1,20 @@
 /*
- * SPDX-License-Identifier: AGPL-3.0-or-later
- * Copyright (C) 2020-2026 Fluxer Contributors
  * Copyright (C) 2026 Floodilka Contributors
- * Modified by Floodilka Contributors starting March 2026. See LICENSE and NOTICE.
+ *
+ * This file is part of Floodilka.
+ *
+ * Floodilka is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Floodilka is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import {observer} from 'mobx-react-lite';
@@ -20,15 +32,19 @@ import {StatusChangeBottomSheet} from '~/components/modals/StatusChangeBottomShe
 import {NotificationsPage} from '~/components/pages/NotificationsPage';
 
 import {YouPage} from '~/components/pages/YouPage';
+import {PremiumPage} from '~/components/pages/PremiumPage';
 import {createRoute, Redirect, useParams} from '~/lib/router';
 import SessionManager from '~/lib/SessionManager';
 import {Routes} from '~/Routes';
 import {GuildChannelRouter} from '~/router/components/GuildChannelRouter';
 import {rootRoute} from '~/router/routes/rootRoutes';
+import {shouldShowUserPremiumBilling} from '~/components/modals/components/premium/hooks/useSubscriptionStatus';
 import AuthenticationStore from '~/stores/AuthenticationStore';
 import ChannelStore from '~/stores/ChannelStore';
 import MobileLayoutStore from '~/stores/MobileLayoutStore';
+import RuntimeConfigStore from '~/stores/RuntimeConfigStore';
 import SelectedChannelStore from '~/stores/SelectedChannelStore';
+import UserStore from '~/stores/UserStore';
 
 const appLayoutRoute = createRoute({
 	getParentRoute: () => rootRoute,
@@ -102,6 +118,63 @@ const mentionsRoute = createRoute({
 	id: 'mentions',
 	path: Routes.MENTIONS,
 	component: () => <DMLayout />,
+});
+
+const mePremiumRoute = createRoute({
+	getParentRoute: () => guildsLayoutRoute,
+	id: 'mePremium',
+	path: Routes.ME_PREMIUM,
+	onEnter: () => {
+		if (RuntimeConfigStore.isSelfHosted()) {
+			return new Redirect(Routes.ME);
+		}
+		return undefined;
+	},
+	component: observer(() => {
+		const isMobileLayout = MobileLayoutStore.enabled;
+
+		React.useEffect(() => {
+			if (!isMobileLayout && SelectedChannelStore.selectedChannelIds.has(ME)) {
+				SelectedChannelStore.clearGuildSelection(ME);
+			}
+		}, [isMobileLayout]);
+
+		return (
+			<DMLayout>
+				<PremiumPage view="promo" />
+			</DMLayout>
+		);
+	}),
+});
+
+const mePremiumBillingRoute = createRoute({
+	getParentRoute: () => guildsLayoutRoute,
+	id: 'mePremiumBilling',
+	path: Routes.ME_PREMIUM_BILLING,
+	onEnter: () => {
+		if (RuntimeConfigStore.isSelfHosted()) {
+			return new Redirect(Routes.ME);
+		}
+		if (!shouldShowUserPremiumBilling(UserStore.currentUser)) {
+			return new Redirect(Routes.ME_PREMIUM);
+		}
+		return undefined;
+	},
+	component: observer(() => {
+		const isMobileLayout = MobileLayoutStore.enabled;
+
+		React.useEffect(() => {
+			if (!isMobileLayout && SelectedChannelStore.selectedChannelIds.has(ME)) {
+				SelectedChannelStore.clearGuildSelection(ME);
+			}
+		}, [isMobileLayout]);
+
+		return (
+			<DMLayout>
+				<PremiumPage view="billing" />
+			</DMLayout>
+		);
+	}),
 });
 
 const meRoute = createRoute({
@@ -182,6 +255,8 @@ export const appRouteTree = appLayoutRoute.addChildren([
 	guildsLayoutRoute.addChildren([
 		bookmarksRoute,
 		mentionsRoute,
+		mePremiumBillingRoute,
+		mePremiumRoute,
 		meRoute,
 		channelsRoute.addChildren([channelRoute.addChildren([messageRoute])]),
 	]),

@@ -1,8 +1,20 @@
 /*
- * SPDX-License-Identifier: AGPL-3.0-or-later
- * Copyright (C) 2020-2026 Fluxer Contributors
  * Copyright (C) 2026 Floodilka Contributors
- * Modified by Floodilka Contributors starting March 2026. See LICENSE and NOTICE.
+ *
+ * This file is part of Floodilka.
+ *
+ * Floodilka is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Floodilka is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
 .section {
@@ -11,39 +23,49 @@
 	gap: 1.5rem;
 }
 
-.toggleContainer {
-	margin-bottom: 0.5rem;
+.actionsRow {
 	display: flex;
-	align-items: center;
+	width: 100%;
+	max-width: 28rem;
+	flex-wrap: wrap;
+	align-items: stretch;
 	justify-content: center;
 	gap: 0.75rem;
+	margin-left: auto;
+	margin-right: auto;
 }
 
-.footerContainer {
-	margin-top: 1rem;
-	margin-bottom: 0.5rem;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 0.75rem;
+.actionButton {
+	min-width: 10rem;
+	flex: 1 1 calc(50% - 0.375rem);
 }
 
-.scrollPromptContainer {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 0.5rem;
+.primaryCta {
+	background-color: #ffffff !important;
+	color: #000000 !important;
 }
 
-.scrollPromptText {
-	text-align: center;
-	font-size: 0.875rem;
-	line-height: 1.25rem;
-	color: var(--text-primary-muted);
+.primaryCta:hover {
+	background-color: #eaeaea !important;
 }
 
-.scrollPromptIcon {
-	height: 1.25rem;
-	width: 1.25rem;
-	color: var(--text-primary-muted);
+.secondaryCta {
+	background-color: #200d2f !important;
+	color: #ffffff !important;
+}
+
+.secondaryCta:hover {
+	background-color: #1a0a27 !important;
+}
+
+@media (max-width: 479px) {
+	.actionsRow {
+		flex-direction: column;
+	}
+
+	.actionButton {
+		flex: 1 1 auto;
+		min-width: 0;
+		width: 100%;
+	}
 }

@@ -1,8 +1,20 @@
 /*
- * SPDX-License-Identifier: AGPL-3.0-or-later
- * Copyright (C) 2020-2026 Fluxer Contributors
  * Copyright (C) 2026 Floodilka Contributors
- * Modified by Floodilka Contributors starting March 2026. See LICENSE and NOTICE.
+ *
+ * This file is part of Floodilka.
+ *
+ * Floodilka is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Floodilka is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import {useLingui} from '@lingui/react/macro';
@@ -24,10 +36,10 @@ export const useSubscriptionActions = () => {
 		try {
 			// TODO: Implement customer portal for CloudPayments
 			logger.info('Customer portal not yet implemented');
-			ToastActionCreators.error(t`Customer portal is not yet available.`);
+			ToastActionCreators.error(t`Личный кабинет подписчика пока недоступен.`);
 		} catch (error) {
 			logger.error('Failed to open customer portal', error);
-			ToastActionCreators.error(t`Failed to open customer portal. Please try again.`);
+			ToastActionCreators.error(t`Не удалось открыть личный кабинет. Попробуйте снова.`);
 		} finally {
 			setLoadingPortal(false);
 		}
@@ -37,10 +49,10 @@ export const useSubscriptionActions = () => {
 		setLoadingCancel(true);
 		try {
 			await PremiumActionCreators.cancelSubscriptionAtPeriodEnd();
-			ToastActionCreators.success(t`Your subscription has been set to cancel at the end of your billing period.`);
+			ToastActionCreators.success(t`Подписка будет отменена в конце текущего расчётного периода.`);
 		} catch (error) {
 			logger.error('Failed to cancel subscription', error);
-			ToastActionCreators.error(t`Failed to cancel subscription. Please try again.`);
+			ToastActionCreators.error(t`Не удалось отменить подписку. Попробуйте снова.`);
 		} finally {
 			setLoadingCancel(false);
 		}
@@ -50,10 +62,10 @@ export const useSubscriptionActions = () => {
 		setLoadingReactivate(true);
 		try {
 			await PremiumActionCreators.reactivateSubscription();
-			ToastActionCreators.success(t`Your subscription has been reactivated!`);
+			ToastActionCreators.success(t`Подписка снова активна!`);
 		} catch (error) {
 			logger.error('Failed to reactivate subscription', error);
-			ToastActionCreators.error(t`Failed to reactivate subscription. Please try again.`);
+			ToastActionCreators.error(t`Не удалось возобновить подписку. Попробуйте снова.`);
 		} finally {
 			setLoadingReactivate(false);
 		}

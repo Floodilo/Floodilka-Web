@@ -1,8 +1,20 @@
 /*
- * SPDX-License-Identifier: AGPL-3.0-or-later
- * Copyright (C) 2020-2026 Fluxer Contributors
  * Copyright (C) 2026 Floodilka Contributors
- * Modified by Floodilka Contributors starting March 2026. See LICENSE and NOTICE.
+ *
+ * This file is part of Floodilka.
+ *
+ * Floodilka is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Floodilka is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
 .card {
@@ -138,4 +150,462 @@
 
 .cardActive {
 	background-color: var(--status-online);
+}
+
+/* Встроенная карточка: без базового .card, чтобы не конфликтовало border-radius */
+.cardEmbedded {
+	position: relative;
+	box-sizing: border-box;
+	width: 100%;
+	min-width: 0;
+	overflow: hidden;
+	border-radius: 22px;
+	background-color: var(--cell-color);
+	color: var(--text-primary, #fff);
+	box-shadow: none;
+	padding: 0;
+}
+
+.cardEmbeddedToneActive,
+.cardEmbeddedToneGrace,
+.cardEmbeddedToneExpired {
+	border: none;
+}
+
+/* Биллинг: промо-баннер → тариф → история → отмена */
+.embeddedBillingStack {
+	display: flex;
+	width: 100%;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 1rem;
+}
+
+.billingPanelCard {
+	box-sizing: border-box;
+	overflow: hidden;
+	border-radius: 22px;
+	background-color: var(--cell-color);
+	box-shadow: none;
+	padding: 1.125rem 1.25rem;
+}
+
+.billingPanelRow {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem 1.25rem;
+}
+
+.billingPanelMain {
+	flex: 1 1 14rem;
+	min-width: 0;
+}
+
+.billingPanelActions {
+	display: flex;
+	flex-shrink: 0;
+	align-items: flex-start;
+}
+
+.billingPlanTitleRow {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.billingPlanPrice {
+	margin: 0.35rem 0 0;
+	font-size: 0.9375rem;
+	line-height: 1.45;
+	color: var(--text-primary-muted);
+}
+
+.giftSubscriptionHint {
+	display: inline-block;
+	max-width: 38rem;
+	font-size: 0.8125rem;
+	line-height: 1.4;
+	color: var(--text-primary-muted);
+}
+
+.billingPlanRenewal {
+	margin: 0.5rem 0 0;
+	max-width: 36rem;
+	font-size: 0.8125rem;
+	line-height: 1.45;
+	color: var(--text-primary-muted);
+	text-align: left;
+}
+
+.billingPanelCardTitle {
+	margin: 0;
+	font-size: 1rem;
+	font-weight: 700;
+	line-height: 1.35;
+	color: var(--text-primary);
+}
+
+.billingPanelCardHint {
+	margin: 0.35rem 0 0;
+	max-width: 36rem;
+	font-size: 0.8125rem;
+	line-height: 1.45;
+	color: var(--text-primary-muted);
+}
+
+.billingPanelCardDanger {
+	border: none;
+	background-color: var(--cell-color);
+	box-shadow: none;
+}
+
+.giftPromoBanner {
+	box-sizing: border-box;
+	display: flex;
+	width: 100%;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem 1rem;
+	padding: 0.875rem 1rem;
+	border-radius: 22px;
+	border: none;
+	background: linear-gradient(125deg, #9d4edd 0%, #c084fc 42%, #ee9dff 100%);
+	box-shadow: none;
+}
+
+/* Кнопка на светлом участке градиента — светлая «пилюля» */
+.giftPromoBanner .billingGhostButton {
+	background-color: rgba(255, 255, 255, 0.38) !important;
+	border: none !important;
+	color: #2a0a38 !important;
+	box-shadow: 0 1px 2px rgba(42, 10, 56, 0.12) !important;
+}
+
+.giftPromoBanner .billingGhostButton:hover:not(:disabled),
+.giftPromoBanner .billingGhostButton:focus-visible:not(:disabled) {
+	background-color: rgba(255, 255, 255, 0.52) !important;
+	color: #1f0828 !important;
+}
+
+.giftPromoBannerLead {
+	display: flex;
+	min-width: 0;
+	flex: 1 1 14rem;
+	align-items: flex-start;
+	gap: 0.75rem;
+}
+
+.giftPromoIcon {
+	flex-shrink: 0;
+	width: 1.5rem;
+	height: 1.5rem;
+	color: rgba(255, 255, 255, 0.95);
+	opacity: 1;
+	filter: drop-shadow(0 1px 2px rgba(42, 10, 56, 0.2));
+}
+
+.giftPromoCopy {
+	min-width: 0;
+}
+
+.giftPromoTitle {
+	margin: 0;
+	font-size: 0.9375rem;
+	font-weight: 700;
+	line-height: 1.3;
+	letter-spacing: -0.02em;
+	color: #fff;
+	text-shadow: 0 1px 2px rgba(42, 10, 56, 0.25);
+}
+
+.giftPromoHint {
+	margin: 0.3rem 0 0;
+	font-size: 0.8125rem;
+	line-height: 1.45;
+	color: rgba(255, 255, 255, 0.88);
+	text-shadow: 0 1px 2px rgba(42, 10, 56, 0.2);
+}
+
+/* Спокойные кнопки на тёмном фоне карточек */
+.billingGhostButton {
+	border-radius: 10px !important;
+	background-color: rgba(255, 255, 255, 0.06) !important;
+	color: color-mix(in srgb, var(--text-primary) 90%, transparent) !important;
+	border: none !important;
+	font-weight: 500 !important;
+	box-shadow: none !important;
+}
+
+.billingGhostButton:hover:not(:disabled),
+.billingGhostButton:focus-visible:not(:disabled) {
+	background-color: rgba(255, 255, 255, 0.1) !important;
+	color: var(--text-primary) !important;
+}
+
+.billingDangerGhost {
+	border-radius: 10px !important;
+	background-color: rgba(239, 68, 68, 0.1) !important;
+	color: color-mix(in srgb, var(--status-danger) 82%, white) !important;
+	border: none !important;
+	font-weight: 500 !important;
+	box-shadow: none !important;
+}
+
+.billingDangerGhost:hover:not(:disabled),
+.billingDangerGhost:focus-visible:not(:disabled) {
+	background-color: rgba(239, 68, 68, 0.16) !important;
+}
+
+.gridBilling {
+	gap: 1.25rem 1.5rem;
+}
+
+@media (min-width: 1024px) {
+	.gridBilling {
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: center;
+	}
+}
+
+.contentBilling {
+	gap: 0.5rem;
+}
+
+.titleRowBilling {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0.5rem 0.75rem;
+	margin-bottom: 0.125rem;
+}
+
+.titleBilling {
+	font-weight: 700;
+	font-size: 1.125rem;
+	line-height: 1.35;
+	letter-spacing: -0.02em;
+	text-transform: none;
+	color: var(--text-primary);
+}
+
+.planPriceHint {
+	font-size: 0.9375rem;
+	font-weight: 500;
+	color: var(--text-primary-muted);
+}
+
+.badgeEmbedded {
+	display: inline-flex;
+	align-items: center;
+	border-radius: 999px;
+	padding: 0.15rem 0.5rem;
+	font-weight: 700;
+	font-size: 0.625rem;
+	line-height: 1;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	background: rgba(255, 255, 255, 0.06);
+	border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.badgeEmbeddedToneLive {
+	text-transform: lowercase;
+	letter-spacing: 0.04em;
+	color: color-mix(in srgb, var(--status-online) 92%, white) !important;
+	background: color-mix(in srgb, var(--status-online) 24%, rgba(0, 0, 0, 0.15));
+	border: 1px solid color-mix(in srgb, var(--status-online) 42%, transparent);
+}
+
+.descriptionBilling {
+	color: var(--text-primary-muted);
+	line-height: 1.55;
+	max-width: 42rem;
+}
+
+.renewalInfoBilling {
+	font-size: 0.8125rem;
+	line-height: 1.4;
+	color: var(--text-primary-muted);
+	opacity: 0.92;
+	margin-top: 0.125rem;
+}
+
+.actionsBilling {
+	display: flex;
+	width: 100%;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 0.5rem;
+}
+
+@media (min-width: 768px) {
+	.actionsBilling {
+		display: flex;
+		grid-template-columns: unset;
+	}
+}
+
+@media (min-width: 1024px) {
+	.actionsBilling {
+		width: auto;
+		min-width: 11rem;
+		align-items: flex-end;
+		align-self: center;
+		justify-content: center;
+	}
+}
+
+.billingCtaButton {
+	background-color: rgba(0, 0, 0, 0.35) !important;
+	color: var(--text-primary) !important;
+	border: none !important;
+	box-shadow: none !important;
+}
+
+.billingCtaButton:hover:not(:disabled),
+.billingCtaButton:focus-visible:not(:disabled) {
+	background-color: rgba(255, 255, 255, 0.07) !important;
+	color: var(--text-primary) !important;
+}
+
+/* Макет «текущий тариф»: шапка, одна строка цены, разделитель, подвал */
+.planSheet {
+	display: flex;
+	width: 100%;
+	flex-direction: column;
+}
+
+.planSheetInset {
+	padding: 1.125rem 1.25rem 1.25rem;
+}
+
+.planSheetHeader {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.planSheetTitleBlock {
+	display: flex;
+	min-width: 0;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.planSheetActions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 0.5rem;
+}
+
+.planSheetSubtitle {
+	margin: 0.75rem 0 0;
+	font-size: 0.9375rem;
+	line-height: 1.45;
+	color: var(--text-primary-muted);
+}
+
+.planSheetDivider {
+	margin: 1rem 0 0;
+	border: none;
+	border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.planSheetDividerTight {
+	margin-top: 0.75rem;
+}
+
+.planSheetFooter {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem 1rem;
+	margin-top: 1rem;
+}
+
+.planSheetFooterLeft {
+	min-width: 0;
+}
+
+.planSheetFooterLinks {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 1rem 1.25rem;
+}
+
+.planSheetFooterRight {
+	display: flex;
+	min-width: 0;
+	flex: 1;
+	justify-content: flex-end;
+}
+
+.cancelLink {
+	padding: 0;
+	margin: 0;
+	border: none;
+	background: none;
+	cursor: pointer;
+	font-size: 0.875rem;
+	font-weight: 500;
+	color: var(--status-danger);
+	text-decoration: underline;
+	text-underline-offset: 0.15em;
+}
+
+.cancelLink:hover:not(:disabled),
+.cancelLink:focus-visible:not(:disabled) {
+	color: color-mix(in srgb, var(--status-danger) 88%, white);
+}
+
+.cancelLink:disabled {
+	cursor: not-allowed;
+	opacity: 0.65;
+}
+
+.historyLink {
+	padding: 0;
+	margin: 0;
+	border: none;
+	background: none;
+	cursor: pointer;
+	font-size: 0.875rem;
+	font-weight: 500;
+	color: color-mix(in srgb, var(--text-primary) 88%, transparent);
+	text-decoration: underline;
+	text-underline-offset: 0.15em;
+}
+
+.historyLink:hover:not(:disabled),
+.historyLink:focus-visible:not(:disabled) {
+	color: var(--text-primary);
+}
+
+.historyLink:disabled {
+	cursor: wait;
+	opacity: 0.65;
+}
+
+.renewalFooterText {
+	margin: 0;
+	max-width: 22rem;
+	font-size: 0.8125rem;
+	line-height: 1.4;
+	color: var(--text-primary-muted);
+	text-align: right;
+}
+
+.billingUpgradePrimary {
+	box-shadow: none !important;
 }
