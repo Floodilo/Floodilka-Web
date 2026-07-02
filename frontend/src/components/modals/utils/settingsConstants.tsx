@@ -1,8 +1,20 @@
 /*
- * SPDX-License-Identifier: AGPL-3.0-or-later
- * Copyright (C) 2020-2026 Fluxer Contributors
  * Copyright (C) 2026 Floodilka Contributors
- * Modified by Floodilka Contributors starting March 2026. See LICENSE and NOTICE.
+ *
+ * This file is part of Floodilka.
+ *
+ * Floodilka is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Floodilka is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import type {MessageDescriptor} from '@lingui/core';
@@ -12,6 +24,7 @@ import {
 	BellIcon,
 	ChatCircleIcon,
 	CodeIcon,
+	CreditCardIcon,
 	CrownIcon,
 	DevicesIcon,
 	EyeSlashIcon,
@@ -22,6 +35,7 @@ import {
 	type IconWeight,
 	KeyboardIcon,
 	MicrophoneIcon,
+	SparkleIcon,
 	PaintBrushIcon,
 	PaletteIcon,
 	PersonSimpleCircleIcon,
@@ -33,12 +47,43 @@ import {
 	UserIcon,
 } from '@phosphor-icons/react';
 import type React from 'react';
+import {shouldShowUserPremiumBilling} from '~/components/modals/components/premium/hooks/useSubscriptionStatus';
 import RuntimeConfigStore from '~/stores/RuntimeConfigStore';
+import UserStore from '~/stores/UserStore';
+
+const PremiumMicIcon = (({className, weight, size = 20}) => {
+	const baseSize = typeof size === 'number' ? size : 20;
+	const sparkleSize = Math.round(baseSize * 0.55);
+	return (
+		<span style={{position: 'relative', display: 'inline-block', width: baseSize, height: baseSize}}>
+			<MicrophoneIcon
+				weight={weight ?? 'fill'}
+				size={baseSize}
+				className={className}
+				style={{display: 'block'}}
+			/>
+			<SparkleIcon
+				weight="fill"
+				style={{
+					position: 'absolute',
+					right: Math.round(baseSize * -0.18),
+					top: Math.round(baseSize * -0.18),
+					width: sparkleSize,
+					height: sparkleSize,
+					color: '#f5b84b',
+					filter: 'drop-shadow(0 0 8px rgba(245, 184, 75, 0.25))',
+					opacity: 0.95,
+				}}
+			/>
+		</span>
+	);
+}) as Icon;
 
 export type UserSettingsTabType =
 	| 'my_profile'
 	| 'account_security'
 	| 'premium'
+	| 'premium_billing'
 	| 'gift_inventory'
 	| 'privacy_safety'
 	| 'authorized_apps'
@@ -125,7 +170,13 @@ const ALL_TABS_DESCRIPTORS: Array<SettingsTabDescriptor> = [
 		type: 'premium',
 		category: 'user_settings',
 		label: msg`Floodilka Premium`,
-		icon: CrownIcon,
+		icon: PremiumMicIcon,
+	},
+	{
+		type: 'premium_billing',
+		category: 'user_settings',
+		label: msg`Управление подпиской`,
+		icon: CreditCardIcon,
 	},
 	{
 		type: 'gift_inventory',
@@ -245,9 +296,16 @@ export const getSettingsTabs = (t: (msg: MessageDescriptor) => string): Array<Se
 		label: t(tab.label),
 	}));
 
-	return RuntimeConfigStore.isSelfHosted()
-		? allTabs.filter((tab) => tab.type !== 'premium' && tab.type !== 'gift_inventory')
-		: allTabs;
+	if (RuntimeConfigStore.isSelfHosted()) {
+		return allTabs.filter((tab) => tab.type !== 'premium' && tab.type !== 'premium_billing' && tab.type !== 'gift_inventory');
+	}
+
+	const showPremiumBilling = shouldShowUserPremiumBilling(UserStore.currentUser);
+	if (!showPremiumBilling) {
+		return allTabs.filter((tab) => tab.type !== 'premium_billing');
+	}
+
+	return allTabs;
 };
 
 export interface SettingsSubtab {

@@ -17,24 +17,18 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {makeAutoObservable} from 'mobx';
-import {makePersistent} from '~/lib/MobXPersistence';
+import {clsx} from 'clsx';
+import {observer} from 'mobx-react-lite';
+import type React from 'react';
+import {PremiumContent} from '../components/PremiumContent';
+import styles from './PremiumTab.module.css';
 
-class DismissedUpsellStore {
-	pickerPremiumUpsellDismissed = false;
+const PremiumBillingTab: React.FC = observer(() => {
+	return (
+		<div className={clsx(styles.root, styles.rootSubscriptionManagement)}>
+			<PremiumContent fullWidth view="billing" />
+		</div>
+	);
+});
 
-	constructor() {
-		makeAutoObservable(this, {}, {autoBind: true});
-		this.initPersistence();
-	}
-
-	private async initPersistence(): Promise<void> {
-		await makePersistent(this, 'DismissedUpsellStore', ['pickerPremiumUpsellDismissed']);
-	}
-
-	dismissPickerPremiumUpsell(): void {
-		this.pickerPremiumUpsellDismissed = true;
-	}
-}
-
-export default new DismissedUpsellStore();
+export default PremiumBillingTab;

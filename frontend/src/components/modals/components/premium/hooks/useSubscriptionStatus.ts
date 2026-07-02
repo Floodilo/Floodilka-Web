@@ -1,11 +1,24 @@
 /*
- * SPDX-License-Identifier: AGPL-3.0-or-later
- * Copyright (C) 2020-2026 Fluxer Contributors
  * Copyright (C) 2026 Floodilka Contributors
- * Modified by Floodilka Contributors starting March 2026. See LICENSE and NOTICE.
+ *
+ * This file is part of Floodilka.
+ *
+ * Floodilka is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Floodilka is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import React from 'react';
+import {UserPremiumTypes} from '~/Constants';
 import type {UserRecord} from '~/records/UserRecord';
 import styles from '../SubscriptionCard.module.css';
 
@@ -14,6 +27,48 @@ export interface GracePeriodInfo {
 	isExpired: boolean;
 	graceEndDate: Date | null;
 	showExpiredState: boolean;
+}
+
+/** Subscription / grace / post-expiry UI state used for the premium card (matches hook logic). */
+export function computeGracePeriodInfo(currentUser: UserRecord | null, premiumWillCancel: boolean): GracePeriodInfo {
+	if (!currentUser?.premiumUntil || premiumWillCancel) {
+		return {isInGracePeriod: false, isExpired: false, graceEndDate: null, showExpiredState: false};
+	}
+	/** Failed renewal: API sets `premium_payment_grace` while access lasts until `premium_until` (not post-expiry +3d). */
+	const isPaymentGracePeriod =
+		currentUser.premiumPaymentGrace === true && currentUser.premiumType === UserPremiumTypes.SUBSCRIPTION;
+	if (isPaymentGracePeriod) {
+		const accessUntil = new Date(currentUser.premiumUntil);
+		return {
+			isInGracePeriod: true,
+			isExpired: false,
+			graceEndDate: accessUntil,
+			showExpiredState: false,
+		};
+	}
+	const now = new Date();
+	const expiryDate = new Date(currentUser.premiumUntil);
+	const gracePeriodMs = 3 * 24 * 60 * 60 * 1000;
+	const expiredStateDurationMs = 30 * 24 * 60 * 60 * 1000;
+	const graceEndDate = new Date(expiryDate.getTime() + gracePeriodMs);
+	const expiredStateEndDate = new Date(expiryDate.getTime() + expiredStateDurationMs);
+	const isInGracePeriod = now > expiryDate && now <= graceEndDate;
+	const isExpired = now > graceEndDate;
+	const showExpiredState = isExpired && now <= expiredStateEndDate;
+	return {isInGracePeriod, isExpired, graceEndDate, showExpiredState};
+}
+
+/** Billing settings, billing route, and in-app billing page — only when there is something to manage or purchase history. */
+export function shouldShowUserPremiumBilling(currentUser: UserRecord | null): boolean {
+	if (!currentUser) {
+		return false;
+	}
+	const isPremium = currentUser.isPremium();
+	const hasEverPurchased = currentUser.hasEverPurchased ?? false;
+	const premiumWillCancel = currentUser.premiumWillCancel ?? false;
+	const gracePeriodInfo = computeGracePeriodInfo(currentUser, premiumWillCancel);
+	const shouldShowPremiumCard = isPremium || gracePeriodInfo.isInGracePeriod || gracePeriodInfo.showExpiredState;
+	return shouldShowPremiumCard || hasEverPurchased;
 }
 
 export interface SubscriptionStatusInfo {
@@ -38,21 +93,10 @@ export const useSubscriptionStatus = (currentUser: UserRecord | null): Subscript
 
 	const isGiftSubscription = Boolean(!billingCycle && isPremium && currentUser?.premiumUntil);
 
-	const gracePeriodInfo = React.useMemo((): GracePeriodInfo => {
-		if (!currentUser?.premiumUntil || premiumWillCancel) {
-			return {isInGracePeriod: false, isExpired: false, graceEndDate: null, showExpiredState: false};
-		}
-		const now = new Date();
-		const expiryDate = new Date(currentUser.premiumUntil);
-		const gracePeriodMs = 3 * 24 * 60 * 60 * 1000;
-		const expiredStateDurationMs = 30 * 24 * 60 * 60 * 1000;
-		const graceEndDate = new Date(expiryDate.getTime() + gracePeriodMs);
-		const expiredStateEndDate = new Date(expiryDate.getTime() + expiredStateDurationMs);
-		const isInGracePeriod = now > expiryDate && now <= graceEndDate;
-		const isExpired = now > graceEndDate;
-		const showExpiredState = isExpired && now <= expiredStateEndDate;
-		return {isInGracePeriod, isExpired, graceEndDate, showExpiredState};
-	}, [currentUser?.premiumUntil, premiumWillCancel]);
+	const gracePeriodInfo = React.useMemo(
+		() => computeGracePeriodInfo(currentUser, premiumWillCancel),
+		[currentUser, premiumWillCancel],
+	);
 
 	const {isInGracePeriod, isExpired: isFullyExpired, showExpiredState} = gracePeriodInfo;
 	const shouldShowPremiumCard = isPremium || isInGracePeriod || showExpiredState;

@@ -1,8 +1,20 @@
 /*
- * SPDX-License-Identifier: AGPL-3.0-or-later
- * Copyright (C) 2020-2026 Fluxer Contributors
  * Copyright (C) 2026 Floodilka Contributors
- * Modified by Floodilka Contributors starting March 2026. See LICENSE and NOTICE.
+ *
+ * This file is part of Floodilka.
+ *
+ * Floodilka is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Floodilka is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import {useLingui} from '@lingui/react/macro';
@@ -29,20 +41,20 @@ export const useCheckoutActions = (prices: Prices | null, isGiftSubscription: bo
 
 			if (isGiftSubscription && (plan === 'monthly' || plan === 'yearly')) {
 				ToastActionCreators.error(
-					t`You're currently on a gift subscription. It won't renew. You can redeem more gift codes to extend it. Recurring subscriptions can be started after your gift time ends.`,
+					t`У вас подарочная подписка: она не продлевается. Можно активировать ещё коды, чтобы продлить срок. Обычную подписку можно оформить после окончания подарка.`,
 				);
 				return;
 			}
 
 			if (!prices) {
 				logger.error('Prices not loaded yet');
-				ToastActionCreators.error(t`Please wait for pricing information to load.`);
+				ToastActionCreators.error(t`Дождитесь загрузки цен.`);
 				return;
 			}
 
 			if (!prices.publicId) {
 				logger.error('CloudPayments public ID not configured');
-				ToastActionCreators.error(t`Payment processing is not yet available. Please try again later.`);
+				ToastActionCreators.error(t`Оплата пока недоступна. Попробуйте позже.`);
 				return;
 			}
 
@@ -69,9 +81,7 @@ export const useCheckoutActions = (prices: Prices | null, isGiftSubscription: bo
 					}
 				})();
 
-				const description = isGift
-					? t`Floodilka Premium Gift`
-					: t`Floodilka Premium Subscription`;
+				const description = isGift ? t`Подарок Флудилка Премиум` : t`Подписка Флудилка Премиум`;
 
 				if (isGift) {
 					const result = await openGiftCheckoutWidget({
@@ -86,9 +96,9 @@ export const useCheckoutActions = (prices: Prices | null, isGiftSubscription: bo
 					});
 
 					if (result.success) {
-						ToastActionCreators.success(t`Gift purchased successfully!`);
+						ToastActionCreators.success(t`Подарок успешно оплачен!`);
 					} else if (result.failReason) {
-						ToastActionCreators.error(t`Payment failed. Please try again.`);
+						ToastActionCreators.error(t`Оплата не прошла. Попробуйте снова.`);
 					}
 				} else {
 					const billingCycle = plan === 'yearly' ? 'yearly' : 'monthly';
@@ -106,14 +116,14 @@ export const useCheckoutActions = (prices: Prices | null, isGiftSubscription: bo
 					});
 
 					if (result.success) {
-						ToastActionCreators.success(t`Subscription activated successfully!`);
+						ToastActionCreators.success(t`Подписка успешно активирована!`);
 					} else if (result.failReason) {
-						ToastActionCreators.error(t`Payment failed. Please try again.`);
+						ToastActionCreators.error(t`Оплата не прошла. Попробуйте снова.`);
 					}
 				}
 			} catch (error) {
 				logger.error('Failed to initiate checkout', error);
-				ToastActionCreators.error(t`Failed to start checkout. Please try again.`);
+				ToastActionCreators.error(t`Не удалось начать оплату. Попробуйте снова.`);
 			} finally {
 				setLoadingCheckout(false);
 			}

@@ -1,8 +1,20 @@
 /*
- * SPDX-License-Identifier: AGPL-3.0-or-later
- * Copyright (C) 2020-2026 Fluxer Contributors
  * Copyright (C) 2026 Floodilka Contributors
- * Modified by Floodilka Contributors starting March 2026. See LICENSE and NOTICE.
+ *
+ * This file is part of Floodilka.
+ *
+ * Floodilka is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Floodilka is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import {Plural, Trans} from '@lingui/react/macro';
@@ -29,8 +41,8 @@ export const GiftInventoryBanner: React.FC<GiftInventoryBannerProps> = observer(
 					<p className={styles.title}>
 						<Plural
 							value={currentUser.unreadGiftInventoryCount ?? 1}
-							one="You have a new gift code waiting for you!"
-							other="You have # new gift codes waiting for you!"
+							one="У вас новый подарочный код!"
+							other="У вас # новых подарочных кодов!"
 						/>
 					</p>
 				</div>
@@ -39,7 +51,7 @@ export const GiftInventoryBanner: React.FC<GiftInventoryBannerProps> = observer(
 					small
 					onClick={() => ComponentDispatch.dispatch('USER_SETTINGS_TAB_SELECT', {tab: 'gift_inventory'})}
 				>
-					<Trans>View Gift Inventory</Trans>
+					<Trans>Открыть подарки</Trans>
 				</Button>
 			</div>
 		</div>

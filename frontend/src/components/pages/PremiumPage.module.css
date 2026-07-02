@@ -1,0 +1,72 @@
+/*
+ * Copyright (C) 2026 Floodilka Contributors
+ *
+ * This file is part of Floodilka.
+ *
+ * Floodilka is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Floodilka is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/* Same height/scroll contract as YouPage: fill DM main column, scroll inside Scroller.
+   Фон и скругление задаёт DMLayout.contentInner — как у раздела «Друзья». */
+.root {
+	position: relative;
+	box-sizing: border-box;
+	display: flex;
+	height: 100%;
+	min-height: 0;
+	width: 100%;
+	min-width: 0;
+	flex-direction: column;
+	/* allow decorative blob to bleed outside page bounds */
+	overflow: visible;
+	background-color: transparent;
+	border-radius: inherit;
+}
+
+.contentStack {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	min-height: 0;
+	flex: 1 1 0%;
+	flex-direction: column;
+	/* keep scroll behavior clipped while allowing blob to overflow */
+	overflow: hidden;
+}
+
+.decorativeBlob {
+	position: absolute;
+	top: -2.5rem;
+	right: -6rem;
+	z-index: 0;
+	width: min(92vw, 30rem);
+	height: auto;
+	pointer-events: none;
+	user-select: none;
+	opacity: 0.85;
+	filter: blur(0.25px);
+	object-fit: contain;
+	object-position: top right;
+}
+
+.scrollInner {
+	box-sizing: border-box;
+	padding: 12px 16px 28px;
+}
+
+@media (min-width: 768px) {
+	.scrollInner {
+		padding: 16px 20px 36px;
+	}
+}

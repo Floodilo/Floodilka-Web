@@ -1,16 +1,40 @@
 /*
- * SPDX-License-Identifier: AGPL-3.0-or-later
- * Copyright (C) 2020-2026 Fluxer Contributors
  * Copyright (C) 2026 Floodilka Contributors
- * Modified by Floodilka Contributors starting March 2026. See LICENSE and NOTICE.
+ *
+ * This file is part of Floodilka.
+ *
+ * Floodilka is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Floodilka is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
+.modalTitle {
+	font-size: 48px;
+	font-weight: 700;
+	line-height: 1.1;
+	letter-spacing: -0.03em;
+}
+
 .contentContainer {
-	padding: 16px 24px;
+	box-sizing: border-box;
+	min-height: 0;
+	width: 100%;
+	padding: 0;
+	overflow-x: clip;
+	background: transparent;
 }
 
 @media screen and (min-width: 768px) {
 	.contentContainer {
-		padding: 16px 24px 24px 24px;
+		padding: 0;
 	}
 }

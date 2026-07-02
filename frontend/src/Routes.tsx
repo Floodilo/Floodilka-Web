@@ -1,8 +1,20 @@
 /*
- * SPDX-License-Identifier: AGPL-3.0-or-later
- * Copyright (C) 2020-2026 Fluxer Contributors
  * Copyright (C) 2026 Floodilka Contributors
- * Modified by Floodilka Contributors starting March 2026. See LICENSE and NOTICE.
+ *
+ * This file is part of Floodilka.
+ *
+ * Floodilka is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Floodilka is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import {siteUrl} from '~/utils/UrlUtils';
@@ -24,6 +36,9 @@ export const Routes = {
 	GIFT_REGISTER: '/gift/:code',
 	GIFT_LOGIN: '/gift/:code/login',
 	ME: '/channels/@me',
+	/** In-app Премиум (основная область, не модалка) */
+	ME_PREMIUM: '/channels/@me/premium',
+	ME_PREMIUM_BILLING: '/channels/@me/premium/billing',
 
 	BOOKMARKS: '/bookmarks',
 	MENTIONS: '/mentions',
@@ -54,7 +69,12 @@ export const Routes = {
 		pathname === Routes.BOOKMARKS ||
 		pathname === Routes.MENTIONS ||
 		pathname === Routes.NOTIFICATIONS ||
-		pathname === Routes.YOU,
+		pathname === Routes.YOU ||
+		Routes.isPremiumRoute(pathname),
+
+	isPremiumRoute: (pathname: string) =>
+		pathname === Routes.ME_PREMIUM ||
+		pathname === Routes.ME_PREMIUM_BILLING,
 
 	isDMRoute: (pathname: string) => pathname.startsWith('/channels/@me'),
 

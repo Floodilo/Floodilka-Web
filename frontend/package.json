@@ -187,7 +187,6 @@
 			"core-js",
 			"core-js-pure",
 			"electron",
-			"node-mac-permissions",
 			"oxc-resolver",
 			"protobufjs",
 			"uiohook-napi"

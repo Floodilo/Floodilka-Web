@@ -1,24 +1,31 @@
 /*
- * SPDX-License-Identifier: AGPL-3.0-or-later
- * Copyright (C) 2020-2026 Fluxer Contributors
  * Copyright (C) 2026 Floodilka Contributors
- * Modified by Floodilka Contributors starting March 2026. See LICENSE and NOTICE.
+ *
+ * This file is part of Floodilka.
+ *
+ * Floodilka is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Floodilka is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import {Trans, useLingui} from '@lingui/react/macro';
-import {ArrowDownIcon} from '@phosphor-icons/react';
 import {observer} from 'mobx-react-lite';
-import type React from 'react';
-import {PricingCard} from '../PricingCard';
-import gridStyles from '../PricingGrid.module.css';
-import {PurchaseDisclaimer} from '../PurchaseDisclaimer';
-import {ToggleButton} from '../ToggleButton';
+import React from 'react';
+import {Button} from '~/components/uikit/Button/Button';
+import {PremiumPricingChoiceModal} from './PremiumPricingChoiceModal';
 import styles from './PricingSection.module.css';
 import {PurchaseDisabledWrapper} from './PurchaseDisabledWrapper';
 
 interface PricingSectionProps {
-	isGiftMode: boolean;
-	setIsGiftMode: (value: boolean) => void;
 	monthlyPrice: string;
 	yearlyPrice: string;
 	loadingCheckout: boolean;
@@ -30,8 +37,6 @@ interface PricingSectionProps {
 
 export const PricingSection: React.FC<PricingSectionProps> = observer(
 	({
-		isGiftMode,
-		setIsGiftMode,
 		monthlyPrice,
 		yearlyPrice,
 		loadingCheckout,
@@ -41,82 +46,54 @@ export const PricingSection: React.FC<PricingSectionProps> = observer(
 		purchaseDisabledTooltip,
 	}) => {
 		const {t} = useLingui();
-		const tooltipText: React.ReactNode = purchaseDisabledTooltip ?? t`Claim your account to purchase Floodilka Premium.`;
+		const tooltipText: React.ReactNode = purchaseDisabledTooltip ?? t`Подтвердите аккаунт, чтобы купить Флудилка Премиум.`;
+		const isBusy = loadingCheckout || loadingSlots;
+
+		const openSubscribeModal = React.useCallback(() => {
+			// Важно: ModalActionCreators импортируем динамически, чтобы не тащить его в граф загрузки PremiumContent.
+			void import('~/actions/ModalActionCreators').then((ModalAC) => {
+				ModalAC.push(
+					ModalAC.modal(() => (
+						<PremiumPricingChoiceModal
+							kind="subscribe"
+							monthlyPrice={monthlyPrice}
+							yearlyPrice={yearlyPrice}
+							loadingCheckout={loadingCheckout}
+							loadingSlots={loadingSlots}
+							purchaseDisabled={purchaseDisabled}
+							purchaseDisabledTooltip={purchaseDisabledTooltip}
+							onClose={() => ModalAC.pop()}
+							onSelectPlan={handleSelectPlan}
+						/>
+					)),
+				);
+			});
+		}, [
+			monthlyPrice,
+			yearlyPrice,
+			loadingCheckout,
+			loadingSlots,
+			purchaseDisabled,
+			purchaseDisabledTooltip,
+			handleSelectPlan,
+		]);
 
 		return (
 			<section className={styles.section}>
-				<div className={styles.toggleContainer} role="tablist" aria-label={t`Purchase mode`}>
-					<ToggleButton active={!isGiftMode} onClick={() => setIsGiftMode(false)} label={t`For Me`} />
-					<ToggleButton active={isGiftMode} onClick={() => setIsGiftMode(true)} label={t`As a Gift`} />
-				</div>
-
-				<div className={gridStyles.gridWrapper}>
-					<div className={gridStyles.gridThreeColumns}>
-						{!isGiftMode ? (
-							<>
-								<PurchaseDisabledWrapper disabled={purchaseDisabled} tooltipText={tooltipText}>
-									<PricingCard
-										title={t`Monthly`}
-										price={monthlyPrice}
-										period={t`per month`}
-										onSelect={() => handleSelectPlan('monthly')}
-										isLoading={loadingCheckout || loadingSlots}
-										disabled={purchaseDisabled}
-									/>
-								</PurchaseDisabledWrapper>
-								<PurchaseDisabledWrapper disabled={purchaseDisabled} tooltipText={tooltipText}>
-									<PricingCard
-										title={t`Yearly`}
-										price={yearlyPrice}
-										period={t`per year`}
-										badge={t`Save 17%`}
-										isPopular
-										onSelect={() => handleSelectPlan('yearly')}
-										buttonText={t`Upgrade Now`}
-										isLoading={loadingCheckout || loadingSlots}
-										disabled={purchaseDisabled}
-									/>
-								</PurchaseDisabledWrapper>
-							</>
-						) : (
-							<>
-								<PurchaseDisabledWrapper disabled={purchaseDisabled} tooltipText={tooltipText}>
-									<PricingCard
-										title={t`1 Year Gift`}
-										price={yearlyPrice}
-										period={t`one-time purchase`}
-										badge={t`Save 17%`}
-										onSelect={() => handleSelectPlan('gift1Year')}
-										buttonText={t`Buy Gift`}
-										isLoading={loadingCheckout || loadingSlots}
-										disabled={purchaseDisabled}
-									/>
-								</PurchaseDisabledWrapper>
-								<PurchaseDisabledWrapper disabled={purchaseDisabled} tooltipText={tooltipText}>
-									<PricingCard
-										title={t`1 Month Gift`}
-										price={monthlyPrice}
-										period={t`one-time purchase`}
-										isPopular
-										onSelect={() => handleSelectPlan('gift1Month')}
-										buttonText={t`Buy Gift`}
-										isLoading={loadingCheckout || loadingSlots}
-										disabled={purchaseDisabled}
-									/>
-								</PurchaseDisabledWrapper>
-							</>
-						)}
-					</div>
-				</div>
-
-				<div className={styles.footerContainer}>
-					<PurchaseDisclaimer />
-					<div className={styles.scrollPromptContainer}>
-						<p className={styles.scrollPromptText}>
-							<Trans>Scroll down to view all the sweet perks you get with Premium</Trans>
-						</p>
-						<ArrowDownIcon className={styles.scrollPromptIcon} weight="bold" />
-					</div>
+				<div className={styles.actionsRow}>
+					<PurchaseDisabledWrapper disabled={purchaseDisabled} tooltipText={tooltipText}>
+						<Button
+							variant="primary"
+							type="button"
+							fitContainer
+							className={`${styles.actionButton} ${styles.primaryCta}`}
+							onClick={openSubscribeModal}
+							submitting={isBusy}
+							disabled={purchaseDisabled}
+						>
+							<Trans>Подписаться</Trans>
+						</Button>
+					</PurchaseDisabledWrapper>
 				</div>
 			</section>
 		);

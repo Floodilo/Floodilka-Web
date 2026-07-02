@@ -17,24 +17,36 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {makeAutoObservable} from 'mobx';
-import {makePersistent} from '~/lib/MobXPersistence';
-
-class DismissedUpsellStore {
-	pickerPremiumUpsellDismissed = false;
-
-	constructor() {
-		makeAutoObservable(this, {}, {autoBind: true});
-		this.initPersistence();
-	}
-
-	private async initPersistence(): Promise<void> {
-		await makePersistent(this, 'DismissedUpsellStore', ['pickerPremiumUpsellDismissed']);
-	}
-
-	dismissPickerPremiumUpsell(): void {
-		this.pickerPremiumUpsellDismissed = true;
-	}
+.button {
+	position: relative;
+	display: flex;
+	width: 100%;
+	justify-content: center;
+	border: none;
+	background-color: transparent;
+	padding: 0;
 }
 
-export default new DismissedUpsellStore();
+.premiumIcon {
+	position: relative;
+	display: block;
+	height: 1.35rem;
+	width: 1.35rem;
+}
+
+.premiumMic {
+	height: 1.35rem;
+	width: 1.35rem;
+	color: #fff;
+}
+
+.premiumSparkle {
+	position: absolute;
+	right: -0.2rem;
+	top: -0.2rem;
+	height: 0.75rem;
+	width: 0.75rem;
+	color: #f5b84b;
+	filter: drop-shadow(0 0 8px rgba(245, 184, 75, 0.25));
+	opacity: 0.95;
+}
