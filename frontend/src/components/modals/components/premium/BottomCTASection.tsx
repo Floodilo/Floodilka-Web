@@ -28,6 +28,7 @@ import {PurchaseDisabledWrapper} from './PurchaseDisabledWrapper';
 interface BottomCTASectionProps {
 	monthlyPrice: string;
 	yearlyPrice: string;
+	yearlySavingsNote?: string;
 	loadingCheckout: boolean;
 	loadingSlots: boolean;
 	handleSelectPlan: (plan: 'monthly' | 'yearly' | 'gift1Month' | 'gift1Year') => void;
@@ -41,6 +42,7 @@ export const BottomCTASection: React.FC<BottomCTASectionProps> = observer(
 	({
 		monthlyPrice,
 		yearlyPrice,
+		yearlySavingsNote,
 		loadingCheckout,
 		loadingSlots,
 		handleSelectPlan,
@@ -62,6 +64,7 @@ export const BottomCTASection: React.FC<BottomCTASectionProps> = observer(
 								kind={kind}
 								monthlyPrice={monthlyPrice}
 								yearlyPrice={yearlyPrice}
+								yearlySavingsNote={yearlySavingsNote}
 								loadingCheckout={loadingCheckout}
 								loadingSlots={loadingSlots}
 								purchaseDisabled={purchaseDisabled}
@@ -76,6 +79,7 @@ export const BottomCTASection: React.FC<BottomCTASectionProps> = observer(
 			[
 				monthlyPrice,
 				yearlyPrice,
+				yearlySavingsNote,
 				loadingCheckout,
 				loadingSlots,
 				purchaseDisabled,
@@ -117,12 +121,10 @@ export const BottomCTASection: React.FC<BottomCTASectionProps> = observer(
 					)}
 					<PurchaseDisabledWrapper disabled={purchaseDisabled} tooltipText={tooltipText}>
 						<Button
-							variant="primary"
+							variant={hideSubscribe ? 'primary' : 'secondary'}
 							type="button"
 							fitContainer
-							className={`${styles.actionButton} ${
-								hideSubscribe ? (styles as any).primaryCta : (styles as any).secondaryCta
-							}`}
+							className={`${styles.actionButton} ${hideSubscribe ? (styles as any).primaryCta : ''}`}
 							onClick={() => openChoiceModal('gift')}
 							submitting={isBusy}
 							disabled={purchaseDisabled}

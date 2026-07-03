@@ -56,16 +56,10 @@ export const PricingCard = observer(
 			onSelect();
 		}, [isCardDisabled, onSelect]);
 
-		const getButtonVariant = (): 'primary' | 'secondary' | 'inverted' => {
-			if (actuallySoldOut) return 'secondary';
-			if (isPopular) return 'inverted';
-			return 'primary';
-		};
-
 		const renderButtonLabel = () => {
-			if (owned) return <Trans>Owned</Trans>;
-			if (actuallySoldOut) return <Trans>Sold Out</Trans>;
-			return buttonText || <Trans>Select</Trans>;
+			if (owned) return <Trans>Уже есть</Trans>;
+			if (actuallySoldOut) return <Trans>Продано</Trans>;
+			return buttonText || <Trans>Выбрать</Trans>;
 		};
 
 		return (
@@ -77,46 +71,39 @@ export const PricingCard = observer(
 				)}
 				aria-busy={isLoading}
 			>
-				<div className={styles.popularBadgeSpace}>
-					{isPopular ? (
-						<div className={styles.popularBadge}>
-							<Trans>Most popular</Trans>
-						</div>
-					) : remainingSlots !== undefined && remainingSlots >= 0 && !actuallySoldOut ? (
-						<div className={styles.popularBadge}>
-							<Trans>{formatter.format(remainingSlots)} remaining</Trans>
-						</div>
-					) : null}
-				</div>
-
 				{actuallySoldOut && (
 					<div className={styles.soldOutBadge}>
-						<Trans>Sold out</Trans>
+						<Trans>Продано</Trans>
 					</div>
 				)}
 
 				<div className={styles.contentContainer}>
-					<h3 className={isPopular ? styles.cardTitlePopular : styles.cardTitleDefault}>{title}</h3>
-					<p className={isPopular ? styles.cardPricePopular : styles.cardPriceDefault}>{price}</p>
-					{period && <p className={isPopular ? styles.cardPeriodPopular : styles.cardPeriodDefault}>{period}</p>}
-
-					<div className={styles.badgeSpace}>
-						{badge ? (
-							<span className={clsx(styles.badge, isPopular && styles.badgeOnBrand)}>{badge}</span>
-						) : (
-							<span className={styles.badgePlaceholder} aria-hidden="true">
-								.
+					<div className={styles.titleRow}>
+						<h3 className={styles.cardTitle}>{title}</h3>
+						{isPopular ? (
+							<span className={styles.pill}>
+								<Trans>Популярный</Trans>
 							</span>
-						)}
+						) : remainingSlots !== undefined && remainingSlots >= 0 && !actuallySoldOut ? (
+							<span className={styles.pill}>
+								<Trans>Осталось: {formatter.format(remainingSlots)}</Trans>
+							</span>
+						) : null}
 					</div>
+
+					<div className={styles.priceRow}>
+						<span className={styles.price}>{price}</span>
+						{period && <span className={styles.priceMeta}>{period}</span>}
+					</div>
+					{badge ? <p className={styles.savingsNote}>{badge}</p> : null}
 				</div>
 
 				<Button
-					variant={getButtonVariant()}
+					variant={isPopular && !actuallySoldOut ? 'primary' : 'secondary'}
 					onClick={handleClick}
 					disabled={isCardDisabled}
 					submitting={isLoading}
-					className={styles.selectButton}
+					className={clsx(styles.selectButton, isPopular && !actuallySoldOut && styles.selectButtonPopular)}
 					aria-disabled={isCardDisabled}
 					aria-label={title}
 				>

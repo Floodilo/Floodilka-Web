@@ -13,7 +13,7 @@ import {modal} from '~/actions/ModalActionCreators';
 import * as ToastActionCreators from '~/actions/ToastActionCreators';
 import {AssetCropModal, AssetType} from '~/components/modals/AssetCropModal';
 import {Button} from '~/components/uikit/Button/Button';
-import {PremiumUpsell} from '~/components/uikit/PremiumUpsell/PremiumUpsell';
+import {PremiumLink} from '~/components/uikit/PremiumLink/PremiumLink';
 import * as AvatarUtils from '~/utils/AvatarUtils';
 import {openFilePicker} from '~/utils/FilePickerUtils';
 import styles from './BannerUploader.module.css';
@@ -110,12 +110,12 @@ export const NameplateUploader = observer(
 						</div>
 					</>
 				) : (
-					<PremiumUpsell>
+					<div className={styles.description}>
 						<Trans>
-							Stand out in the member list with a custom nameplate — a static or animated background image for your
-							cell.
+							Для своего бейджика в списке участников — статичной или анимированной картинки на фоне ячейки —
+							требуется <PremiumLink />.
 						</Trans>
-					</PremiumUpsell>
+					</div>
 				)}
 				{errorMessage && <p className={styles.errorMessage}>{errorMessage}</p>}
 			</div>
