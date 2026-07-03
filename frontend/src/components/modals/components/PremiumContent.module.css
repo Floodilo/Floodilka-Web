@@ -122,6 +122,7 @@
 .marketingActionButton {
 	min-width: 10rem;
 	flex: 1 1 calc(50% - 0.375rem);
+	border-radius: 12px !important;
 }
 
 .marketingSubscribeButton {
@@ -131,15 +132,6 @@
 
 .marketingSubscribeButton:hover {
 	background-color: #eaeaea !important;
-}
-
-.marketingGiftButton {
-	background-color: #200d2f !important;
-	color: #ffffff !important;
-}
-
-.marketingGiftButton:hover {
-	background-color: #1a0a27 !important;
 }
 
 /* Одна кнопка «Подарить» для уже подписанных — белая, как бывшая «Подписаться». */

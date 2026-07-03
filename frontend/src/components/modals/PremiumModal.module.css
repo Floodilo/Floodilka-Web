@@ -17,13 +17,6 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-.modalTitle {
-	font-size: 48px;
-	font-weight: 700;
-	line-height: 1.1;
-	letter-spacing: -0.03em;
-}
-
 .contentContainer {
 	box-sizing: border-box;
 	min-height: 0;

@@ -17,7 +17,6 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {Trans} from '@lingui/react/macro';
 import {observer} from 'mobx-react-lite';
 import * as Modal from '~/components/modals/Modal';
 import {type PremiumModalProps, usePremiumModalLogic} from '~/utils/modals/PremiumModalUtils';
@@ -31,7 +30,7 @@ export const PremiumModal = observer(({defaultGiftMode = false}: PremiumModalPro
 
 	return (
 		<Modal.Root size="largeWide">
-			<Modal.Header title={<span className={styles.modalTitle}><Trans>Флудилка Премиум</Trans></span>} />
+			<Modal.Header title={null} />
 			<Modal.Content>
 				<div className={styles.contentContainer}>
 					<PremiumContent defaultGiftMode={modalLogic.defaultGiftMode} />

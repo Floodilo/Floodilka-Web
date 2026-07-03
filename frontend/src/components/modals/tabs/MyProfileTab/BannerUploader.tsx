@@ -14,7 +14,7 @@ import {modal} from '~/actions/ModalActionCreators';
 import * as ToastActionCreators from '~/actions/ToastActionCreators';
 import {AssetCropModal, AssetType} from '~/components/modals/AssetCropModal';
 import {Button} from '~/components/uikit/Button/Button';
-import {PremiumUpsell} from '~/components/uikit/PremiumUpsell/PremiumUpsell';
+import {PremiumLink} from '~/components/uikit/PremiumLink/PremiumLink';
 import {RadioGroup} from '~/components/uikit/RadioGroup/RadioGroup';
 import * as AvatarUtils from '~/utils/AvatarUtils';
 import {openFilePicker} from '~/utils/FilePickerUtils';
@@ -196,9 +196,11 @@ export const BannerUploader = observer(
 						</div>
 					</>
 				) : (
-					<PremiumUpsell>
-						<Trans>Customize your profile with a static or animated banner image to make it stand out.</Trans>
-					</PremiumUpsell>
+					<div className={styles.description}>
+						<Trans>
+							Для статичного или анимированного баннера профиля требуется <PremiumLink />.
+						</Trans>
+					</div>
 				)}
 				{errorMessage && <p className={styles.errorMessage}>{errorMessage}</p>}
 			</div>

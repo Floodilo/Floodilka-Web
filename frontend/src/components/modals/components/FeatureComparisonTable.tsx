@@ -41,19 +41,32 @@ export const FeatureComparisonTable = observer(({formatter}: {formatter: Intl.Nu
 	const measurePremiumOutline = React.useCallback(() => {
 		const root = rootRef.current;
 		if (!root) return;
-		const startEl = root.querySelector('[data-premium-column-start]');
-		const endEl = root.querySelector('[data-premium-column-end]');
+		const startEl = root.querySelector<HTMLElement>('[data-premium-column-start]');
+		const endEl = root.querySelector<HTMLElement>('[data-premium-column-end]');
 		if (!startEl || !endEl) return;
 
-		const rootRect = root.getBoundingClientRect();
-		const startRect = startEl.getBoundingClientRect();
-		const endRect = endEl.getBoundingClientRect();
+		// offsetTop/offsetLeft вместо getBoundingClientRect: анимация открытия модалки (scale)
+		// искажает клиентские координаты, а layout-координаты от неё не зависят.
+		const offsetWithin = (el: HTMLElement): {top: number; left: number} => {
+			let top = 0;
+			let left = 0;
+			let node: HTMLElement | null = el;
+			while (node && node !== root) {
+				top += node.offsetTop;
+				left += node.offsetLeft;
+				node = node.offsetParent as HTMLElement | null;
+			}
+			return {top, left};
+		};
+
+		const start = offsetWithin(startEl);
+		const end = offsetWithin(endEl);
 
 		setOutlineRect({
-			top: startRect.top - rootRect.top + root.scrollTop,
-			left: startRect.left - rootRect.left + root.scrollLeft,
-			width: startRect.width,
-			height: Math.max(0, endRect.bottom - startRect.top),
+			top: start.top,
+			left: start.left,
+			width: startEl.offsetWidth,
+			height: Math.max(0, end.top + endEl.offsetHeight - start.top),
 		});
 	}, []);
 

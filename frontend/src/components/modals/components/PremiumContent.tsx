@@ -17,7 +17,7 @@
  * along with Floodilka. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {Trans} from '@lingui/react/macro';
+import {Trans, useLingui} from '@lingui/react/macro';
 import {observer} from 'mobx-react-lite';
 import React from 'react';
 import {GuildFeatures} from '~/Constants';
@@ -100,6 +100,13 @@ export const PremiumContent: React.FC<{defaultGiftMode?: boolean; fullWidth?: bo
 	const monthlyPrice = React.useMemo(() => (priceIds ? formatPrice(priceIds.monthly) : '...'), [priceIds]);
 	const yearlyPrice = React.useMemo(() => (priceIds ? formatPrice(priceIds.yearly) : '...'), [priceIds]);
 
+	const {t} = useLingui();
+	const yearlySavingsNote = React.useMemo(() => {
+		if (!priceIds) return undefined;
+		const percent = Math.round((1 - priceIds.yearly / (priceIds.monthly * 12)) * 100);
+		return t`Экономия ${percent}%`;
+	}, [priceIds, t]);
+
 	const scrollToPerks = React.useCallback(() => {
 		perksSectionRef.current?.scrollIntoView({behavior: 'smooth', block: 'start'});
 	}, []);
@@ -126,6 +133,7 @@ export const PremiumContent: React.FC<{defaultGiftMode?: boolean; fullWidth?: bo
 						kind="gift"
 						monthlyPrice={monthlyPrice}
 						yearlyPrice={yearlyPrice}
+						yearlySavingsNote={yearlySavingsNote}
 						loadingCheckout={loadingCheckout}
 						loadingSlots={loadingPrices}
 						purchaseDisabled={purchaseDisabled}
@@ -139,6 +147,7 @@ export const PremiumContent: React.FC<{defaultGiftMode?: boolean; fullWidth?: bo
 	}, [
 		monthlyPrice,
 		yearlyPrice,
+		yearlySavingsNote,
 		loadingCheckout,
 		loadingPrices,
 		purchaseDisabled,
@@ -154,6 +163,7 @@ export const PremiumContent: React.FC<{defaultGiftMode?: boolean; fullWidth?: bo
 						kind="subscribe"
 						monthlyPrice={monthlyPrice}
 						yearlyPrice={yearlyPrice}
+						yearlySavingsNote={yearlySavingsNote}
 						loadingCheckout={loadingCheckout}
 						loadingSlots={loadingPrices}
 						purchaseDisabled={purchaseDisabled}
@@ -167,6 +177,7 @@ export const PremiumContent: React.FC<{defaultGiftMode?: boolean; fullWidth?: bo
 	}, [
 		monthlyPrice,
 		yearlyPrice,
+		yearlySavingsNote,
 		loadingCheckout,
 		loadingPrices,
 		purchaseDisabled,
@@ -212,11 +223,11 @@ export const PremiumContent: React.FC<{defaultGiftMode?: boolean; fullWidth?: bo
 				)}
 				<PurchaseDisabledWrapper disabled={purchaseDisabled} tooltipText={purchaseDisabledTooltip}>
 					<Button
-						variant="primary"
+						variant={subscriptionStatus.isPremium ? 'primary' : 'secondary'}
 						type="button"
 						fitContainer
 						className={`${styles.marketingActionButton} ${
-							subscriptionStatus.isPremium ? styles.marketingGiftButtonPromoSolo : styles.marketingGiftButton
+							subscriptionStatus.isPremium ? styles.marketingGiftButtonPromoSolo : ''
 						}`}
 						onClick={openGiftPremiumModal}
 						submitting={loadingCheckout || loadingPrices}
@@ -421,6 +432,7 @@ export const PremiumContent: React.FC<{defaultGiftMode?: boolean; fullWidth?: bo
 				<BottomCTASection
 					monthlyPrice={monthlyPrice}
 					yearlyPrice={yearlyPrice}
+					yearlySavingsNote={yearlySavingsNote}
 					loadingCheckout={loadingCheckout}
 					loadingSlots={loadingPrices}
 					handleSelectPlan={handleSelectPlanGuarded}
