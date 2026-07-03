@@ -285,10 +285,7 @@ class VoiceConnectionManager {
 
 	markDisconnected(reason: 'user' | 'error' | 'server' = 'user'): void {
 		runInAction(() => {
-			this.connectionState = {
-				...initialConnectionState,
-				connectionId: reason === 'user' ? null : this.connectionState.connectionId,
-			};
+			this.connectionState = {...initialConnectionState};
 		});
 		this.throttle.setInFlightConnect(false);
 		this.reconnect.setReconnectState(reason);
@@ -333,10 +330,7 @@ class VoiceConnectionManager {
 		}
 
 		runInAction(() => {
-			this.connectionState = {
-				...initialConnectionState,
-				connectionId: reason === 'user' ? null : this.connectionState.connectionId,
-			};
+			this.connectionState = {...initialConnectionState};
 		});
 
 		this.reconnect.setReconnectState(reason);
@@ -443,6 +437,7 @@ class VoiceConnectionManager {
 						reconnecting: false,
 						guildId: null,
 						channelId: null,
+						connectionId: null,
 					};
 					this.throttle.setInFlightConnect(false);
 					this.reconnect.setReconnectState('error');

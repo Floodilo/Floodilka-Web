@@ -93,7 +93,10 @@ export function sendVoiceStateConnect(guildId: string | null, channelId: string)
 		self_video: false,
 		self_stream: false,
 		viewer_stream_key: null,
-		connection_id: VoiceConnectionManager.connectionId ?? null,
+		// A join must always request a fresh connection: the gateway treats a known
+		// connection_id as an in-place update (needs_token=false) and never sends
+		// VOICE_SERVER_UPDATE, leaving the client stuck in "connecting" until timeout.
+		connection_id: null,
 	});
 }
 
