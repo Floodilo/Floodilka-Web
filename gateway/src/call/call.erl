@@ -146,48 +146,18 @@ handle_call({confirm_connection, ConnectionId}, _From, State) ->
             {reply, #{success => true}, DispatchedState}
     end;
 handle_call({disconnect_user_if_in_channel, UserId, ExpectedChannelId, ConnectionId}, _From, State) ->
-    CleanupFun = fun(_U, _S) -> ok end,
-    case
-        voice_disconnect_common:disconnect_user_if_in_channel(
-            UserId,
-            ExpectedChannelId,
-            State#state.voice_states,
-            State#state.sessions,
-            CleanupFun
-        )
-    of
-        {not_found, _, _} ->
+    case is_stale_connection(UserId, ConnectionId, State) of
+        true ->
+            %% The disconnect refers to an older LiveKit connection (e.g. a late
+            %% participant_left webhook for an aborted attempt); the user has since
+            %% reconnected with a new connection_id. Keep the live connection.
             NewPending = voice_pending_common:remove_pending_connection(
                 ConnectionId, State#state.pending_connections
             ),
-            {reply, #{success => true, ignored => true, reason => <<"not_in_call">>}, State#state{
-                pending_connections = NewPending
-            }};
-        {channel_mismatch, _, _} ->
-            {reply, #{success => true, ignored => true, reason => <<"channel_mismatch">>}, State};
-        {ok, NewVoiceStates, NewSessions} ->
-            NewPending = voice_pending_common:remove_pending_connection(
-                ConnectionId, State#state.pending_connections
-            ),
-            BaseState = State#state{
-                voice_states = NewVoiceStates,
-                sessions = NewSessions,
-                pending_connections = NewPending
-            },
-            CancelledTimersState = cancel_ringing_timers([UserId], BaseState),
-            RingCleanupState = remove_users_from_ringing([UserId], CancelledTimersState),
-            {UpdatedState, Dispatched} = maybe_dispatch_state_update(BaseState, RingCleanupState),
-            case maps:size(UpdatedState#state.voice_states) of
-                0 ->
-                    dispatch_call_delete(UpdatedState),
-                    {stop, normal, #{success => true}, UpdatedState};
-                _ ->
-                    case Dispatched of
-                        true -> ok;
-                        false -> dispatch_call_update(UpdatedState)
-                    end,
-                    {reply, #{success => true}, maybe_start_alone_timer(UpdatedState)}
-            end
+            {reply, #{success => true, ignored => true, reason => <<"connection_mismatch">>},
+                State#state{pending_connections = NewPending}};
+        false ->
+            disconnect_user_if_in_channel_internal(UserId, ExpectedChannelId, ConnectionId, State)
     end;
 handle_call({leave, SessionId}, _From, State) ->
     case maps:get(SessionId, State#state.sessions, undefined) of
@@ -395,6 +365,68 @@ handle_info(idle_timeout, State) ->
     end;
 handle_info(_Info, State) ->
     {noreply, State}.
+
+%% A disconnect request carrying a connection_id only applies to the user's
+%% current connection. If the user has already rejoined with a different
+%% connection_id, the request is stale and must not drop the new connection.
+is_stale_connection(_UserId, undefined, _State) ->
+    false;
+is_stale_connection(UserId, ConnectionId, State) ->
+    case maps:get(UserId, State#state.voice_states, undefined) of
+        undefined ->
+            false;
+        VoiceState ->
+            case maps:get(<<"connection_id">>, VoiceState, undefined) of
+                undefined -> false;
+                ConnectionId -> false;
+                _Other -> true
+            end
+    end.
+
+disconnect_user_if_in_channel_internal(UserId, ExpectedChannelId, ConnectionId, State) ->
+    CleanupFun = fun(_U, _S) -> ok end,
+    case
+        voice_disconnect_common:disconnect_user_if_in_channel(
+            UserId,
+            ExpectedChannelId,
+            State#state.voice_states,
+            State#state.sessions,
+            CleanupFun
+        )
+    of
+        {not_found, _, _} ->
+            NewPending = voice_pending_common:remove_pending_connection(
+                ConnectionId, State#state.pending_connections
+            ),
+            {reply, #{success => true, ignored => true, reason => <<"not_in_call">>}, State#state{
+                pending_connections = NewPending
+            }};
+        {channel_mismatch, _, _} ->
+            {reply, #{success => true, ignored => true, reason => <<"channel_mismatch">>}, State};
+        {ok, NewVoiceStates, NewSessions} ->
+            NewPending = voice_pending_common:remove_pending_connection(
+                ConnectionId, State#state.pending_connections
+            ),
+            BaseState = State#state{
+                voice_states = NewVoiceStates,
+                sessions = NewSessions,
+                pending_connections = NewPending
+            },
+            CancelledTimersState = cancel_ringing_timers([UserId], BaseState),
+            RingCleanupState = remove_users_from_ringing([UserId], CancelledTimersState),
+            {UpdatedState, Dispatched} = maybe_dispatch_state_update(BaseState, RingCleanupState),
+            case maps:size(UpdatedState#state.voice_states) of
+                0 ->
+                    dispatch_call_delete(UpdatedState),
+                    {stop, normal, #{success => true}, UpdatedState};
+                _ ->
+                    case Dispatched of
+                        true -> ok;
+                        false -> dispatch_call_update(UpdatedState)
+                    end,
+                    {reply, #{success => true}, maybe_start_alone_timer(UpdatedState)}
+            end
+    end.
 
 disconnect_user_after_pending_timeout(ConnectionId, UserId, SessionId, State) ->
     NewPending = voice_pending_common:remove_pending_connection(
