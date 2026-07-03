@@ -105,3 +105,66 @@ dev-prod port="3000" upstream="https://floodilka.com":
   pnpm lingui:compile
   lsof -ti :{{port}} | xargs kill -9 2>/dev/null || true
   pnpm exec rspack serve --port {{port}}
+
+# HMR renderer on :8088 (port the Electron shell expects in dev) + Electron shell, prod API via local proxy
+desktop-dev upstream="https://floodilka.com":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  cd frontend
+  export PROD_API_PROXY=1
+  export PROD_API_UPSTREAM="{{upstream}}"
+  export PROD_API_PORT=8088
+  export PUBLIC_BOOTSTRAP_API_ENDPOINT=/api
+  pnpm wasm:codegen
+  pnpm generate:colors
+  pnpm generate:masks
+  pnpm generate:css-types
+  pnpm lingui:compile
+  lsof -ti :8088 | xargs kill -9 2>/dev/null || true
+  pnpm exec rspack serve --port 8088 &
+  renderer_pid=$!
+  trap 'kill "$renderer_pid" 2>/dev/null || true' EXIT
+  until curl -sf http://localhost:8088 >/dev/null 2>&1; do
+    kill -0 "$renderer_pid" 2>/dev/null || { echo "renderer dev server exited"; exit 1; }
+    sleep 0.5
+  done
+  pnpm electron:compile
+  NODE_ENV=development pnpm exec electron .
+
+# Local unsigned unpacked desktop build (Windows/macOS/Linux), same shape as the PR desktop preview workflow
+desktop-preview channel="stable":
+  #!/usr/bin/env bash
+  set -euo pipefail
+  cd frontend
+  export BUILD_CHANNEL="{{channel}}"
+  export FLOODILKA_EMBED_WEB_BUNDLE=1
+  export PUBLIC_BOOTSTRAP_API_ENDPOINT=/api
+  export PUBLIC_BOOTSTRAP_API_PUBLIC_ENDPOINT=/api
+  export CSC_IDENTITY_AUTO_DISCOVERY=false
+  pnpm wasm:codegen
+  pnpm generate:colors
+  pnpm generate:masks
+  pnpm generate:css-types
+  pnpm exec lingui compile --strict
+  rm -rf dist
+  pnpm exec rspack build --mode production
+  pnpm electron:compile
+  case "$(uname -s)" in
+    Darwin)
+      pnpm exec electron-builder --dir --config electron-builder.config.cjs \
+        --config.mac.identity=null --config.mac.notarize=false \
+        --config.npmRebuild=false --publish never
+      echo "Unpacked app: frontend/dist-electron/mac*/ (run: xattr -cr <App>.app before first launch)"
+      ;;
+    MINGW*|MSYS*|CYGWIN*|Windows_NT)
+      pnpm exec electron-builder --dir --config electron-builder.config.cjs \
+        --config.win.signAndEditExecutable=false \
+        --config.npmRebuild=false --publish never
+      echo "Unpacked app: frontend/dist-electron/win-unpacked/"
+      ;;
+    *)
+      pnpm exec electron-builder --dir --config electron-builder.config.cjs \
+        --config.npmRebuild=false --publish never
+      echo "Unpacked app: frontend/dist-electron/linux-unpacked/"
+      ;;
+  esac
