@@ -7,7 +7,7 @@
 
 -export([voice_state_update/2]).
 -export([get_voice_state/2]).
--export([get_voice_token/6]).
+-export([get_voice_token/7]).
 -export([disconnect_voice_user/2]).
 -export([broadcast_voice_state_update/3]).
 -export([join_or_create_call/5, join_or_create_call/6]).
@@ -349,23 +349,27 @@ maybe_update_call_voice_state(ChannelId, UserId, VoiceState) ->
         end
     end).
 
-get_voice_token(ChannelId, UserId, _SessionId, SessionPid, Latitude, Longitude) ->
+%% ConnectionId must be the connection the voice state is stored under: the
+%% backend embeds it in the LiveKit token identity, and clients match their own
+%% VOICE_STATE_UPDATEs by it. Passing null would mint a fresh id and leave the
+%% token, the stored voice state and the client out of sync.
+get_voice_token(ChannelId, UserId, _SessionId, SessionPid, ConnectionId, Latitude, Longitude) ->
     Req = voice_utils:build_voice_token_rpc_request(
-        null, ChannelId, UserId, null, Latitude, Longitude
+        null, ChannelId, UserId, ConnectionId, Latitude, Longitude
     ),
 
     case rpc_client:call(Req) of
         {ok, Data} ->
             Token = maps:get(<<"token">>, Data),
             Endpoint = maps:get(<<"endpoint">>, Data),
-            ConnectionId = maps:get(<<"connectionId">>, Data),
+            TokenConnectionId = maps:get(<<"connectionId">>, Data),
 
             SessionPid !
                 {voice_server_update, #{
                     channel_id => integer_to_binary(ChannelId),
                     endpoint => Endpoint,
                     token => Token,
-                    connection_id => ConnectionId
+                    connection_id => TokenConnectionId
                 }},
             ok;
         {error, {http_error, _Status, Body}} ->

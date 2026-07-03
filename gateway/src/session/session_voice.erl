@@ -159,7 +159,7 @@ handle_validated_voice_state_update(
             SessionPid = self(),
             spawn(fun() ->
                 dm_voice:get_voice_token(
-                    ChannelId, UserId, SessionId, SessionPid, Latitude, Longitude
+                    ChannelId, UserId, SessionId, SessionPid, ConnectionId, Latitude, Longitude
                 )
             end),
             CleanState = maps:remove(session_pid, NewState),

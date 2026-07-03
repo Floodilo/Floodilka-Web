@@ -16,7 +16,7 @@
 ]).
 
 build_voice_token_rpc_request(GuildId, ChannelId, UserId, ConnectionId, Latitude, Longitude) ->
-    BaseReq =
+    BaseMap =
         case GuildId of
             null ->
                 #{
@@ -25,25 +25,23 @@ build_voice_token_rpc_request(GuildId, ChannelId, UserId, ConnectionId, Latitude
                     <<"user_id">> => integer_to_binary(UserId)
                 };
             _ ->
-                BaseMap = #{
+                #{
                     <<"type">> => <<"voice_get_token">>,
                     <<"guild_id">> => integer_to_binary(GuildId),
                     <<"channel_id">> => integer_to_binary(ChannelId),
                     <<"user_id">> => integer_to_binary(UserId)
-                },
-                case ConnectionId of
-                    null ->
-                        BaseMap;
-                    ConnectionId when is_binary(ConnectionId) ->
-                        maps:put(<<"connection_id">>, ConnectionId, BaseMap);
-                    ConnectionId when is_integer(ConnectionId) ->
-                        maps:put(<<"connection_id">>, integer_to_binary(ConnectionId), BaseMap);
-                    _ ->
-                        BaseMap
-                end
+                }
         end,
 
+    BaseReq = maybe_put_connection_id(ConnectionId, BaseMap),
     add_geolocation_to_request(BaseReq, Latitude, Longitude).
+
+maybe_put_connection_id(ConnectionId, Map) when is_binary(ConnectionId) ->
+    maps:put(<<"connection_id">>, ConnectionId, Map);
+maybe_put_connection_id(ConnectionId, Map) when is_integer(ConnectionId) ->
+    maps:put(<<"connection_id">>, integer_to_binary(ConnectionId), Map);
+maybe_put_connection_id(_, Map) ->
+    Map.
 
 add_geolocation_to_request(RequestMap, Latitude, Longitude) ->
     case {Latitude, Longitude} of
