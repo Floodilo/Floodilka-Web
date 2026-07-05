@@ -433,6 +433,22 @@ disconnect_user_after_pending_timeout(ConnectionId, UserId, SessionId, State) ->
         ConnectionId, State#state.pending_connections
     ),
 
+    case is_stale_connection(UserId, ConnectionId, State) of
+        true ->
+            %% The user has since rejoined with a new connection_id; this pending
+            %% entry belongs to a superseded attempt. Keep the live connection.
+            logger:info(
+                "[call] Pending connection ~p is stale for user ~p, keeping live connection",
+                [ConnectionId, UserId]
+            ),
+            {noreply, State#state{pending_connections = NewPending}};
+        false ->
+            disconnect_user_after_pending_timeout_internal(
+                ConnectionId, UserId, SessionId, State, NewPending
+            )
+    end.
+
+disconnect_user_after_pending_timeout_internal(_ConnectionId, UserId, SessionId, State, NewPending) ->
     NewVoiceStates = maps:remove(UserId, State#state.voice_states),
 
     NewSessions =
@@ -722,10 +738,18 @@ handle_join_internal(UserId, VoiceState, SessionId, SessionPid, ConnectionId, St
     gateway_pg:join({voice, BaseState#state.channel_id}, SessionPid),
     NewParticipantsHistory = sets:add_element(UserId, BaseState#state.participants_history),
 
+    %% A new join supersedes any earlier pending connection of the same user;
+    %% a leftover entry would never be confirmed and its timeout would reap
+    %% the user's live connection.
+    SupersededPending = maps:filter(
+        fun(_ConnId, Metadata) -> maps:get(user_id, Metadata, undefined) =/= UserId end,
+        BaseState#state.pending_connections
+    ),
+
     NewPending =
         case ConnectionId of
             undefined ->
-                BaseState#state.pending_connections;
+                SupersededPending;
             _ ->
                 PendingMetadata = #{
                     user_id => UserId,
@@ -735,7 +759,7 @@ handle_join_internal(UserId, VoiceState, SessionId, SessionPid, ConnectionId, St
                 },
                 erlang:send_after(30000, self(), {pending_connection_timeout, ConnectionId}),
                 voice_pending_common:add_pending_connection(
-                    ConnectionId, PendingMetadata, BaseState#state.pending_connections
+                    ConnectionId, PendingMetadata, SupersededPending
                 )
         end,
 
