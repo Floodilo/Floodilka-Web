@@ -72,6 +72,12 @@ const MINIMUM_AGE_BY_COUNTRY: Record<string, number> = {
 };
 
 const DEFAULT_MINIMUM_AGE = 13;
+
+// Email domains that are not allowed for registration from specific countries.
+const RESTRICTED_EMAIL_DOMAINS_BY_COUNTRY: Record<string, ReadonlySet<string>> = {
+	RU: new Set(['gmail.com']),
+};
+
 const USER_AGENT_TRUNCATE_LENGTH = 512;
 const PENDING_REG_TTL_SECONDS = 600;
 const PENDING_REG_MAX_ATTEMPTS = 5;
@@ -188,6 +194,17 @@ export class AuthRegistrationService {
 		await this.enforceRegistrationRateLimits({enforceRateLimits, emailKey});
 
 		if (rawEmail) {
+			if (countryCode) {
+				const restrictedDomains = RESTRICTED_EMAIL_DOMAINS_BY_COUNTRY[countryCode];
+				const emailDomain = rawEmail.split('@')[1]?.toLowerCase() ?? '';
+				if (restrictedDomains?.has(emailDomain)) {
+					throw InputValidationError.create(
+						'email',
+						'Регистрация с этим почтовым доменом недоступна в вашем регионе',
+					);
+				}
+			}
+
 			const hasValidDns = await this.emailDnsValidationService.hasValidDnsRecords(rawEmail);
 			if (!hasValidDns) {
 				throw InputValidationError.create('email', 'Недействительный адрес электронной почты');
