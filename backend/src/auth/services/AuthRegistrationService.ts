@@ -73,9 +73,10 @@ const MINIMUM_AGE_BY_COUNTRY: Record<string, number> = {
 
 const DEFAULT_MINIMUM_AGE = 13;
 
-// Email domains that are not allowed for registration from specific countries.
-const RESTRICTED_EMAIL_DOMAINS_BY_COUNTRY: Record<string, ReadonlySet<string>> = {
-	RU: new Set(['gmail.com']),
+// For these countries, the registration email domain must end with one of the
+// allowed suffixes. Any other domain is rejected.
+const ALLOWED_EMAIL_DOMAIN_SUFFIXES_BY_COUNTRY: Record<string, ReadonlyArray<string>> = {
+	RU: ['.ru'],
 };
 
 const USER_AGENT_TRUNCATE_LENGTH = 512;
@@ -195,13 +196,16 @@ export class AuthRegistrationService {
 
 		if (rawEmail) {
 			if (countryCode) {
-				const restrictedDomains = RESTRICTED_EMAIL_DOMAINS_BY_COUNTRY[countryCode];
-				const emailDomain = rawEmail.split('@')[1]?.toLowerCase() ?? '';
-				if (restrictedDomains?.has(emailDomain)) {
-					throw InputValidationError.create(
-						'email',
-						'Регистрация с этим почтовым доменом недоступна в вашем регионе',
-					);
+				const allowedSuffixes = ALLOWED_EMAIL_DOMAIN_SUFFIXES_BY_COUNTRY[countryCode];
+				if (allowedSuffixes) {
+					const emailDomain = rawEmail.split('@')[1]?.toLowerCase() ?? '';
+					const isAllowed = allowedSuffixes.some((suffix) => emailDomain.endsWith(suffix));
+					if (!isAllowed) {
+						throw InputValidationError.create(
+							'email',
+							'В вашем регионе регистрация доступна только с адресом на домене .ru',
+						);
+					}
 				}
 			}
 
