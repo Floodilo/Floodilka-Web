@@ -364,6 +364,7 @@ export class RpcService {
 					guildId: request.guild_id !== undefined ? createGuildID(request.guild_id) : undefined,
 					channelId: createChannelID(request.channel_id),
 					userId: createUserID(request.user_id),
+					connectionId: request.connection_id,
 					latitude: request.latitude,
 					longitude: request.longitude,
 					canSpeak: request.can_speak,

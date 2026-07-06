@@ -142,7 +142,7 @@ class VoiceConnectionManager {
 		const token = raw.token ?? null;
 		const connectionId = raw.connection_id ?? null;
 
-		const {guildId: expectedGuildId, channelId: stateChannelId, connected, room: existingRoom} = this.connectionState;
+		const {guildId: expectedGuildId, channelId: stateChannelId, room: existingRoom} = this.connectionState;
 		const channelId = rawChannelId ?? stateChannelId;
 		const attemptId = this.throttle.connectAttemptId;
 		const stateReset = expectedGuildId === null && stateChannelId === null;
@@ -183,12 +183,16 @@ class VoiceConnectionManager {
 
 		this.clearVoiceServerTimeout();
 
-		if (connected && existingRoom) {
+		// Tear down any previous room even if it is still connecting, and invalidate its
+		// guarded handlers by bumping the attempt id. Otherwise a duplicate
+		// VOICE_SERVER_UPDATE leaves two rooms sharing one attempt id, and when LiveKit
+		// kicks the older one its Disconnected handler tears down the live connection.
+		if (existingRoom) {
 			existingRoom.removeAllListeners();
-			if (existingRoom.state === 'connected') {
-				existingRoom.disconnect();
-			}
+			existingRoom.disconnect();
 		}
+		this.throttle.incrementAttemptId();
+		const roomAttemptId = this.throttle.connectAttemptId;
 
 		runInAction(() => {
 			this.connectionState = {
@@ -215,7 +219,7 @@ class VoiceConnectionManager {
 		}
 		const room = new LiveKitRoom(roomOptions);
 
-		onRoomCreated(room, attemptId, guildId, channelId);
+		onRoomCreated(room, roomAttemptId, guildId, channelId);
 
 		if (!endpoint || !token) {
 			logger.error('Missing endpoint or token', {endpoint, hasToken: !!token});
@@ -236,7 +240,7 @@ class VoiceConnectionManager {
 			.connect(endpoint, token, {autoSubscribe: false})
 			.then(() => {
 				logger.info('LiveKit connection succeeded');
-				if (!this.throttle.isLatestAttempt(attemptId)) {
+				if (!this.throttle.isLatestAttempt(roomAttemptId)) {
 					logger.warn('Connection succeeded but attempt is stale, disconnecting');
 					try {
 						room.removeAllListeners();
@@ -254,7 +258,7 @@ class VoiceConnectionManager {
 			})
 			.catch((error) => {
 				logger.error('LiveKit connection failed', {error, endpoint});
-				if (this.throttle.isLatestAttempt(attemptId)) {
+				if (this.throttle.isLatestAttempt(roomAttemptId)) {
 					runInAction(() => {
 						this.connectionState = {
 							...this.connectionState,
@@ -285,10 +289,7 @@ class VoiceConnectionManager {
 
 	markDisconnected(reason: 'user' | 'error' | 'server' = 'user'): void {
 		runInAction(() => {
-			this.connectionState = {
-				...initialConnectionState,
-				connectionId: reason === 'user' ? null : this.connectionState.connectionId,
-			};
+			this.connectionState = {...initialConnectionState};
 		});
 		this.throttle.setInFlightConnect(false);
 		this.reconnect.setReconnectState(reason);
@@ -333,10 +334,7 @@ class VoiceConnectionManager {
 		}
 
 		runInAction(() => {
-			this.connectionState = {
-				...initialConnectionState,
-				connectionId: reason === 'user' ? null : this.connectionState.connectionId,
-			};
+			this.connectionState = {...initialConnectionState};
 		});
 
 		this.reconnect.setReconnectState(reason);
@@ -443,6 +441,7 @@ class VoiceConnectionManager {
 						reconnecting: false,
 						guildId: null,
 						channelId: null,
+						connectionId: null,
 					};
 					this.throttle.setInFlightConnect(false);
 					this.reconnect.setReconnectState('error');

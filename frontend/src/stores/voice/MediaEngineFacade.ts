@@ -192,9 +192,11 @@ class MediaEngineFacade {
 		if (!shouldProceed) return;
 
 		if (VoiceConnectionManager.connected || VoiceConnectionManager.connecting) {
-			if (VoiceConnectionManager.channelId !== channelId || VoiceConnectionManager.guildId !== guildId) {
-				await this.disconnectFromVoiceChannel('user');
+			if (VoiceConnectionManager.channelId === channelId && VoiceConnectionManager.guildId === guildId) {
+				logger.debug('[connectToVoiceChannel] Already connected or connecting to this channel, ignoring');
+				return;
 			}
+			await this.disconnectFromVoiceChannel('user');
 		}
 
 		VoiceConnectionManager.startConnection(guildId, channelId);
@@ -203,10 +205,12 @@ class MediaEngineFacade {
 
 	private async connectDirectly(guildId: string | null, channelId: string): Promise<void> {
 		if (VoiceConnectionManager.connected || VoiceConnectionManager.connecting) {
-			if (VoiceConnectionManager.channelId !== channelId || VoiceConnectionManager.guildId !== guildId) {
-				SoundActionCreators.playSound(SoundType.UserMove);
-				await this.disconnectFromVoiceChannel('user');
+			if (VoiceConnectionManager.channelId === channelId && VoiceConnectionManager.guildId === guildId) {
+				logger.debug('[connectDirectly] Already connected or connecting to this channel, ignoring');
+				return;
 			}
+			SoundActionCreators.playSound(SoundType.UserMove);
+			await this.disconnectFromVoiceChannel('user');
 		}
 		this.voiceStateSync.reset();
 		VoiceConnectionManager.startConnection(guildId, channelId);

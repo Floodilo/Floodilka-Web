@@ -36,10 +36,11 @@ exec SERVICE CMD:
   {{compose_base}} exec {{SERVICE}} sh -c "{{CMD}}"
 
 livekit-sync:
+  #!/usr/bin/env bash
   set -euo pipefail
   if [ ! -f {{env_file}} ]; then
-  echo "{{env_file}} missing"
-  exit 1
+    echo "{{env_file}} missing"
+    exit 1
   fi
   node --env-file {{env_file}} scripts/just/livekit-sync.js --output dev/livekit.yaml
 

@@ -172,19 +172,17 @@ execute_method(<<"call.confirm_connection">>, Params) ->
     case call_router:lookup(ChannelId, 5000) of
         {ok, Pid} ->
             gen_server:call(Pid, {confirm_connection, ConnectionId}, 5000);
-        {error, not_found} ->
+        _NotFound ->
+            %% The participant_joined webhook can arrive before the call process
+            %% exists (the joiner's LiveKit connect races call creation). Dropping
+            %% the confirmation would leave the pending connection unconfirmed
+            %% forever, so keep retrying in the background instead.
             logger:debug(
-                "[gateway_rpc_call] call.confirm_connection call not found for channel_id=~p", [
-                    ChannelId
-                ]
-            ),
-            #{success => true, call_not_found => true};
-        not_found ->
-            logger:debug(
-                "[gateway_rpc_call] call.confirm_connection call manager returned not_found for channel_id=~p",
+                "[gateway_rpc_call] call.confirm_connection call not found for channel_id=~p, scheduling retries",
                 [ChannelId]
             ),
-            #{success => true, call_not_found => true}
+            spawn(fun() -> retry_confirm_connection(ChannelId, ConnectionId, 20) end),
+            #{success => true, retry_scheduled => true}
     end;
 execute_method(<<"call.disconnect_user_if_in_channel">>, Params) ->
     #{<<"channel_id">> := ChannelIdBin, <<"user_id">> := UserIdBin} = Params,
@@ -200,4 +198,34 @@ execute_method(<<"call.disconnect_user_if_in_channel">>, Params) ->
             #{success => true, call_not_found => true};
         not_found ->
             #{success => true, call_not_found => true}
+    end.
+
+retry_confirm_connection(ChannelId, ConnectionId, 0) ->
+    logger:warning(
+        "[gateway_rpc_call] Gave up confirming connection ~p: call for channel_id=~p never appeared",
+        [ConnectionId, ChannelId]
+    ),
+    ok;
+retry_confirm_connection(ChannelId, ConnectionId, Retries) ->
+    timer:sleep(500),
+    Result =
+        try
+            call_router:lookup(ChannelId, 5000)
+        catch
+            _:_ -> not_found
+        end,
+    case Result of
+        {ok, Pid} ->
+            try
+                gen_server:call(Pid, {confirm_connection, ConnectionId}, 5000),
+                logger:info(
+                    "[gateway_rpc_call] Confirmed connection ~p for channel_id=~p after retry",
+                    [ConnectionId, ChannelId]
+                )
+            catch
+                _:_ -> ok
+            end,
+            ok;
+        _ ->
+            retry_confirm_connection(ChannelId, ConnectionId, Retries - 1)
     end.
