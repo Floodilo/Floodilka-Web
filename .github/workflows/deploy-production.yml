@@ -34,7 +34,7 @@ permissions:
   packages: write
 
 env:
-  IMAGE_PREFIX: ghcr.io/floodilka
+  IMAGE_PREFIX: ghcr.io/floodilo
 
 jobs:
   build-frontend:
@@ -277,7 +277,7 @@ jobs:
           echo "$GITHUB_TOKEN" | ssh production "docker login ghcr.io -u github-actions --password-stdin"
 
           for image in floodilka-backend floodilka-gateway floodilka-media-proxy floodilka-admin floodilka-metrics; do
-            ssh production "docker pull ghcr.io/floodilka/${image}:${SHA} && docker tag ghcr.io/floodilka/${image}:${SHA} ${image}:latest && docker tag ghcr.io/floodilka/${image}:${SHA} ${image}:${SHA}"
+            ssh production "docker pull ghcr.io/floodilo/${image}:${SHA} && docker tag ghcr.io/floodilo/${image}:${SHA} ${image}:latest && docker tag ghcr.io/floodilo/${image}:${SHA} ${image}:${SHA}"
           done
 
           # Phase 6: floodilka-backend runs on 4 worker nodes (back-1/2/3/back-worker).
@@ -285,9 +285,9 @@ jobs:
           # The prod manager already pulled and tagged above; propagate to backend workers.
           for node_ip in 192.168.0.193 192.168.0.189 192.168.0.233 192.168.0.210; do
             ssh production "ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 root@${node_ip} \
-              'docker pull ghcr.io/floodilka/floodilka-backend:${SHA} && \
-               docker tag ghcr.io/floodilka/floodilka-backend:${SHA} floodilka-backend:latest && \
-               docker tag ghcr.io/floodilka/floodilka-backend:${SHA} floodilka-backend:${SHA}'"
+              'docker pull ghcr.io/floodilo/floodilka-backend:${SHA} && \
+               docker tag ghcr.io/floodilo/floodilka-backend:${SHA} floodilka-backend:latest && \
+               docker tag ghcr.io/floodilo/floodilka-backend:${SHA} floodilka-backend:${SHA}'"
           done
 
           # Phase 7.13: gateway runs on 3 dedicated nodes (gw-1/2/3).
@@ -295,9 +295,9 @@ jobs:
           # docker service update can schedule tasks there immediately.
           for node_ip in 192.168.0.130 192.168.0.216 192.168.0.4; do
             ssh production "ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 root@${node_ip} \
-              'docker pull ghcr.io/floodilka/floodilka-gateway:${SHA} && \
-               docker tag ghcr.io/floodilka/floodilka-gateway:${SHA} floodilka-gateway:latest && \
-               docker tag ghcr.io/floodilka/floodilka-gateway:${SHA} floodilka-gateway:${SHA}'"
+              'docker pull ghcr.io/floodilo/floodilka-gateway:${SHA} && \
+               docker tag ghcr.io/floodilo/floodilka-gateway:${SHA} floodilka-gateway:latest && \
+               docker tag ghcr.io/floodilo/floodilka-gateway:${SHA} floodilka-gateway:${SHA}'"
           done
 
           ssh production "

@@ -22,7 +22,7 @@ permissions:
   packages: write
 
 env:
-  IMAGE_PREFIX: ghcr.io/floodilka
+  IMAGE_PREFIX: ghcr.io/floodilo
 
 jobs:
   build-frontend:
@@ -207,7 +207,7 @@ jobs:
           echo "$GITHUB_TOKEN" | ssh staging "docker login ghcr.io -u github-actions --password-stdin"
 
           for image in floodilka-backend floodilka-gateway floodilka-media-proxy floodilka-admin floodilka-metrics; do
-            ssh staging "docker pull ghcr.io/floodilka/${image}:${SHA} && docker tag ghcr.io/floodilka/${image}:${SHA} ${image}:latest"
+            ssh staging "docker pull ghcr.io/floodilo/${image}:${SHA} && docker tag ghcr.io/floodilo/${image}:${SHA} ${image}:latest"
           done
 
           ssh staging "
