@@ -29,7 +29,7 @@ export const PremiumModal = observer(({defaultGiftMode = false}: PremiumModalPro
 	});
 
 	return (
-		<Modal.Root size="largeWide">
+		<Modal.Root size="xlarge">
 			<Modal.Header title={null} />
 			<Modal.Content>
 				<div className={styles.contentContainer}>
