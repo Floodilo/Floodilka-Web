@@ -195,18 +195,12 @@ export class AuthRegistrationService {
 		await this.enforceRegistrationRateLimits({enforceRateLimits, emailKey});
 
 		if (rawEmail) {
-			if (countryCode) {
-				const allowedSuffixes = ALLOWED_EMAIL_DOMAIN_SUFFIXES_BY_COUNTRY[countryCode];
-				if (allowedSuffixes) {
-					const emailDomain = rawEmail.split('@')[1]?.toLowerCase() ?? '';
-					const isAllowed = allowedSuffixes.some((suffix) => emailDomain.endsWith(suffix));
-					if (!isAllowed) {
-						throw InputValidationError.create(
-							'email',
-							'В соответствии с законодательством РФ регистрация с иностранных почтовых сервисов недоступна. Используйте адрес электронной почты на домене .ru (например, Яндекс или Mail.ru).',
-						);
-					}
-				}
+			const emailDomain = rawEmail.split('@')[1]?.toLowerCase() ?? '';
+			if (!emailDomain.endsWith('.ru')) {
+				throw InputValidationError.create(
+					'email',
+					'В соответствии с законодательством РФ регистрация с иностранных почтовых сервисов недоступна. Используйте адрес электронной почты на домене .ru (например, Яндекс или Mail.ru).',
+				);
 			}
 
 			const hasValidDns = await this.emailDnsValidationService.hasValidDnsRecords(rawEmail);
