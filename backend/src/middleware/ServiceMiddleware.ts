@@ -59,6 +59,8 @@ import {RedisActivityTracker} from '~/infrastructure/RedisActivityTracker';
 import {RedisBulkMessageDeletionQueueService} from '~/infrastructure/RedisBulkMessageDeletionQueueService';
 import {RedisCacheService} from '~/infrastructure/RedisCacheService';
 import {createRedisClient} from '~/infrastructure/RedisClientFactory';
+import type {ISMSService} from '~/infrastructure/ISMSService';
+import {MockSMSService} from '~/infrastructure/MockSMSService';
 import {SMSService} from '~/infrastructure/SMSService';
 import {SnowflakeService} from '~/infrastructure/SnowflakeService';
 import {StorageService as ProdStorageService} from '~/infrastructure/StorageService';
@@ -248,7 +250,7 @@ export const ServiceMiddleware = createMiddleware<HonoEnv>(async (ctx, next) => 
 	const bannerAssetProcessor = new BannerAssetProcessor(storageService, mediaService, assetDeletionQueue);
 
 	const emailService: IEmailService = testEmailServiceInstance ?? new EmailService(userRepository);
-	const smsService = new SMSService();
+	const smsService: ISMSService = Config.sms.provider === 'mock' ? new MockSMSService(cacheService) : new SMSService();
 	const virusScanService = new VirusScanService(cacheService);
 	await virusScanService.initialize();
 
@@ -576,6 +578,7 @@ export const ServiceMiddleware = createMiddleware<HonoEnv>(async (ctx, next) => 
 	ctx.set('streamPreviewService', streamPreviewService);
 	ctx.set('desktopHandoffService', desktopHandoffService);
 	ctx.set('emailService', emailService);
+	ctx.set('smsService', smsService);
 	ctx.set('embedService', embedService);
 	ctx.set('entityAssetService', entityAssetService);
 	ctx.set('favoriteMemeService', favoriteMemeService);

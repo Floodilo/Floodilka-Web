@@ -67,6 +67,7 @@ import type {EmbedService} from './infrastructure/EmbedService';
 import type {EntityAssetService} from './infrastructure/EntityAssetService';
 import type {ICacheService} from './infrastructure/ICacheService';
 import type {IEmailService} from './infrastructure/IEmailService';
+import type {ISMSService} from './infrastructure/ISMSService';
 import type {IGatewayService} from './infrastructure/IGatewayService';
 import type {IMediaService} from './infrastructure/IMediaService';
 import type {IRateLimitService} from './infrastructure/IRateLimitService';
@@ -123,6 +124,7 @@ export interface HonoEnv {
 		channelRepository: IChannelRepository;
 		streamPreviewService: StreamPreviewService;
 		emailService: IEmailService;
+		smsService: ISMSService;
 		emailChangeService: EmailChangeService;
 		embedService: EmbedService;
 		entityAssetService: EntityAssetService;

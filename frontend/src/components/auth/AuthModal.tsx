@@ -27,7 +27,12 @@ interface AuthModalProps {
 export default function AuthModal({initialMode = 'login'}: AuthModalProps) {
 	const isElectron = isDesktop();
 	const [mode, setMode] = useState<AuthMode>(initialMode);
-	const [verificationData, setVerificationData] = useState<{email: string; username: string; ticket: string} | null>(null);
+	const [verificationData, setVerificationData] = useState<{
+		email?: string;
+		phone?: string;
+		username: string;
+		ticket: string;
+	} | null>(null);
 	const [forgotStep, setForgotStep] = useState(1);
 	const [mfaChallenge, setMfaChallenge] = useState<MfaChallenge | null>(null);
 
@@ -204,6 +209,7 @@ export default function AuthModal({initialMode = 'login'}: AuthModalProps) {
 				{mode === 'verify' && verificationData && (
 					<VerifyEmailCode
 						email={verificationData.email}
+						phone={verificationData.phone}
 						username={verificationData.username}
 						ticket={verificationData.ticket}
 						onVerified={handleLoginSuccess}

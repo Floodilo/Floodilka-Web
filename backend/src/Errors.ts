@@ -44,6 +44,7 @@ export * from './errors/CommunicationDisabledError';
 export * from './errors/CreationFailedError';
 export * from './errors/DeletionFailedError';
 export * from './errors/EmailServiceNotTestableError';
+export * from './errors/SmsServiceNotTestableError';
 export * from './errors/ErrorHandlers';
 export * from './errors/ExplicitContentCannotBeSentError';
 export * from './errors/FeatureTemporarilyDisabledError';

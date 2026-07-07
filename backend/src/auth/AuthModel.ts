@@ -7,19 +7,25 @@
 
 import {uint8ArrayToBase64} from 'uint8array-extras';
 import type {AuthSession} from '~/Models';
-import {createStringType, EmailType, GlobalNameType, NewUsernameType, PasswordType, z} from '~/Schema';
+import {createStringType, EmailType, GlobalNameType, NewUsernameType, PasswordType, PhoneNumberType, z} from '~/Schema';
 import {getLocationLabelFromIp} from '~/utils/IpUtils';
 import {resolveSessionClientInfo} from '~/utils/UserAgentUtils';
 
-export const RegisterRequest = z.object({
-	email: EmailType.optional(),
-	username: NewUsernameType.optional(),
-	global_name: GlobalNameType.optional(),
-	password: PasswordType.optional(),
-	date_of_birth: createStringType(10, 10).refine((value) => /^\d{4}-\d{2}-\d{2}$/.test(value), 'Invalid date format'),
-	consent: z.boolean(),
-	invite_code: createStringType(0, 256).nullish(),
-});
+export const RegisterRequest = z
+	.object({
+		email: EmailType.optional(),
+		phone: PhoneNumberType.optional(),
+		username: NewUsernameType.optional(),
+		global_name: GlobalNameType.optional(),
+		password: PasswordType.optional(),
+		date_of_birth: createStringType(10, 10).refine((value) => /^\d{4}-\d{2}-\d{2}$/.test(value), 'Invalid date format'),
+		consent: z.boolean(),
+		invite_code: createStringType(0, 256).nullish(),
+	})
+	.refine((data) => !(data.email && data.phone), {
+		message: 'Укажите либо email, либо номер телефона',
+		path: ['phone'],
+	});
 
 export const UsernameSuggestionsRequest = z.object({
 	global_name: GlobalNameType,
@@ -29,11 +35,17 @@ export type RegisterRequest = z.infer<typeof RegisterRequest>;
 
 export type UsernameSuggestionsRequest = z.infer<typeof UsernameSuggestionsRequest>;
 
-export const LoginRequest = z.object({
-	email: EmailType,
-	password: z.string().min(1).max(256),
-	invite_code: createStringType(0, 256).nullish(),
-});
+export const LoginRequest = z
+	.object({
+		email: EmailType.optional(),
+		phone: PhoneNumberType.optional(),
+		password: z.string().min(1).max(256),
+		invite_code: createStringType(0, 256).nullish(),
+	})
+	.refine((data) => (data.email ? !data.phone : !!data.phone), {
+		message: 'Укажите email или номер телефона',
+		path: ['email'],
+	});
 
 export type LoginRequest = z.infer<typeof LoginRequest>;
 

@@ -51,6 +51,7 @@ import {
 	InvalidTimestampError,
 	NoPendingDeletionError,
 	ProcessingFailedError,
+	SmsServiceNotTestableError,
 	TestHarnessDisabledError,
 	TestHarnessForbiddenError,
 	UnknownGuildError,
@@ -64,6 +65,7 @@ import {
 } from '~/Errors';
 import {GuildRepository} from '~/guild/repositories/GuildRepository';
 import type {IEmailService, ITestEmailService, SentEmailRecord} from '~/infrastructure/IEmailService';
+import type {ISMSService, ITestSMSService} from '~/infrastructure/ISMSService';
 import {RedisAccountDeletionQueueService} from '~/infrastructure/RedisAccountDeletionQueueService';
 import {RedisActivityTracker} from '~/infrastructure/RedisActivityTracker';
 import {SnowflakeService} from '~/infrastructure/SnowflakeService';
@@ -87,6 +89,7 @@ import {setWorkerDependencies} from '~/worker/WorkerContext';
 import {initializeWorkerDependencies} from '~/worker/WorkerDependencies';
 
 const TEST_EMAIL_ENDPOINT = '/test/emails';
+const TEST_SMS_ENDPOINT = '/test/sms';
 const TEST_AUTH_HEADER = 'x-test-token';
 const MAX_TEST_PRIVATE_CHANNELS = 1000;
 
@@ -150,6 +153,10 @@ const ensureHarnessAccess = (ctx: Context<HonoEnv>) => {
 
 const isTestEmailService = (service: IEmailService): service is ITestEmailService => {
 	return typeof (service as ITestEmailService).listSentEmails === 'function';
+};
+
+const isTestSMSService = (service: ISMSService): service is ITestSMSService => {
+	return typeof (service as ITestSMSService).listSentCodes === 'function';
 };
 
 const serializeEmails = (emails: Array<SentEmailRecord>) =>
@@ -225,6 +232,40 @@ export const TestHarnessController = (app: HonoApp) => {
 		}
 
 		emailService.clearSentEmails();
+		return ctx.json({cleared: true});
+	});
+
+	app.get(TEST_SMS_ENDPOINT, (ctx) => {
+		ensureHarnessAccess(ctx);
+
+		const smsService = ctx.get('smsService');
+		if (!isTestSMSService(smsService)) {
+			throw new SmsServiceNotTestableError();
+		}
+
+		const codes = smsService.listSentCodes();
+		const filter = ctx.req.query('phone');
+
+		let filtered = codes;
+		if (filter) {
+			filtered = codes.filter((record) => record.phone === filter);
+		}
+
+		return ctx.json({
+			sms: filtered.map((record) => ({...record, timestamp: record.timestamp.toISOString()})),
+			count: filtered.length,
+		});
+	});
+
+	app.delete(TEST_SMS_ENDPOINT, (ctx) => {
+		ensureHarnessAccess(ctx);
+
+		const smsService = ctx.get('smsService');
+		if (!isTestSMSService(smsService)) {
+			throw new SmsServiceNotTestableError();
+		}
+
+		smsService.clearSentCodes();
 		return ctx.json({cleared: true});
 	});
 

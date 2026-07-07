@@ -11,13 +11,14 @@ import * as ToastActionCreators from '~/actions/ToastActionCreators';
 import type {LoginSuccessPayload} from '~/viewmodels/auth/AuthFlow';
 
 interface VerifyEmailCodeProps {
-	email: string;
+	email?: string;
+	phone?: string;
 	username: string;
 	ticket: string;
 	onVerified: (payload: LoginSuccessPayload) => void;
 }
 
-export default function VerifyEmailCode({email, ticket, onVerified}: VerifyEmailCodeProps) {
+export default function VerifyEmailCode({email, phone, ticket, onVerified}: VerifyEmailCodeProps) {
 	const [code, setCode] = useState(['', '', '', '', '', '']);
 	const [loading, setLoading] = useState(false);
 	const [codeError, setCodeError] = useState(false);
@@ -132,9 +133,17 @@ export default function VerifyEmailCode({email, ticket, onVerified}: VerifyEmail
 				<div className="verify-code-icon">
 					<img src="/icons/logo_nobg.png" alt="Floodilka" />
 				</div>
-				<h1>Проверь свою почту</h1>
+				<h1>{phone ? 'Проверь SMS' : 'Проверь свою почту'}</h1>
 				<p className="verify-code-description">
-					Введи 6-значный код из письма по адресу <strong>{email}</strong>
+					{phone ? (
+						<>
+							Введи 6-значный код из SMS на номер <strong>{phone}</strong>
+						</>
+					) : (
+						<>
+							Введи 6-значный код из письма по адресу <strong>{email}</strong>
+						</>
+					)}
 				</p>
 			</div>
 

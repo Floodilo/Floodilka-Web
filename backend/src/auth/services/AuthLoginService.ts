@@ -86,10 +86,21 @@ export class AuthLoginService {
 		const skipRateLimits = inTests || Config.dev.disableRateLimits;
 
 		const clientIp = IpUtils.requireClientIp(request);
-		const emailKey = `login:email:${data.email}`;
+		const emailKey = data.phone ? `login:phone:${data.phone}` : `login:email:${data.email}`;
 		const ipKey = `login:ip:${clientIp}`;
 		const emailLimit = {maxAttempts: 10, windowMs: 15 * 60 * 1000};
 		const ipLimit = {maxAttempts: 20, windowMs: 15 * 60 * 1000};
+
+		const invalidCredentialsError = () =>
+			data.phone
+				? InputValidationError.createMultiple([
+						{field: 'phone', message: 'Неверный номер телефона или пароль'},
+						{field: 'password', message: 'Неверный номер телефона или пароль'},
+					])
+				: InputValidationError.createMultiple([
+						{field: 'email', message: 'Неверный email или пароль'},
+						{field: 'password', message: 'Неверный email или пароль'},
+					]);
 
 		if (!skipRateLimits) {
 			const emailPeek = await this.rateLimitService.peekLimit({
@@ -125,24 +136,23 @@ export class AuthLoginService {
 			]);
 		};
 
-		const user = await this.repository.findByEmail(data.email);
-		if (!user) {
+		const user = data.phone
+			? await this.repository.findByPhone(data.phone)
+			: await this.repository.findByEmail(data.email!);
+		if (!user || !user.passwordHash) {
 			await recordLoginFailure();
 			getMetricsService().counter({
 				name: 'auth.login.failure',
 				dimensions: {reason: 'invalid_credentials'},
 			});
-			throw InputValidationError.createMultiple([
-				{field: 'email', message: 'Неверный email или пароль'},
-				{field: 'password', message: 'Неверный email или пароль'},
-			]);
+			throw invalidCredentialsError();
 		}
 
 		this.assertNonBotUser(user);
 
 		const isMatch = await this.verifyPassword({
 			password: data.password,
-			passwordHash: user.passwordHash!,
+			passwordHash: user.passwordHash,
 		});
 
 		if (!isMatch) {
@@ -151,10 +161,7 @@ export class AuthLoginService {
 				name: 'auth.login.failure',
 				dimensions: {reason: 'invalid_credentials'},
 			});
-			throw InputValidationError.createMultiple([
-				{field: 'email', message: 'Неверный email или пароль'},
-				{field: 'password', message: 'Неверный email или пароль'},
-			]);
+			throw invalidCredentialsError();
 		}
 
 		if (!skipRateLimits) {

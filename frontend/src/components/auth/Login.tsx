@@ -8,8 +8,13 @@
 import {type FormEvent, useState} from 'react';
 import * as AuthenticationActionCreators from '~/actions/AuthenticationActionCreators';
 import * as ToastActionCreators from '~/actions/ToastActionCreators';
+import {normalizePhoneToE164} from '~/data/countryCodes';
 import {Routes} from '~/Routes';
 import type {LoginSuccessPayload, MfaChallenge} from '~/viewmodels/auth/AuthFlow';
+
+// Ввод считается телефоном, если состоит из цифр и телефонных символов
+// (+, пробелы, скобки, дефисы, точки) и не содержит '@'.
+const looksLikePhone = (value: string): boolean => /^[+]?[\d\s()\-.]+$/.test(value.trim());
 
 interface LoginProps {
 	onSwitchToRegister: () => void;
@@ -32,8 +37,23 @@ export default function Login({onSwitchToRegister, onForgotPassword, onMfaRequir
 		setPasswordError(false);
 		setLoading(true);
 
+		const trimmed = email.trim();
+		let credentials: {email?: string; phone?: string};
+		if (looksLikePhone(trimmed)) {
+			const normalizedPhone = normalizePhoneToE164(trimmed);
+			if (!normalizedPhone) {
+				setEmailError(true);
+				ToastActionCreators.error('Введите корректный номер телефона, например +7 999 123-45-67');
+				setLoading(false);
+				return;
+			}
+			credentials = {phone: normalizedPhone};
+		} else {
+			credentials = {email: trimmed};
+		}
+
 		try {
-			const response = await AuthenticationActionCreators.login({email, password});
+			const response = await AuthenticationActionCreators.login({...credentials, password});
 
 			if (response.mfa) {
 				onMfaRequired({
@@ -51,7 +71,7 @@ export default function Login({onSwitchToRegister, onForgotPassword, onMfaRequir
 			});
 		} catch (err) {
 			const error = err as {body?: {message?: string; errors?: Array<{path: string; message: string}>}; message?: string};
-			let errorMessage = 'Неверно введен адрес почты или пароль';
+			let errorMessage = 'Неверно введены email/телефон или пароль';
 			if (error.body?.errors?.length) {
 				errorMessage = [...new Set(error.body.errors.map((e) => e.message))].join(', ');
 			} else if (error.body?.message && error.body.message !== 'Input Validation Error') {
@@ -71,10 +91,11 @@ export default function Login({onSwitchToRegister, onForgotPassword, onMfaRequir
 		<>
 			<form className="auth-form" onSubmit={handleSubmit}>
 				<div className="form-group">
-					<label>Email</label>
+					<label>Email или телефон</label>
 					<input
-						type="email"
-						placeholder="Адрес электронной почты"
+						type="text"
+						autoComplete="username"
+						placeholder="Email или номер телефона"
 						value={email}
 						onChange={(e) => {
 							setEmail(e.target.value);

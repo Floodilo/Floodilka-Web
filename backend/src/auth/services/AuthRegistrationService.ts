@@ -16,6 +16,7 @@ import {FloodilkaAPIError, InputValidationError} from '~/Errors';
 import type {ICacheService} from '~/infrastructure/ICacheService';
 import type {IEmailService} from '~/infrastructure/IEmailService';
 import type {IRateLimitService} from '~/infrastructure/IRateLimitService';
+import type {ISMSService} from '~/infrastructure/ISMSService';
 import {getMetricsService} from '~/infrastructure/MetricsService';
 import type {RedisActivityTracker} from '~/infrastructure/RedisActivityTracker';
 import type {SnowflakeService} from '~/infrastructure/SnowflakeService';
@@ -72,13 +73,6 @@ const MINIMUM_AGE_BY_COUNTRY: Record<string, number> = {
 };
 
 const DEFAULT_MINIMUM_AGE = 13;
-
-// For these countries, the registration email domain must end with one of the
-// allowed suffixes. Any other domain is rejected.
-const ALLOWED_EMAIL_DOMAIN_SUFFIXES_BY_COUNTRY: Record<string, ReadonlyArray<string>> = {
-	RU: ['.ru'],
-};
-
 const USER_AGENT_TRUNCATE_LENGTH = 512;
 const PENDING_REG_TTL_SECONDS = 600;
 const PENDING_REG_MAX_ATTEMPTS = 5;
@@ -158,6 +152,7 @@ export class AuthRegistrationService {
 		private inviteService: InviteService | null,
 		private rateLimitService: IRateLimitService,
 		private emailService: IEmailService,
+		private smsService: ISMSService,
 		private emailDnsValidationService: EmailDnsValidationService,
 		private snowflakeService: SnowflakeService,
 		private snowflakeReservationService: SnowflakeReservationService,
@@ -190,9 +185,10 @@ export class AuthRegistrationService {
 
 		const rawEmail = data.email ?? null;
 		const emailKey = rawEmail ? rawEmail.toLowerCase() : null;
+		const rawPhone = data.phone ?? null;
 
 		const enforceRateLimits = !Config.dev.relaxRegistrationRateLimits;
-		await this.enforceRegistrationRateLimits({enforceRateLimits, emailKey});
+		await this.enforceRegistrationRateLimits({enforceRateLimits, emailKey, phoneKey: rawPhone});
 
 		if (rawEmail) {
 			const emailDomain = rawEmail.split('@')[1]?.toLowerCase() ?? '';
@@ -210,6 +206,11 @@ export class AuthRegistrationService {
 
 			const emailTaken = await this.repository.findByEmail(rawEmail);
 			if (emailTaken) throw InputValidationError.create('email', 'Этот email уже используется');
+		}
+
+		if (rawPhone) {
+			const phoneTaken = await this.repository.findByPhone(rawPhone);
+			if (phoneTaken) throw InputValidationError.create('phone', 'Этот номер телефона уже используется');
 		}
 
 		let usernameCandidate: string | undefined = data.username ?? undefined;
@@ -253,6 +254,13 @@ export class AuthRegistrationService {
 			attempts: 0,
 		};
 
+		// The SMS provider owns the phone OTP, so send before persisting the
+		// pending registration: a provider rejection (e.g. invalid number)
+		// must fail the whole request.
+		if (rawPhone) {
+			await this.smsService.startVerification(rawPhone);
+		}
+
 		await this.cacheService.set(`${PENDING_REG_PREFIX}${ticket}`, pending, PENDING_REG_TTL_SECONDS);
 
 		if (rawEmail) {
@@ -295,7 +303,12 @@ export class AuthRegistrationService {
 			});
 		}
 
-		if (pending.code !== code) {
+		const pendingPhone = pending.data.phone ?? null;
+		const isCodeValid = pendingPhone
+			? await this.smsService.checkVerification(pendingPhone, code)
+			: pending.code === code;
+
+		if (!isCodeValid) {
 			pending.attempts += 1;
 			await this.cacheService.set(redisKey, pending, PENDING_REG_TTL_SECONDS);
 			throw new FloodilkaAPIError({
@@ -320,6 +333,13 @@ export class AuthRegistrationService {
 				message: 'Invalid or expired registration ticket',
 				status: 400,
 			});
+		}
+
+		const pendingPhone = pending.data.phone ?? null;
+		if (pendingPhone) {
+			await this.smsService.startVerification(pendingPhone);
+			await this.cacheService.set(redisKey, pending, PENDING_REG_TTL_SECONDS);
+			return;
 		}
 
 		const newCode = this.generateVerificationCode();
@@ -358,6 +378,12 @@ export class AuthRegistrationService {
 
 		const rawEmail = data.email ?? null;
 		const emailKey = rawEmail ? rawEmail.toLowerCase() : null;
+		const rawPhone = data.phone ?? null;
+
+		if (rawPhone) {
+			const phoneTaken = await this.repository.findByPhone(rawPhone);
+			if (phoneTaken) throw InputValidationError.create('phone', 'Этот номер телефона уже используется');
+		}
 
 		const userId = this.generateUserId(emailKey);
 
@@ -372,7 +398,7 @@ export class AuthRegistrationService {
 			email: rawEmail,
 			email_verified: !!rawEmail,
 			email_bounced: false,
-			phone: null,
+			phone: rawPhone,
 			password_hash: pending.passwordHash,
 			password_last_changed_at: pending.passwordHash ? now : null,
 			totp_secret: null,
@@ -514,8 +540,9 @@ export class AuthRegistrationService {
 	private async enforceRegistrationRateLimits(params: {
 		enforceRateLimits: boolean;
 		emailKey: string | null;
+		phoneKey: string | null;
 	}): Promise<void> {
-		const {enforceRateLimits, emailKey} = params;
+		const {enforceRateLimits, emailKey, phoneKey} = params;
 		if (!enforceRateLimits) return;
 
 		if (emailKey) {
@@ -526,6 +553,16 @@ export class AuthRegistrationService {
 			});
 
 			if (!emailRateLimit.allowed) throw rateLimitError('Too many registration attempts. Please try again later.');
+		}
+
+		if (phoneKey) {
+			const phoneRateLimit = await this.rateLimitService.checkLimit({
+				identifier: `registration:phone:${phoneKey}`,
+				maxAttempts: 3,
+				windowMs: 15 * 60 * 1000,
+			});
+
+			if (!phoneRateLimit.allowed) throw rateLimitError('Too many registration attempts. Please try again later.');
 		}
 	}
 

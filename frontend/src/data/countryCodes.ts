@@ -254,6 +254,17 @@ export const getE164PhoneNumber = (phoneNumber: string, country: CountryCode): s
 	return `${country.dialCode}${digits}`;
 };
 
+// Приводит пользовательский ввод к E.164. Понимает российские номера,
+// набранные через 8 или 7 без плюса. Возвращает null, если ввод не похож
+// на телефонный номер.
+export const normalizePhoneToE164 = (input: string): string | null => {
+	const cleaned = input.replace(/[\s()\-.]/g, '');
+	if (/^\+[1-9]\d{9,14}$/.test(cleaned)) return cleaned;
+	if (/^8\d{10}$/.test(cleaned)) return `+7${cleaned.slice(1)}`;
+	if (/^7\d{10}$/.test(cleaned)) return `+${cleaned}`;
+	return null;
+};
+
 export const getCountryName = (countryCode: string, locale: string): string => {
 	const regionNames = new Intl.DisplayNames([locale], {type: 'region'});
 	return regionNames.of(countryCode) || countryCode;

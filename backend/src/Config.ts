@@ -149,6 +149,7 @@ const ConfigSchema = z.object({
 
 	sms: z.object({
 		enabled: z.boolean(),
+		provider: z.enum(['twilio', 'mock']),
 		accountSid: z.string().optional(),
 		authToken: z.string().optional(),
 		verifyServiceSid: z.string().optional(),
@@ -396,6 +397,7 @@ function loadConfig() {
 
 		sms: {
 			enabled: optionalBool('SMS_ENABLED'),
+			provider: (optional('SMS_PROVIDER') as 'twilio' | 'mock') || 'twilio',
 			accountSid: optional('TWILIO_ACCOUNT_SID'),
 			authToken: optional('TWILIO_AUTH_TOKEN'),
 			verifyServiceSid: optional('TWILIO_VERIFY_SERVICE_SID'),

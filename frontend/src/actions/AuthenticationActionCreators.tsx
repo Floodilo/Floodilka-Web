@@ -34,6 +34,7 @@ export type VerificationResult = (typeof VerificationResult)[keyof typeof Verifi
 
 interface RegisterData {
 	email?: string;
+	phone?: string;
 	global_name?: string;
 	username?: string;
 	password?: string;
@@ -80,13 +81,15 @@ interface DesktopHandoffStatusResponse {
 
 export const login = async ({
 	email,
+	phone,
 	password,
 	captchaToken,
 	inviteCode,
 	captchaType,
 	customApiEndpoint,
 }: {
-	email: string;
+	email?: string;
+	phone?: string;
 	password: string;
 	captchaToken?: string;
 	inviteCode?: string;
@@ -104,10 +107,11 @@ export const login = async ({
 			headers['X-Captcha-Type'] = captchaType || 'hcaptcha';
 		}
 		const body: {
-			email: string;
+			email?: string;
+			phone?: string;
 			password: string;
 			invite_code?: string;
-		} = {email, password};
+		} = phone ? {phone, password} : {email, password};
 		if (inviteCode) {
 			body.invite_code = inviteCode;
 		}

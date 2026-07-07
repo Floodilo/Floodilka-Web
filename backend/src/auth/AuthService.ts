@@ -191,6 +191,7 @@ export class AuthService implements IAuthService {
 			inviteService,
 			rateLimitService,
 			emailServiceDep,
+			smsService,
 			emailDnsValidationService,
 			snowflakeService,
 			snowflakeReservationService,
