@@ -5,9 +5,13 @@
  * Modified by Floodilka Contributors starting March 2026. See LICENSE and NOTICE.
  */
 
+import {i18n} from '@lingui/core';
+import {msg} from '@lingui/core/macro';
+import {Track} from 'livekit-client';
 import type {Room, ScreenShareCaptureOptions, TrackPublishOptions} from 'livekit-client';
 import {makeAutoObservable, runInAction} from 'mobx';
 import * as SoundActionCreators from '~/actions/SoundActionCreators';
+import * as ToastActionCreators from '~/actions/ToastActionCreators';
 import {Logger} from '~/lib/Logger';
 import {Platform} from '~/lib/Platform';
 import LocalVoiceStateStore from '~/stores/LocalVoiceStateStore';
@@ -18,6 +22,8 @@ import {isDesktop, isNativeMacOS} from '~/utils/NativeUtils';
 import {SoundType} from '~/utils/SoundUtils';
 
 const logger = new Logger('VoiceScreenShareManager');
+
+const SCREEN_SHARE_AUDIO_UNAVAILABLE_TOAST = msg`Your browser only shared video for this source. Browser audio sharing usually works only when you choose a tab; use the desktop app for full-screen or window audio.`;
 
 interface VoiceStateSync {
 	syncVoiceState: (partial: {self_stream?: boolean}) => void;
@@ -94,6 +100,14 @@ class VoiceScreenShareManager {
 
 		try {
 			await participant.setScreenShareEnabled(enabled, restOptions, publishOptions);
+			if (
+				enabled &&
+				Boolean(restOptions.audio) &&
+				!isDesktop() &&
+				!participant.getTrackPublication(Track.Source.ScreenShareAudio)
+			) {
+				ToastActionCreators.error(i18n._(SCREEN_SHARE_AUDIO_UNAVAILABLE_TOAST));
+			}
 			if (enabled) applyState(true);
 
 			sync.updateLocalParticipant();
