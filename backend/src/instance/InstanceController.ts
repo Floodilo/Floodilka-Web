@@ -44,6 +44,7 @@ export function InstanceController(app: Hono<HonoEnv>) {
 				voice_enabled: Config.voice.enabled,
 				payments_enabled: Config.cloudpayments.enabled,
 				self_hosted: Config.instance.selfHosted,
+				phone_enforcement_mode: Config.phoneEnforcement.mode,
 			},
 			push: {
 				public_vapid_key: Config.push.publicVapidKey ?? null,

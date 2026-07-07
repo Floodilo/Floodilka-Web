@@ -305,14 +305,12 @@ export const SecurityTabContent: React.FC<SecurityTabProps> = observer(
 					)}
 				</SettingsTabSection>
 
-				{user.mfaEnabled && (
-					<>
-						<SettingsTabSection>
-							<div className={styles.row}>
-								<div className={styles.rowContent}>
-									<div className={styles.label}>
-										<Trans>Phone Number</Trans>
-									</div>
+				<SettingsTabSection>
+					<div className={styles.row}>
+						<div className={styles.rowContent}>
+							<div className={styles.label}>
+								<Trans>Phone Number</Trans>
+							</div>
 									<div className={styles.description}>
 										{user.phone ? (
 											<Trans>Phone number added: {user.phone}</Trans>
@@ -370,7 +368,7 @@ export const SecurityTabContent: React.FC<SecurityTabProps> = observer(
 							</div>
 						</SettingsTabSection>
 
-						{user.phone && (
+						{user.mfaEnabled && user.phone && (
 							<SettingsTabSection>
 								<div className={styles.row}>
 									<div className={styles.rowContent}>
@@ -410,8 +408,6 @@ export const SecurityTabContent: React.FC<SecurityTabProps> = observer(
 								</div>
 							</SettingsTabSection>
 						)}
-					</>
-				)}
 			</>
 		);
 	},

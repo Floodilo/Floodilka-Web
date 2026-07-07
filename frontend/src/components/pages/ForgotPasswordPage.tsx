@@ -30,7 +30,7 @@ const ForgotPasswordPage = observer(function ForgotPasswordPage() {
 			setError(null);
 
 			try {
-				await AuthenticationActionCreators.forgotPassword(values.email);
+				await AuthenticationActionCreators.forgotPassword({email: values.email});
 				setIsSuccess(true);
 			} catch (_err) {
 				form.setErrors({email: 'There was an error sending the reset link. Please try again.'});

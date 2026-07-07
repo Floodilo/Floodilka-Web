@@ -30,6 +30,7 @@ import type {
 	ClearUserFieldsRequest,
 	DisableForSuspiciousActivityRequest,
 	DisableMfaRequest,
+	EnforcePhoneRequirementRequest,
 	ListUserChangeLogRequest,
 	ScheduleAccountDeletionRequest,
 	SendPasswordResetRequest,
@@ -227,6 +228,10 @@ export class AdminUserService {
 		auditLogReason: string | null,
 	) {
 		return this.securityService.disableForSuspiciousActivity(data, adminUserId, auditLogReason);
+	}
+
+	async enforcePhoneRequirement(data: EnforcePhoneRequirementRequest, adminUserId: UserID, auditLogReason: string | null) {
+		return this.securityService.enforcePhoneRequirement(data, adminUserId, auditLogReason);
 	}
 
 	async bulkUpdateUserFlags(data: BulkUpdateUserFlagsRequest, adminUserId: UserID, auditLogReason: string | null) {

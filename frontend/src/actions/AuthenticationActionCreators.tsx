@@ -344,8 +344,13 @@ export const getUsernameSuggestions = async (globalName: string): Promise<Array<
 	}
 };
 
+export interface PasswordResetIdentifier {
+	email?: string;
+	phone?: string;
+}
+
 export const forgotPassword = async (
-	email: string,
+	identifier: PasswordResetIdentifier,
 	captchaToken?: string,
 	captchaType?: 'turnstile' | 'hcaptcha',
 ): Promise<void> => {
@@ -357,20 +362,23 @@ export const forgotPassword = async (
 		}
 		await http.post({
 			url: Endpoints.AUTH_FORGOT_PASSWORD,
-			body: {email},
+			body: identifier.phone ? {phone: identifier.phone} : {email: identifier.email},
 			headers: withPlatformHeader(headers),
 		});
-		logger.debug('Password reset email sent');
+		logger.debug('Password reset code sent');
 	} catch (error) {
 		logger.warn('Password reset request failed, but returning success to user', error);
 	}
 };
 
-export const verifyResetCode = async (email: string, code: string): Promise<{resetToken: string}> => {
+export const verifyResetCode = async (
+	identifier: PasswordResetIdentifier,
+	code: string,
+): Promise<{resetToken: string}> => {
 	try {
 		const response = await http.post<{resetToken: string}>({
 			url: Endpoints.AUTH_FORGOT_VERIFY,
-			body: {email, code},
+			body: identifier.phone ? {phone: identifier.phone, code} : {email: identifier.email, code},
 			headers: withPlatformHeader(),
 		});
 		logger.debug('Reset code verified');

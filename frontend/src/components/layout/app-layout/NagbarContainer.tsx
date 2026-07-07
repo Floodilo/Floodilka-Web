@@ -15,6 +15,7 @@ import {EmailVerificationNagbar} from './nagbars/EmailVerificationNagbar';
 import {GiftInventoryNagbar} from './nagbars/GiftInventoryNagbar';
 import {GuildMembershipCtaNagbar} from './nagbars/GuildMembershipCtaNagbar';
 import {PendingBulkDeletionNagbar} from './nagbars/PendingBulkDeletionNagbar';
+import {PhoneRequiredNagbar} from './nagbars/PhoneRequiredNagbar';
 import {PremiumExpiredNagbar} from './nagbars/PremiumExpiredNagbar';
 import {PremiumGracePeriodNagbar} from './nagbars/PremiumGracePeriodNagbar';
 import {PremiumOnboardingNagbar} from './nagbars/PremiumOnboardingNagbar';
@@ -36,6 +37,8 @@ export const NagbarContainer: React.FC<NagbarContainerProps> = observer(({nagbar
 				switch (nagbar.type) {
 					case NagbarType.UNCLAIMED_ACCOUNT:
 						return <UnclaimedAccountNagbar key={nagbar.type} isMobile={mobileLayout.enabled} />;
+					case NagbarType.PHONE_REQUIRED:
+						return <PhoneRequiredNagbar key={nagbar.type} isMobile={mobileLayout.enabled} />;
 					case NagbarType.EMAIL_VERIFICATION:
 						return <EmailVerificationNagbar key={nagbar.type} isMobile={mobileLayout.enabled} />;
 					case NagbarType.BULK_DELETE_PENDING:

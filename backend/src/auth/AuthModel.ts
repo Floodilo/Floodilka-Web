@@ -54,16 +54,28 @@ export const LogoutAuthSessionsRequest = z.object({
 	password: z.string().min(1).max(256).optional(),
 });
 
-export const ForgotPasswordRequest = z.object({
-	email: EmailType,
-});
+export const ForgotPasswordRequest = z
+	.object({
+		email: EmailType.optional(),
+		phone: PhoneNumberType.optional(),
+	})
+	.refine((data) => (data.email ? !data.phone : !!data.phone), {
+		message: 'Укажите email или номер телефона',
+		path: ['email'],
+	});
 
 export type ForgotPasswordRequest = z.infer<typeof ForgotPasswordRequest>;
 
-export const VerifyResetCodeRequest = z.object({
-	email: EmailType,
-	code: createStringType(6, 6),
-});
+export const VerifyResetCodeRequest = z
+	.object({
+		email: EmailType.optional(),
+		phone: PhoneNumberType.optional(),
+		code: createStringType(6, 6),
+	})
+	.refine((data) => (data.email ? !data.phone : !!data.phone), {
+		message: 'Укажите email или номер телефона',
+		path: ['email'],
+	});
 
 export type VerifyResetCodeRequest = z.infer<typeof VerifyResetCodeRequest>;
 

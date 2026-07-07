@@ -177,7 +177,7 @@ export async function registerAccount({
 }
 
 export async function requestPasswordReset(email: string): Promise<void> {
-	return AuthenticationActionCreators.forgotPassword(email);
+	return AuthenticationActionCreators.forgotPassword({email});
 }
 
 export async function resetPassword(token: string, password: string): Promise<LoginSuccessPayload> {

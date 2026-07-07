@@ -49,6 +49,7 @@ import type {
 	DeleteVoiceServerRequest,
 	DisableForSuspiciousActivityRequest,
 	DisableMfaRequest,
+	EnforcePhoneRequirementRequest,
 	ForceAddUserToGuildRequest,
 	GetVoiceRegionRequest,
 	GetVoiceServerRequest,
@@ -398,6 +399,10 @@ export class AdminService {
 		auditLogReason: string | null,
 	) {
 		return this.userService.disableForSuspiciousActivity(data, adminUserId, auditLogReason);
+	}
+
+	async enforcePhoneRequirement(data: EnforcePhoneRequirementRequest, adminUserId: UserID, auditLogReason: string | null) {
+		return this.userService.enforcePhoneRequirement(data, adminUserId, auditLogReason);
 	}
 
 	async bulkUpdateUserFlags(data: BulkUpdateUserFlagsRequest, adminUserId: UserID, auditLogReason: string | null) {

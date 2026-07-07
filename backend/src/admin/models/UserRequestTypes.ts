@@ -124,6 +124,13 @@ export const UpdateSuspiciousActivityFlagsRequest = z.object({
 
 export type UpdateSuspiciousActivityFlagsRequest = z.infer<typeof UpdateSuspiciousActivityFlagsRequest>;
 
+export const EnforcePhoneRequirementRequest = z.object({
+	logout: z.boolean().optional(),
+	dry_run: z.boolean().optional(),
+});
+
+export type EnforcePhoneRequirementRequest = z.infer<typeof EnforcePhoneRequirementRequest>;
+
 export const DisableForSuspiciousActivityRequest = z.object({
 	user_id: Int64Type,
 	flags: z.number(),

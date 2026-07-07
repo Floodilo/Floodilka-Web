@@ -165,7 +165,7 @@ export default function AuthModal({initialMode = 'login'}: AuthModalProps) {
 								<img src="/icons/logo_nobg.png" alt="Floodilka" />
 							</div>
 							<h1>Восстановление пароля</h1>
-							<p>{forgotStep === 1 ? 'Отправим код на почту' : 'Придумай новый пароль'}</p>
+							<p>{forgotStep === 1 ? 'Отправим код на почту или в SMS' : 'Придумай новый пароль'}</p>
 						</div>
 					)}
 				</>

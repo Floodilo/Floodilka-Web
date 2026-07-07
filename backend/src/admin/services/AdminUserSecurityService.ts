@@ -8,7 +8,7 @@
 import {mapUserToAdminResponse} from '~/admin/AdminModel';
 import type {AuthService} from '~/auth/AuthService';
 import {createPasswordResetToken, createUserID, type UserID} from '~/BrandedTypes';
-import {UserFlags} from '~/Constants';
+import {SuspiciousActivityFlags, UserFlags} from '~/Constants';
 import {InputValidationError, UnknownUserError} from '~/Errors';
 import {Logger} from '~/Logger';
 import type {ICacheService} from '~/infrastructure/ICacheService';
@@ -22,6 +22,7 @@ import type {
 	BulkUpdateUserFlagsRequest,
 	DisableForSuspiciousActivityRequest,
 	DisableMfaRequest,
+	EnforcePhoneRequirementRequest,
 	SendPasswordResetRequest,
 	SetUserAclsRequest,
 	TerminateSessionsRequest,
@@ -255,6 +256,80 @@ export class AdminUserSecurityService {
 			auditLogReason,
 			metadata: new Map([['flags', data.flags.toString()]]),
 		});
+	}
+
+	// Флаг-механика перехода на обязательный телефон: всем живым аккаунтам
+	// без привязанного номера ставится REQUIRE_VERIFIED_PHONE — при следующем
+	// входе клиент блокируется до привязки телефона (required_actions).
+	// С logout=true сессии завершаются сразу.
+	async enforcePhoneRequirement(
+		data: EnforcePhoneRequirementRequest,
+		adminUserId: UserID,
+		auditLogReason: string | null,
+	): Promise<{matched: number; flagged: number; logged_out: number}> {
+		const {userRepository, authService, auditService, updatePropagator} = this.deps;
+		const dryRun = data.dry_run ?? false;
+		const logout = data.logout ?? false;
+
+		const pageSize = 500;
+		let lastUserId: UserID | undefined;
+		let matched = 0;
+		let flagged = 0;
+		let loggedOut = 0;
+
+		while (true) {
+			const users = await userRepository.listAllUsersPaginated(pageSize, lastUserId);
+			if (users.length === 0) break;
+			lastUserId = users[users.length - 1].id;
+
+			for (const user of users) {
+				if (user.isBot || user.isSystem) continue;
+				if (user.phone) continue;
+				if (user.flags & (UserFlags.DELETED | UserFlags.SELF_DELETED)) continue;
+
+				matched += 1;
+				if (dryRun) continue;
+
+				const currentFlags = user.suspiciousActivityFlags ?? 0;
+				if ((currentFlags & SuspiciousActivityFlags.REQUIRE_VERIFIED_PHONE) === 0) {
+					const updatedUser = await userRepository.patchUpsert(user.id, {
+						suspicious_activity_flags: currentFlags | SuspiciousActivityFlags.REQUIRE_VERIFIED_PHONE,
+					});
+					if (updatedUser) {
+						flagged += 1;
+						await updatePropagator.propagateUserUpdate({userId: user.id, oldUser: user, updatedUser});
+					}
+				}
+
+				if (logout) {
+					try {
+						await authService.terminateAllUserSessions(user.id);
+						loggedOut += 1;
+					} catch (error) {
+						Logger.warn({error, userId: user.id.toString()}, 'Failed to terminate sessions during phone enforcement');
+					}
+				}
+			}
+
+			if (users.length < pageSize) break;
+		}
+
+		await auditService.createAuditLog({
+			adminUserId,
+			targetType: 'user',
+			targetId: 0n,
+			action: 'enforce_phone_requirement',
+			auditLogReason,
+			metadata: new Map([
+				['dry_run', dryRun.toString()],
+				['logout', logout.toString()],
+				['matched', matched.toString()],
+				['flagged', flagged.toString()],
+				['logged_out', loggedOut.toString()],
+			]),
+		});
+
+		return {matched, flagged, logged_out: loggedOut};
 	}
 
 	async disableForSuspiciousActivity(

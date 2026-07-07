@@ -155,6 +155,10 @@ const ConfigSchema = z.object({
 		verifyServiceSid: z.string().optional(),
 	}),
 
+	phoneEnforcement: z.object({
+		mode: z.enum(['off', 'banner']),
+	}),
+
 	captcha: z.object({
 		enabled: z.boolean(),
 		provider: z.enum(['hcaptcha', 'turnstile', 'none']),
@@ -401,6 +405,10 @@ function loadConfig() {
 			accountSid: optional('TWILIO_ACCOUNT_SID'),
 			authToken: optional('TWILIO_AUTH_TOKEN'),
 			verifyServiceSid: optional('TWILIO_VERIFY_SERVICE_SID'),
+		},
+
+		phoneEnforcement: {
+			mode: (optional('PHONE_ENFORCEMENT_MODE') as 'off' | 'banner') || 'off',
 		},
 
 		captcha: {

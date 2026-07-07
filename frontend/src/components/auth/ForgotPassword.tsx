@@ -8,6 +8,9 @@
 import {type FormEvent, useEffect, useRef, useState} from 'react';
 import * as AuthenticationActionCreators from '~/actions/AuthenticationActionCreators';
 import * as ToastActionCreators from '~/actions/ToastActionCreators';
+import {normalizePhoneToE164} from '~/data/countryCodes';
+
+const looksLikePhone = (value: string): boolean => /^[+]?[\d\s()\-.]+$/.test(value.trim());
 
 interface ForgotPasswordProps {
 	onBack: () => void;
@@ -17,6 +20,7 @@ interface ForgotPasswordProps {
 export default function ForgotPassword({onBack, onStepChange}: ForgotPasswordProps) {
 	const [step, setStep] = useState(1);
 	const [email, setEmail] = useState('');
+	const [phone, setPhone] = useState('');
 	const [code, setCode] = useState(['', '', '', '', '', '']);
 	const [resetToken, setResetToken] = useState('');
 	const [password, setPassword] = useState('');
@@ -42,18 +46,29 @@ export default function ForgotPassword({onBack, onStepChange}: ForgotPasswordPro
 		e.preventDefault();
 		setEmailError(false);
 
-		if (!email || !email.includes('@')) {
+		const trimmed = email.trim();
+		let normalizedPhone: string | null = null;
+
+		if (looksLikePhone(trimmed)) {
+			normalizedPhone = normalizePhoneToE164(trimmed);
+			if (!normalizedPhone) {
+				setEmailError(true);
+				ToastActionCreators.error('Введите корректный номер телефона, например +7 999 123-45-67');
+				return;
+			}
+		} else if (!trimmed || !trimmed.includes('@')) {
 			setEmailError(true);
-			ToastActionCreators.error('Введите корректный email адрес');
+			ToastActionCreators.error('Введите корректный email адрес или номер телефона');
 			return;
 		}
 
 		setLoading(true);
 
 		try {
-			await AuthenticationActionCreators.forgotPassword(email);
+			await AuthenticationActionCreators.forgotPassword(normalizedPhone ? {phone: normalizedPhone} : {email: trimmed});
+			setPhone(normalizedPhone ?? '');
 			setStep(2);
-			ToastActionCreators.success('Код отправлен на вашу почту');
+			ToastActionCreators.success(normalizedPhone ? 'Код отправлен в SMS' : 'Код отправлен на вашу почту');
 		} finally {
 			setLoading(false);
 		}
@@ -74,7 +89,10 @@ export default function ForgotPassword({onBack, onStepChange}: ForgotPasswordPro
 
 		setLoading(true);
 		try {
-			const result = await AuthenticationActionCreators.verifyResetCode(email, codeString);
+			const result = await AuthenticationActionCreators.verifyResetCode(
+				phone ? {phone} : {email: email.trim()},
+				codeString,
+			);
 			if (!result?.resetToken) {
 				throw new Error('Не удалось подтвердить код');
 			}
@@ -134,7 +152,7 @@ export default function ForgotPassword({onBack, onStepChange}: ForgotPasswordPro
 		return (
 			<div className="forgot-password-success-content">
 				<p className="forgot-password-success-text">
-					Пароль для <strong>{email}</strong> успешно обновлен. Можешь войти с новым паролем.
+					Пароль для <strong>{phone || email}</strong> успешно обновлен. Можешь войти с новым паролем.
 				</p>
 				<button type="button" className="auth-switch-btn" onClick={onBack}>
 					Вернуться к входу
@@ -143,15 +161,19 @@ export default function ForgotPassword({onBack, onStepChange}: ForgotPasswordPro
 		);
 	}
 
-	// Step 1: email
+	// Step 1: email or phone
 	if (step === 1) {
+		const trimmed = email.trim();
+		const isIdentifierValid = looksLikePhone(trimmed) ? normalizePhoneToE164(trimmed) !== null : trimmed.includes('@');
+
 		return (
 			<form className="auth-form" onSubmit={handleSendCode}>
 				<div className="form-group">
-					<label>Email</label>
+					<label>Email или телефон</label>
 					<input
-						type="email"
-						placeholder="Адрес электронной почты"
+						type="text"
+						autoComplete="username"
+						placeholder="Email или номер телефона"
 						value={email}
 						onChange={(e) => {
 							setEmail(e.target.value);
@@ -165,8 +187,8 @@ export default function ForgotPassword({onBack, onStepChange}: ForgotPasswordPro
 
 				<button
 					type="submit"
-					className={`auth-submit-btn ${email && email.includes('@') ? 'active' : ''}`}
-					disabled={loading || !email || !email.includes('@')}
+					className={`auth-submit-btn ${isIdentifierValid ? 'active' : ''}`}
+					disabled={loading || !isIdentifierValid}
 				>
 					{loading ? 'Отправка...' : 'Отправить код'}
 				</button>
@@ -218,9 +240,17 @@ export default function ForgotPassword({onBack, onStepChange}: ForgotPasswordPro
 					<div className="verify-code-icon">
 						<img src="/icons/logo_nobg.png" alt="Floodilka" />
 					</div>
-					<h1>Проверь свою почту</h1>
+					<h1>{phone ? 'Проверь SMS' : 'Проверь свою почту'}</h1>
 					<p className="verify-code-description">
-						Введи 6-значный код из письма по адресу <strong>{email}</strong>
+						{phone ? (
+							<>
+								Введи 6-значный код из SMS на номер <strong>{phone}</strong>
+							</>
+						) : (
+							<>
+								Введи 6-значный код из письма по адресу <strong>{email}</strong>
+							</>
+						)}
 					</p>
 				</div>
 

@@ -19,6 +19,7 @@
 
 export const NagbarType = {
 	UNCLAIMED_ACCOUNT: 'unclaimed-account',
+	PHONE_REQUIRED: 'phone-required',
 	EMAIL_VERIFICATION: 'email-verification',
 	DESKTOP_NOTIFICATION: 'desktop-notification',
 	PREMIUM_GRACE_PERIOD: 'premium-grace-period',
@@ -44,6 +45,7 @@ export interface AppLayoutState {
 
 export interface NagbarConditions {
 	userIsUnclaimed: boolean;
+	userNeedsPhone: boolean;
 	userNeedsVerification: boolean;
 	canShowDesktopNotification: boolean;
 	canShowPremiumGracePeriod: boolean;

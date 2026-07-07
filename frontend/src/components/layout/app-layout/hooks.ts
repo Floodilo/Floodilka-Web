@@ -23,6 +23,7 @@ import {UserPremiumTypes} from '~/Constants';
 import AppStorage from '~/lib/AppStorage';
 import DeveloperOptionsStore from '~/stores/DeveloperOptionsStore';
 import NagbarStore from '~/stores/NagbarStore';
+import RuntimeConfigStore from '~/stores/RuntimeConfigStore';
 import UserStore from '~/stores/UserStore';
 import {isDesktop} from '~/utils/NativeUtils';
 import * as NotificationUtils from '~/utils/NotificationUtils';
@@ -172,6 +173,9 @@ export const useNagbarConditions = (): NagbarConditions => {
 			: nagbarState.forceUnclaimedAccount
 				? true
 				: Boolean(user && !user.isClaimed()),
+		userNeedsPhone: Boolean(
+			RuntimeConfigStore.features.phone_enforcement_mode === 'banner' && user && !user.phone && !user.bot,
+		),
 		userNeedsVerification: nagbarState.forceHideEmailVerification
 			? false
 			: nagbarState.forceEmailVerification
@@ -196,6 +200,7 @@ export const useActiveNagbars = (conditions: NagbarConditions): Array<NagbarStat
 	return React.useMemo(() => {
 		const undismissibleTypes = new Set<NagbarType>([
 			NagbarType.UNCLAIMED_ACCOUNT,
+			NagbarType.PHONE_REQUIRED,
 			NagbarType.EMAIL_VERIFICATION,
 			NagbarType.BULK_DELETE_PENDING,
 		]);
@@ -212,43 +217,48 @@ export const useActiveNagbars = (conditions: NagbarConditions): Array<NagbarStat
 				visible: conditions.userIsUnclaimed,
 			},
 			{
-				type: NagbarType.GUILD_MEMBERSHIP_CTA,
+				type: NagbarType.PHONE_REQUIRED,
 				priority: 2,
+				visible: conditions.userNeedsPhone,
+			},
+			{
+				type: NagbarType.GUILD_MEMBERSHIP_CTA,
+				priority: 3,
 				visible: conditions.canShowGuildMembershipCta,
 			},
 			{
 				type: NagbarType.EMAIL_VERIFICATION,
-				priority: 3,
+				priority: 4,
 				visible: conditions.userNeedsVerification,
 			},
 			{
 				type: NagbarType.PREMIUM_GRACE_PERIOD,
-				priority: 4,
+				priority: 5,
 				visible: conditions.canShowPremiumGracePeriod,
 			},
 			{
 				type: NagbarType.PREMIUM_EXPIRED,
-				priority: 5,
+				priority: 6,
 				visible: conditions.canShowPremiumExpired,
 			},
 			{
 				type: NagbarType.PREMIUM_ONBOARDING,
-				priority: 6,
+				priority: 7,
 				visible: conditions.canShowPremiumOnboarding,
 			},
 			{
 				type: NagbarType.DESKTOP_NOTIFICATION,
-				priority: 7,
+				priority: 8,
 				visible: conditions.canShowDesktopNotification,
 			},
 			{
 				type: NagbarType.GIFT_INVENTORY,
-				priority: 8,
+				priority: 9,
 				visible: conditions.canShowGiftInventory,
 			},
 			{
 				type: NagbarType.DESKTOP_DOWNLOAD,
-				priority: 9,
+				priority: 10,
 				visible: conditions.canShowDesktopDownload,
 			},
 		];

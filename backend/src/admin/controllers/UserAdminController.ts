@@ -20,6 +20,7 @@ import {
 	ClearUserFieldsRequest,
 	DisableForSuspiciousActivityRequest,
 	DisableMfaRequest,
+	EnforcePhoneRequirementRequest,
 	ListUserChangeLogRequest,
 	ListUserGuildsRequest,
 	ListUserSessionsRequest,
@@ -326,6 +327,19 @@ export const UserAdminController = (app: HonoApp) => {
 			return ctx.json(
 				await adminService.updateSuspiciousActivityFlags(ctx.req.valid('json'), adminUserId, auditLogReason),
 			);
+		},
+	);
+
+	app.post(
+		'/admin/users/enforce-phone-requirement',
+		RateLimitMiddleware(RateLimitConfigs.ADMIN_USER_MODIFY),
+		requireAdminACL(AdminACLs.USER_UPDATE_SUSPICIOUS_ACTIVITY),
+		Validator('json', EnforcePhoneRequirementRequest),
+		async (ctx) => {
+			const adminService = ctx.get('adminService');
+			const adminUserId = ctx.get('adminUserId');
+			const auditLogReason = ctx.get('auditLogReason');
+			return ctx.json(await adminService.enforcePhoneRequirement(ctx.req.valid('json'), adminUserId, auditLogReason));
 		},
 	);
 

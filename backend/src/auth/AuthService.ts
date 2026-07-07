@@ -173,6 +173,7 @@ export class AuthService implements IAuthService {
 		this.passwordService = new AuthPasswordService(
 			repository,
 			emailServiceDep,
+			smsService,
 			emailDnsValidationService,
 			rateLimitService,
 			cacheService,

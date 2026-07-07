@@ -21,6 +21,7 @@ export interface InstanceFeatures {
 	voice_enabled: boolean;
 	payments_enabled: boolean;
 	self_hosted: boolean;
+	phone_enforcement_mode?: 'off' | 'banner';
 }
 
 export interface InstanceEndpoints {
@@ -107,6 +108,7 @@ class RuntimeConfigStore {
 		voice_enabled: false,
 		payments_enabled: false,
 		self_hosted: false,
+		phone_enforcement_mode: 'off',
 	};
 	publicPushVapidKey: string | null = null;
 

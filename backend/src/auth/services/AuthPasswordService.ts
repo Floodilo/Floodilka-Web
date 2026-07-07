@@ -14,6 +14,7 @@ import type {ICacheService} from '~/infrastructure/ICacheService';
 import type {IEmailService} from '~/infrastructure/IEmailService';
 import type {EmailDnsValidationService} from '~/infrastructure/EmailDnsValidationService';
 import type {IRateLimitService} from '~/infrastructure/IRateLimitService';
+import type {ISMSService} from '~/infrastructure/ISMSService';
 import {Logger} from '~/Logger';
 import type {AuthSession, User} from '~/Models';
 import type {IUserRepository} from '~/user/IUserRepository';
@@ -50,6 +51,7 @@ export class AuthPasswordService {
 	constructor(
 		private repository: IUserRepository,
 		private emailService: IEmailService,
+		private smsService: ISMSService,
 		private emailDnsValidationService: EmailDnsValidationService,
 		private rateLimitService: IRateLimitService,
 		private cacheService: ICacheService,
@@ -73,22 +75,26 @@ export class AuthPasswordService {
 	async forgotPassword({data, request}: ForgotPasswordParams): Promise<void> {
 		const clientIp = IpUtils.requireClientIp(request);
 
+		const identifierKey = data.phone
+			? `password_reset:phone:${data.phone}`
+			: `password_reset:email:${data.email!.toLowerCase()}`;
+
 		const ipLimitConfig = {maxAttempts: 50, windowMs: 30 * 60 * 1000};
-		const emailLimitConfig = {maxAttempts: 5, windowMs: 30 * 60 * 1000};
+		const identifierLimitConfig = {maxAttempts: 5, windowMs: 30 * 60 * 1000};
 
 		const ipRateLimit = await this.rateLimitService.checkLimit({
 			identifier: `password_reset:ip:${clientIp}`,
 			...ipLimitConfig,
 		});
-		const emailRateLimit = await this.rateLimitService.checkLimit({
-			identifier: `password_reset:email:${data.email.toLowerCase()}`,
-			...emailLimitConfig,
+		const identifierRateLimit = await this.rateLimitService.checkLimit({
+			identifier: identifierKey,
+			...identifierLimitConfig,
 		});
 
 		const exceeded = !ipRateLimit.allowed
 			? {result: ipRateLimit, config: ipLimitConfig}
-			: !emailRateLimit.allowed
-				? {result: emailRateLimit, config: emailLimitConfig}
+			: !identifierRateLimit.allowed
+				? {result: identifierRateLimit, config: identifierLimitConfig}
 				: null;
 
 		if (exceeded) {
@@ -102,12 +108,33 @@ export class AuthPasswordService {
 			});
 		}
 
-		const hasValidDns = await this.emailDnsValidationService.hasValidDnsRecords(data.email);
+		if (data.phone) {
+			const user = await this.repository.findByPhone(data.phone);
+			if (!user) {
+				return;
+			}
+
+			this.assertNonBotUser(user);
+
+			const cacheKey = `pending_reset:phone:${data.phone}`;
+			const pendingData: PendingResetData = {
+				userId: user.id.toString(),
+				email: user.email ?? '',
+				code: '',
+				attempts: 0,
+			};
+			await this.cacheService.set(cacheKey, pendingData, 600);
+
+			await this.smsService.startVerification(data.phone);
+			return;
+		}
+
+		const hasValidDns = await this.emailDnsValidationService.hasValidDnsRecords(data.email!);
 		if (!hasValidDns) {
 			throw InputValidationError.create('email', 'Недействительный адрес электронной почты');
 		}
 
-		const user = await this.repository.findByEmail(data.email);
+		const user = await this.repository.findByEmail(data.email!);
 		if (!user) {
 			return;
 		}
@@ -115,7 +142,7 @@ export class AuthPasswordService {
 		this.assertNonBotUser(user);
 
 		const code = this.generateVerificationCode();
-		const cacheKey = `pending_reset:${data.email.toLowerCase()}`;
+		const cacheKey = `pending_reset:${data.email!.toLowerCase()}`;
 		const pendingData: PendingResetData = {
 			userId: user.id.toString(),
 			email: user.email!,
@@ -130,7 +157,7 @@ export class AuthPasswordService {
 	}
 
 	async verifyResetCode({data}: VerifyResetCodeParams): Promise<{resetToken: string}> {
-		const cacheKey = `pending_reset:${data.email.toLowerCase()}`;
+		const cacheKey = data.phone ? `pending_reset:phone:${data.phone}` : `pending_reset:${data.email!.toLowerCase()}`;
 		const pending = await this.cacheService.get<PendingResetData>(cacheKey);
 
 		if (!pending) {
@@ -142,7 +169,11 @@ export class AuthPasswordService {
 			throw InputValidationError.create('code', 'Слишком много попыток. Запросите новый код.');
 		}
 
-		if (pending.code !== data.code) {
+		const isCodeValid = data.phone
+			? await this.smsService.checkVerification(data.phone, data.code)
+			: pending.code === data.code;
+
+		if (!isCodeValid) {
 			pending.attempts += 1;
 			const ttl = await this.cacheService.ttl(cacheKey);
 			await this.cacheService.set(cacheKey, pending, ttl > 0 ? ttl : 600);
