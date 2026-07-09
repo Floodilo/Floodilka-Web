@@ -49,21 +49,27 @@ export const AccountTabContent: React.FC<AccountTabProps> = observer(
 									<div className={styles.label}>
 										<Trans>Email Address</Trans>
 									</div>
-									<div className={styles.emailRow}>
-										<span className={`${styles.emailText} ${showMaskedEmail ? styles.emailTextSelectable : ''}`}>
-											{showMaskedEmail ? user.email : maskEmail(user.email!)}
-										</span>
-										<button
-											type="button"
-											className={styles.toggleButton}
-											onClick={() => setShowMaskedEmail(!showMaskedEmail)}
-										>
-											{showMaskedEmail ? t`Hide` : t`Reveal`}
-										</button>
-									</div>
+									{user.email ? (
+										<div className={styles.emailRow}>
+											<span className={`${styles.emailText} ${showMaskedEmail ? styles.emailTextSelectable : ''}`}>
+												{showMaskedEmail ? user.email : maskEmail(user.email)}
+											</span>
+											<button
+												type="button"
+												className={styles.toggleButton}
+												onClick={() => setShowMaskedEmail(!showMaskedEmail)}
+											>
+												{showMaskedEmail ? t`Hide` : t`Reveal`}
+											</button>
+										</div>
+									) : (
+										<div className={styles.warningText}>
+											<Trans>No email address set</Trans>
+										</div>
+									)}
 								</div>
 								<Button small={true} onClick={() => ModalActionCreators.push(modal(() => <EmailChangeModal />))}>
-									<Trans>Change Email</Trans>
+									{user.email ? <Trans>Change Email</Trans> : <Trans>Add Email</Trans>}
 								</Button>
 							</div>
 

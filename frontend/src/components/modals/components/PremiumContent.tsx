@@ -86,9 +86,9 @@ export const PremiumContent: React.FC<{defaultGiftMode?: boolean; fullWidth?: bo
 		mobileLayoutState.enabled,
 	);
 
-	const isClaimed = currentUser?.isClaimed() ?? false;
-	const purchaseDisabled = !isClaimed;
-	const purchaseDisabledTooltip = <Trans>Подтвердите аккаунт, чтобы купить Флудилка Премиум.</Trans>;
+	const hasPhone = !!currentUser?.phone;
+	const purchaseDisabled = !hasPhone;
+	const purchaseDisabledTooltip = <Trans>Привяжите номер телефона, чтобы купить Флудилка Премиум.</Trans>;
 	const handleSelectPlanGuarded = React.useCallback(
 		(plan: 'monthly' | 'yearly' | 'gift1Month' | 'gift1Year') => {
 			if (purchaseDisabled) return;

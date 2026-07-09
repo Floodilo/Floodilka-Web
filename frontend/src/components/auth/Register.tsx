@@ -12,15 +12,12 @@ import {DateOfBirthField} from '~/components/auth/DateOfBirthField';
 import {normalizePhoneToE164} from '~/data/countryCodes';
 import {Routes} from '~/Routes';
 
-type RegisterMethod = 'phone' | 'email';
-
 interface RegisterProps {
 	onSwitchToLogin: () => void;
 	onVerificationRequired: (data: {email?: string; phone?: string; username: string; ticket: string}) => void;
 }
 
 export default function Register({onSwitchToLogin, onVerificationRequired}: RegisterProps) {
-	const [method, setMethod] = useState<RegisterMethod>('phone');
 	const [username, setUsername] = useState('');
 	const [email, setEmail] = useState('');
 	const [phone, setPhone] = useState('');
@@ -64,38 +61,27 @@ export default function Register({onSwitchToLogin, onVerificationRequired}: Regi
 			return;
 		}
 
-		let normalizedPhone: string | null = null;
+		if (!phone) {
+			ToastActionCreators.error('Введите номер телефона');
+			setPhoneError(true);
+			setLoading(false);
+			return;
+		}
 
-		if (method === 'phone') {
-			if (!phone) {
-				ToastActionCreators.error('Введите номер телефона');
-				setPhoneError(true);
-				setLoading(false);
-				return;
-			}
+		const normalizedPhone = normalizePhoneToE164(phone);
+		if (!normalizedPhone) {
+			ToastActionCreators.error('Введите корректный номер телефона, например +7 999 123-45-67');
+			setPhoneError(true);
+			setLoading(false);
+			return;
+		}
 
-			normalizedPhone = normalizePhoneToE164(phone);
-			if (!normalizedPhone) {
-				ToastActionCreators.error('Введите корректный номер телефона, например +7 999 123-45-67');
-				setPhoneError(true);
-				setLoading(false);
-				return;
-			}
-		} else {
-			if (!email) {
-				ToastActionCreators.error('Введите email');
-				setEmailError(true);
-				setLoading(false);
-				return;
-			}
-
-			const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-			if (!emailRegex.test(email)) {
-				ToastActionCreators.error('Введите корректный email');
-				setEmailError(true);
-				setLoading(false);
-				return;
-			}
+		const trimmedEmail = email.trim();
+		if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+			ToastActionCreators.error('Введите корректный email');
+			setEmailError(true);
+			setLoading(false);
+			return;
 		}
 
 		if (password !== confirmPassword) {
@@ -121,17 +107,14 @@ export default function Register({onSwitchToLogin, onVerificationRequired}: Regi
 		try {
 			const response = await AuthenticationActionCreators.register({
 				username,
-				...(method === 'phone' ? {phone: normalizedPhone!} : {email}),
+				phone: normalizedPhone,
+				...(trimmedEmail ? {email: trimmedEmail} : {}),
 				password,
 				date_of_birth: dateOfBirth,
 				consent: true,
 			});
 
-			onVerificationRequired(
-				method === 'phone'
-					? {phone: normalizedPhone!, username, ticket: response.ticket}
-					: {email, username, ticket: response.ticket},
-			);
+			onVerificationRequired({phone: normalizedPhone, username, ticket: response.ticket});
 		} catch (err) {
 			const error = err as {body?: {message?: string; errors?: Array<{path: string; message: string}>}; message?: string};
 			let errorMessage = 'Ошибка при регистрации';
@@ -157,10 +140,13 @@ export default function Register({onSwitchToLogin, onVerificationRequired}: Regi
 	};
 
 	const isDobComplete = dobMonth !== '' && dobDay !== '' && dobYear !== '';
-	const isEmailValid = email.length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+	const isEmailValid = email.trim() === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 	const isPhoneValid = phone.length > 0 && normalizePhoneToE164(phone) !== null;
-	const isIdentifierValid = method === 'phone' ? isPhoneValid : isEmailValid;
-	const isFormValid = username.length >= 3 && isIdentifierValid && password.length >= 8 && password === confirmPassword && isDobComplete;
+	const isPasswordLongEnough = password.length >= 8;
+	const doPasswordsMatch = password === confirmPassword;
+	const showPasswordHints = (password.length > 0 || confirmPassword.length > 0) && !(isPasswordLongEnough && doPasswordsMatch);
+	const isFormValid =
+		username.length >= 3 && isPhoneValid && isEmailValid && isPasswordLongEnough && doPasswordsMatch && isDobComplete;
 
 	return (
 		<>
@@ -186,63 +172,35 @@ export default function Register({onSwitchToLogin, onVerificationRequired}: Regi
 				</div>
 
 				<div className="form-group">
-					<div className="auth-method-toggle" role="tablist" aria-label="Способ регистрации">
-						<button
-							type="button"
-							role="tab"
-							aria-selected={method === 'phone'}
-							className={`auth-method-toggle-btn ${method === 'phone' ? 'active' : ''}`}
-							onClick={() => setMethod('phone')}
-							disabled={loading}
-						>
-							Телефон
-						</button>
-						<button
-							type="button"
-							role="tab"
-							aria-selected={method === 'email'}
-							className={`auth-method-toggle-btn ${method === 'email' ? 'active' : ''}`}
-							onClick={() => setMethod('email')}
-							disabled={loading}
-						>
-							Email
-						</button>
-					</div>
+					<label>Номер телефона</label>
+					<input
+						type="tel"
+						placeholder="+7 999 123-45-67"
+						value={phone}
+						onChange={(e) => {
+							setPhone(e.target.value);
+							setPhoneError(false);
+						}}
+						required
+						disabled={loading}
+						className={phoneError ? 'input-error' : ''}
+					/>
 				</div>
 
-				{method === 'phone' ? (
-					<div className="form-group">
-						<label>Номер телефона</label>
-						<input
-							type="tel"
-							placeholder="+7 999 123-45-67"
-							value={phone}
-							onChange={(e) => {
-								setPhone(e.target.value);
-								setPhoneError(false);
-							}}
-							required
-							disabled={loading}
-							className={phoneError ? 'input-error' : ''}
-						/>
-					</div>
-				) : (
-					<div className="form-group">
-						<label>Email</label>
-						<input
-							type="email"
-							placeholder="Адрес электронной почты"
-							value={email}
-							onChange={(e) => {
-								setEmail(e.target.value);
-								setEmailError(false);
-							}}
-							required
-							disabled={loading}
-							className={emailError ? 'input-error' : ''}
-						/>
-					</div>
-				)}
+				<div className="form-group">
+					<label>Email</label>
+					<input
+						type="email"
+						placeholder="Email (необязательно)"
+						value={email}
+						onChange={(e) => {
+							setEmail(e.target.value);
+							setEmailError(false);
+						}}
+						disabled={loading}
+						className={emailError ? 'input-error' : ''}
+					/>
+				</div>
 
 				<div className="form-group">
 					<label>Пароль</label>
@@ -297,6 +255,17 @@ export default function Register({onSwitchToLogin, onVerificationRequired}: Regi
 						</button>
 					</div>
 				</div>
+
+				{showPasswordHints && (
+					<div className="password-hints">
+						<span className={`password-hint ${isPasswordLongEnough ? 'met' : ''}`}>
+							{isPasswordLongEnough ? '✓' : '•'} Минимум 8 символов
+						</span>
+						<span className={`password-hint ${confirmPassword.length > 0 && doPasswordsMatch ? 'met' : ''}`}>
+							{confirmPassword.length > 0 && doPasswordsMatch ? '✓' : '•'} Пароли совпадают
+						</span>
+					</div>
+				)}
 
 				<div className="dob-container">
 					<DateOfBirthField

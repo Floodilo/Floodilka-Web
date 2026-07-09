@@ -21,7 +21,9 @@ func registerTestUser(t testing.TB, client *testClient, email, password string, 
 	t.Helper()
 
 	req := registerRequest{
-		Email:       email,
+		Email: email,
+		// Полная регистрация требует телефон (телефон — основной идентификатор).
+		Phone:       uniqueTestPhone(),
 		Username:    fmt.Sprintf("itest%x", time.Now().UnixNano()),
 		GlobalName:  "Integration Tester",
 		Password:    password,

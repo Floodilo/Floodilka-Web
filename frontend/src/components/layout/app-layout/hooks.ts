@@ -180,7 +180,7 @@ export const useNagbarConditions = (): NagbarConditions => {
 			? false
 			: nagbarState.forceEmailVerification
 				? true
-				: Boolean(user?.isClaimed() && !user.verified),
+				: Boolean(user?.email && !user.verified),
 		canShowDesktopNotification: nagbarState.forceHideDesktopNotification
 			? false
 			: nagbarState.forceDesktopNotification

@@ -396,7 +396,9 @@ export class AuthRegistrationService {
 			bot: false,
 			system: false,
 			email: rawEmail,
-			email_verified: !!rawEmail,
+			// При телефонной регистрации указанный email сохраняется
+			// неподтверждённым — подтверждение письмом из настроек.
+			email_verified: !!rawEmail && !rawPhone,
 			email_bounced: false,
 			phone: rawPhone,
 			password_hash: pending.passwordHash,

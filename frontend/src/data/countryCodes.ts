@@ -250,7 +250,12 @@ export const formatPhoneNumber = (value: string, country: CountryCode): string =
 };
 
 export const getE164PhoneNumber = (phoneNumber: string, country: CountryCode): string => {
-	const digits = phoneNumber.replace(/\D/g, '');
+	let digits = phoneNumber.replace(/\D/g, '');
+	// Российские номера часто вводят в национальном формате: 8 999 123-45-67
+	// или с повторённым кодом страны (7 999...). Приводим к 10 цифрам.
+	if (country.dialCode === '+7' && digits.length === 11 && (digits.startsWith('8') || digits.startsWith('7'))) {
+		digits = digits.slice(1);
+	}
 	return `${country.dialCode}${digits}`;
 };
 

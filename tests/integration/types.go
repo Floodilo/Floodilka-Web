@@ -17,6 +17,7 @@ import (
 
 type registerRequest struct {
 	Email       string  `json:"email"`
+	Phone       string  `json:"phone,omitempty"`
 	Username    string  `json:"username"`
 	GlobalName  string  `json:"global_name"`
 	Password    string  `json:"password"`
@@ -47,24 +48,24 @@ type loginResponse struct {
 }
 
 type userPrivateResponse struct {
-	ID                         string                              `json:"id"`
-	Email                      string                              `json:"email"`
-	Phone                      *string                             `json:"phone"`
-	Username                   string                              `json:"username"`
-	Discriminator              string                              `json:"discriminator"`
-	GlobalName                 string                              `json:"global_name"`
-	Bio                        string                              `json:"bio"`
-	Verified                   bool                                `json:"verified"`
-	MfaEnabled                 bool                                `json:"mfa_enabled"`
-	AuthenticatorTypes         []int                               `json:"authenticator_types"`
-	PremiumType                int                                 `json:"premium_type"`
-	PremiumUntil               string                              `json:"premium_until"`
-	PremiumWillCancel          bool                                `json:"premium_will_cancel"`
-	PremiumBillingCycle        string                              `json:"premium_billing_cycle"`
+	ID                          string                              `json:"id"`
+	Email                       string                              `json:"email"`
+	Phone                       *string                             `json:"phone"`
+	Username                    string                              `json:"username"`
+	Discriminator               string                              `json:"discriminator"`
+	GlobalName                  string                              `json:"global_name"`
+	Bio                         string                              `json:"bio"`
+	Verified                    bool                                `json:"verified"`
+	MfaEnabled                  bool                                `json:"mfa_enabled"`
+	AuthenticatorTypes          []int                               `json:"authenticator_types"`
+	PremiumType                 int                                 `json:"premium_type"`
+	PremiumUntil                string                              `json:"premium_until"`
+	PremiumWillCancel           bool                                `json:"premium_will_cancel"`
+	PremiumBillingCycle         string                              `json:"premium_billing_cycle"`
 	CloudpaymentsSubscriptionId *string                             `json:"cloudpayments_subscription_id"`
-	PremiumPurchaseDisabled    bool                                `json:"premium_purchase_disabled"`
-	PasswordLastChangedAt      *string                             `json:"password_last_changed_at"`
-	PendingBulkMessageDeletion *pendingBulkMessageDeletionResponse `json:"pending_bulk_message_deletion,omitempty"`
+	PremiumPurchaseDisabled     bool                                `json:"premium_purchase_disabled"`
+	PasswordLastChangedAt       *string                             `json:"password_last_changed_at"`
+	PendingBulkMessageDeletion  *pendingBulkMessageDeletionResponse `json:"pending_bulk_message_deletion,omitempty"`
 }
 
 type pendingBulkMessageDeletionResponse struct {

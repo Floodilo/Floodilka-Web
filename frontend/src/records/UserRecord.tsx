@@ -470,7 +470,7 @@ export class UserRecord {
 	}
 
 	isClaimed(): boolean {
-		return !!this.email;
+		return !!this.email || !!this.phone;
 	}
 
 	equals(other: UserRecord): boolean {

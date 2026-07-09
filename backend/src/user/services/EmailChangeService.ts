@@ -50,11 +50,10 @@ export class EmailChangeService {
 	) {}
 
 	async start(user: User): Promise<StartEmailChangeResult> {
-		const isUnclaimed = user.isUnclaimedAccount();
+		// Пользователи без email (например, зарегистрированные по телефону)
+		// добавляют первый email этим же флоу: require_original=false,
+		// подтверждение только кодом на новый адрес.
 		const hasEmail = !!user.email;
-		if (!hasEmail && !isUnclaimed) {
-			throw InputValidationError.create('email', 'Для смены email необходимо иметь привязанный email.');
-		}
 
 		const ticket = this.generateTicket();
 		const requireOriginal = !!user.emailVerified && hasEmail;

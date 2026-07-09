@@ -21,7 +21,7 @@ export interface InstanceFeatures {
 	voice_enabled: boolean;
 	payments_enabled: boolean;
 	self_hosted: boolean;
-	phone_enforcement_mode?: 'off' | 'banner';
+	phone_enforcement_mode?: 'off' | 'banner' | 'required';
 }
 
 export interface InstanceEndpoints {

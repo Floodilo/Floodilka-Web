@@ -22,8 +22,10 @@ export const RegisterRequest = z
 		consent: z.boolean(),
 		invite_code: createStringType(0, 256).nullish(),
 	})
-	.refine((data) => !(data.email && data.phone), {
-		message: 'Укажите либо email, либо номер телефона',
+	// Полная регистрация (с email или паролем) требует телефон; телефон —
+	// основной идентификатор. Гостевая регистрация (без всего) не затронута.
+	.refine((data) => data.phone || (!data.email && !data.password), {
+		message: 'Для регистрации необходимо указать номер телефона',
 		path: ['phone'],
 	});
 

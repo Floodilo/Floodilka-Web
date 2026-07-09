@@ -6,7 +6,7 @@
  */
 
 import type {HonoApp} from '~/App';
-import {WebhookVerificationError} from '~/Errors';
+import {InputValidationError, WebhookVerificationError} from '~/Errors';
 import {DefaultUserOnly, LoginRequired} from '~/middleware/AuthMiddleware';
 import {RateLimitMiddleware} from '~/middleware/RateLimitMiddleware';
 import {RateLimitConfigs} from '~/RateLimitConfig';
@@ -48,6 +48,13 @@ export const PaymentController = (app: HonoApp) => {
 		});
 	}
 
+	// Покупка требует подтверждённый телефон; отсутствие email покупку не блокирует.
+	const requireVerifiedPhone = (user: {phone: string | null}) => {
+		if (!user.phone) {
+			throw InputValidationError.create('phone', 'Для покупки необходимо привязать номер телефона к аккаунту.');
+		}
+	};
+
 	// Charge card for subscription
 	app.post(
 		'/payments/charge',
@@ -56,6 +63,7 @@ export const PaymentController = (app: HonoApp) => {
 		DefaultUserOnly,
 		Validator('json', ChargeRequest),
 		async (ctx) => {
+			requireVerifiedPhone(ctx.get('user'));
 			const {cryptogram, billing_cycle, name} = ctx.req.valid('json');
 			const userId = ctx.get('user').id;
 			const ipAddress = ctx.req.header('x-forwarded-for') || ctx.req.header('x-real-ip') || '127.0.0.1';
@@ -78,6 +86,7 @@ export const PaymentController = (app: HonoApp) => {
 		DefaultUserOnly,
 		Validator('json', GiftChargeRequest),
 		async (ctx) => {
+			requireVerifiedPhone(ctx.get('user'));
 			const {cryptogram, duration_months, name} = ctx.req.valid('json');
 			const userId = ctx.get('user').id;
 			const ipAddress = ctx.req.header('x-forwarded-for') || ctx.req.header('x-real-ip') || '127.0.0.1';

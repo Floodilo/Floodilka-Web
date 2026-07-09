@@ -14,7 +14,7 @@ import {
 	createUserID,
 } from '~/BrandedTypes';
 import {Config} from '~/Config';
-import {APIErrorCodes, UserAuthenticatorTypes, UserFlags} from '~/Constants';
+import {APIErrorCodes, SuspiciousActivityFlags, UserAuthenticatorTypes, UserFlags} from '~/Constants';
 import {FloodilkaAPIError, InputValidationError} from '~/Errors';
 import type {ICacheService} from '~/infrastructure/ICacheService';
 import type {IRateLimitService} from '~/infrastructure/IRateLimitService';
@@ -209,6 +209,21 @@ export class AuthLoginService {
 			} else {
 				Logger.error({userId: currentUser.id}, 'Failed to cancel deletion during login');
 				throw new Error('Failed to cancel account deletion during login');
+			}
+		}
+
+		// Жёсткая фаза перехода на обязательный телефон: вход по email без
+		// привязанного номера помечает аккаунт REQUIRE_VERIFIED_PHONE — клиент
+		// блокируется модалкой привязки (required_actions) до добавления номера.
+		if (Config.phoneEnforcement.mode === 'required' && !currentUser.phone) {
+			const currentFlags = currentUser.suspiciousActivityFlags ?? 0;
+			if ((currentFlags & SuspiciousActivityFlags.REQUIRE_VERIFIED_PHONE) === 0) {
+				const updatedUser = await this.repository.patchUpsert(currentUser.id, {
+					suspicious_activity_flags: currentFlags | SuspiciousActivityFlags.REQUIRE_VERIFIED_PHONE,
+				});
+				if (updatedUser) {
+					currentUser = updatedUser;
+				}
 			}
 		}
 

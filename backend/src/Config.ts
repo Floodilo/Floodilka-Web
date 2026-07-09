@@ -156,7 +156,7 @@ const ConfigSchema = z.object({
 	}),
 
 	phoneEnforcement: z.object({
-		mode: z.enum(['off', 'banner']),
+		mode: z.enum(['off', 'banner', 'required']),
 	}),
 
 	captcha: z.object({
@@ -408,7 +408,7 @@ function loadConfig() {
 		},
 
 		phoneEnforcement: {
-			mode: (optional('PHONE_ENFORCEMENT_MODE') as 'off' | 'banner') || 'off',
+			mode: (optional('PHONE_ENFORCEMENT_MODE') as 'off' | 'banner' | 'required') || 'off',
 		},
 
 		captcha: {

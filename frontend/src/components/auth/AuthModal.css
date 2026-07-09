@@ -363,42 +363,25 @@
   display: none;
 }
 
-.auth-method-toggle {
+.password-hints {
   display: flex;
+  flex-direction: column;
+  gap: 2px;
   width: 344px;
-  padding: 4px;
-  gap: 4px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background-color: rgba(20, 15, 30, 0.6);
-  box-sizing: border-box;
+  margin-top: -8px;
+  margin-bottom: 4px;
+  text-align: left;
 }
 
-.auth-method-toggle-btn {
-  flex: 1;
-  padding: 10px 0;
-  border: none;
-  border-radius: 9px;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s, color 0.2s;
+.password-hint {
+  font-size: 12px;
+  line-height: 16px;
+  color: rgba(255, 255, 255, 0.45);
+  transition: color 0.2s;
 }
 
-.auth-method-toggle-btn:hover {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.auth-method-toggle-btn.active {
-  background-color: rgba(88, 101, 242, 0.25);
-  color: #ffffff;
-}
-
-.auth-method-toggle-btn:disabled {
-  cursor: default;
-  opacity: 0.6;
+.password-hint.met {
+  color: #3ba55c;
 }
 
 .forgot-password {
