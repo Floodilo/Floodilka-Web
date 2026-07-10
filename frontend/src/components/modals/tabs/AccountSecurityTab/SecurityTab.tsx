@@ -16,6 +16,7 @@ import {openClaimAccountModal} from '~/components/modals/ClaimAccountModal';
 import {ConfirmModal} from '~/components/modals/ConfirmModal';
 import {MfaTotpDisableModal} from '~/components/modals/MfaTotpDisableModal';
 import {MfaTotpEnableModal} from '~/components/modals/MfaTotpEnableModal';
+import {WarningAlert} from '~/components/uikit/WarningAlert/WarningAlert';
 import {PasskeyNameModal} from '~/components/modals/PasskeyNameModal';
 import {PhoneAddModal} from '~/components/modals/PhoneAddModal';
 import {SettingsTabSection} from '~/components/modals/shared/SettingsTabLayout';
@@ -194,6 +195,19 @@ export const SecurityTabContent: React.FC<SecurityTabProps> = observer(
 
 		return (
 			<>
+				{!user.mfaEnabled && (
+					<WarningAlert
+						title="Завершите настройку аккаунта"
+						actions={
+							<Button small={true} onClick={() => ModalActionCreators.push(modal(() => <MfaTotpEnableModal />))}>
+								Включить
+							</Button>
+						}
+					>
+						Усильте безопасность аккаунта, включив двухфакторную аутентификацию через приложение-аутентификатор.
+					</WarningAlert>
+				)}
+
 				<SettingsTabSection>
 					<div className={styles.row}>
 						<div className={styles.rowContent}>

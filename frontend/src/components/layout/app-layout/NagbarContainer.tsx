@@ -18,6 +18,7 @@ import {PendingBulkDeletionNagbar} from './nagbars/PendingBulkDeletionNagbar';
 import {PremiumExpiredNagbar} from './nagbars/PremiumExpiredNagbar';
 import {PremiumGracePeriodNagbar} from './nagbars/PremiumGracePeriodNagbar';
 import {PremiumOnboardingNagbar} from './nagbars/PremiumOnboardingNagbar';
+import {TotpNudgeNagbar} from './nagbars/TotpNudgeNagbar';
 import {UnclaimedAccountNagbar} from './nagbars/UnclaimedAccountNagbar';
 import {type NagbarState, NagbarType} from './types';
 
@@ -54,6 +55,8 @@ export const NagbarContainer: React.FC<NagbarContainerProps> = observer(({nagbar
 						return <DesktopDownloadNagbar key={nagbar.type} isMobile={mobileLayout.enabled} />;
 					case NagbarType.GUILD_MEMBERSHIP_CTA:
 						return <GuildMembershipCtaNagbar key={nagbar.type} isMobile={mobileLayout.enabled} />;
+					case NagbarType.TOTP_NUDGE:
+						return <TotpNudgeNagbar key={nagbar.type} isMobile={mobileLayout.enabled} />;
 					default:
 						return null;
 				}

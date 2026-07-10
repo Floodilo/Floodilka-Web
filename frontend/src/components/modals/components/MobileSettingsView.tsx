@@ -333,6 +333,8 @@ const MobileSettingsList = observer(
 								const badge =
 									tab.type === 'gift_inventory' && currentUser?.hasUnreadGiftInventory ? (
 										<MentionBadgeAnimated mentionCount={currentUser.unreadGiftInventoryCount ?? 1} />
+									) : tab.type === 'account_security' && currentUser?.isClaimed() && !currentUser.mfaEnabled ? (
+										<span className={styles.attentionDot} />
 									) : undefined;
 								return (
 									<div key={tab.type}>

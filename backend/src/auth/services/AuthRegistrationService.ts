@@ -72,13 +72,6 @@ const MINIMUM_AGE_BY_COUNTRY: Record<string, number> = {
 };
 
 const DEFAULT_MINIMUM_AGE = 13;
-
-// For these countries, the registration email domain must end with one of the
-// allowed suffixes. Any other domain is rejected.
-const ALLOWED_EMAIL_DOMAIN_SUFFIXES_BY_COUNTRY: Record<string, ReadonlyArray<string>> = {
-	RU: ['.ru'],
-};
-
 const USER_AGENT_TRUNCATE_LENGTH = 512;
 const PENDING_REG_TTL_SECONDS = 600;
 const PENDING_REG_MAX_ATTEMPTS = 5;

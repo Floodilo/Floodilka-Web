@@ -159,6 +159,11 @@ export const useNagbarConditions = (): NagbarConditions => {
 		pendingBulkDeletion && !nagbarState.hasPendingBulkDeletionDismissed(pendingBulkDeletionKey),
 	);
 
+	const canShowTotpNudge = (() => {
+		if (!user) return false;
+		return user.isClaimed() && !user.mfaEnabled && !nagbarState.totpNudgeDismissed;
+	})();
+
 	const canShowGuildMembershipCta = (() => {
 		if (nagbarState.forceHideGuildMembershipCta) return false;
 		if (nagbarState.forceGuildMembershipCta) return true;
@@ -189,6 +194,7 @@ export const useNagbarConditions = (): NagbarConditions => {
 		canShowDesktopDownload,
 		hasPendingBulkMessageDeletion,
 		canShowGuildMembershipCta,
+		canShowTotpNudge,
 	};
 };
 
@@ -250,6 +256,11 @@ export const useActiveNagbars = (conditions: NagbarConditions): Array<NagbarStat
 				type: NagbarType.DESKTOP_DOWNLOAD,
 				priority: 9,
 				visible: conditions.canShowDesktopDownload,
+			},
+			{
+				type: NagbarType.TOTP_NUDGE,
+				priority: 10,
+				visible: conditions.canShowTotpNudge,
 			},
 		];
 

@@ -28,6 +28,7 @@ export const NagbarType = {
 	BULK_DELETE_PENDING: 'bulk-delete-pending',
 	DESKTOP_DOWNLOAD: 'desktop-download',
 	GUILD_MEMBERSHIP_CTA: 'guild-membership-cta',
+	TOTP_NUDGE: 'totp-nudge',
 } as const;
 
 export type NagbarType = (typeof NagbarType)[keyof typeof NagbarType];
@@ -53,6 +54,7 @@ export interface NagbarConditions {
 	canShowDesktopDownload: boolean;
 	hasPendingBulkMessageDeletion: boolean;
 	canShowGuildMembershipCta: boolean;
+	canShowTotpNudge: boolean;
 }
 
 export const UPDATE_DISMISS_KEY = 'floodilka_update_dismissed_until';

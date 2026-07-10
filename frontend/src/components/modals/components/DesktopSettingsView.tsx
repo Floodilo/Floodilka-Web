@@ -315,6 +315,16 @@ export const DesktopSettingsView: React.FC<DesktopSettingsViewProps> = observer(
 																					/>
 																				</span>
 																			)}
+																			{tab.type === 'account_security' &&
+																				currentUser?.isClaimed() &&
+																				!currentUser.mfaEnabled && (
+																					<span
+																						className={styles.badgeContainer}
+																						title="Включите двухфакторную аутентификацию"
+																					>
+																						<span className={styles.attentionDot} />
+																					</span>
+																				)}
 																		</div>
 																	}
 																	selected={isSelected}

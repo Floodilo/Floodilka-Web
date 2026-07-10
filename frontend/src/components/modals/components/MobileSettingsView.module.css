@@ -214,3 +214,11 @@
 	min-height: 0;
 	flex: 1;
 }
+
+.attentionDot {
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background-color: var(--status-warning, #f0b232);
+}

@@ -33,6 +33,7 @@ export interface NagbarSettings {
 	pendingBulkDeletionDismissed: Record<string, boolean>;
 	invitesDisabledDismissed: Record<string, boolean>;
 	guildMembershipCtaDismissed: boolean;
+	totpNudgeDismissed: boolean;
 	claimAccountModalShownThisSession: boolean;
 	forceOffline: boolean;
 	forceEmailVerification: boolean;
@@ -84,6 +85,7 @@ export class NagbarStore implements NagbarSettings {
 	pendingBulkDeletionDismissed: Record<string, boolean> = {};
 	invitesDisabledDismissed: Record<string, boolean> = {};
 	guildMembershipCtaDismissed = false;
+	totpNudgeDismissed = false;
 	claimAccountModalShownThisSession = false;
 	forceOffline = false;
 	forceEmailVerification = false;
@@ -136,6 +138,7 @@ export class NagbarStore implements NagbarSettings {
 			'pendingBulkDeletionDismissed',
 			'invitesDisabledDismissed',
 			'guildMembershipCtaDismissed',
+			'totpNudgeDismissed',
 		]);
 	}
 
