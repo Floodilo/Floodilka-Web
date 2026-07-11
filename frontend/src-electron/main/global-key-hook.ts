@@ -30,6 +30,7 @@ type ModifierState = KeybindRegistration['modifiers'];
 
 const registeredKeybinds = new Map<string, KeybindRegistration>();
 const activeKeys = new Set<number>();
+const activeKeybindIds = new Set<string>();
 let hookStarted = false;
 let listenersAttached = false;
 const requireModule = createRequire(import.meta.url);
@@ -92,6 +93,7 @@ function keycodeToKeyName(keycode: number): string {
 		[UiohookKey.Semicolon]: 'Semicolon',
 		[UiohookKey.Quote]: 'Quote',
 		[UiohookKey.Enter]: 'Enter',
+		[UiohookKey.NumpadEnter]: 'NumpadEnter',
 		[UiohookKey.Shift]: 'ShiftLeft',
 		[UiohookKey.Z]: 'Z',
 		[UiohookKey.X]: 'X',
@@ -127,6 +129,21 @@ function keycodeToKeyName(keycode: number): string {
 		[UiohookKey.NumpadPageDown]: 'PageDown',
 		[UiohookKey.NumpadInsert]: 'Insert',
 		[UiohookKey.NumpadDelete]: 'Delete',
+		[UiohookKey.NumpadDivide]: 'NumpadDivide',
+		[UiohookKey.NumpadMultiply]: 'NumpadMultiply',
+		[UiohookKey.NumpadSubtract]: 'NumpadSubtract',
+		[UiohookKey.NumpadAdd]: 'NumpadAdd',
+		[UiohookKey.NumpadDecimal]: 'NumpadDecimal',
+		[UiohookKey.Numpad0]: 'Numpad0',
+		[UiohookKey.Numpad1]: 'Numpad1',
+		[UiohookKey.Numpad2]: 'Numpad2',
+		[UiohookKey.Numpad3]: 'Numpad3',
+		[UiohookKey.Numpad4]: 'Numpad4',
+		[UiohookKey.Numpad5]: 'Numpad5',
+		[UiohookKey.Numpad6]: 'Numpad6',
+		[UiohookKey.Numpad7]: 'Numpad7',
+		[UiohookKey.Numpad8]: 'Numpad8',
+		[UiohookKey.Numpad9]: 'Numpad9',
 	};
 
 	return keyMap[keycode] ?? `Key${keycode}`;
@@ -185,8 +202,6 @@ function handleKeyEvent(event: UiohookKeyboardEvent, type: 'keydown' | 'keyup') 
 
 	if (type === 'keydown') {
 		activeKeys.add(keycode);
-	} else {
-		activeKeys.delete(keycode);
 	}
 
 	const modifiers = getModifierState(event);
@@ -202,16 +217,31 @@ function handleKeyEvent(event: UiohookKeyboardEvent, type: 'keydown' | 'keyup') 
 	});
 
 	for (const [id, keybind] of registeredKeybinds) {
-		if (keybind.keycodes.has(keycode)) {
-			const modifiersMatch = modifiersEqual(keybind.modifiers, modifiers);
+		if (!keybind.keycodes.has(keycode)) continue;
 
-			if (modifiersMatch || !Object.values(keybind.modifiers).some(Boolean)) {
-				mainWindow.webContents.send('global-keybind-triggered', {
-					id,
-					type,
-				});
-			}
+		if (type === 'keyup') {
+			if (!activeKeybindIds.delete(id)) continue;
+			mainWindow.webContents.send('global-keybind-triggered', {
+				id,
+				type,
+			});
+			continue;
 		}
+
+		const modifiersMatch = modifiersEqual(keybind.modifiers, modifiers);
+		const hasRequiredModifiers = Object.values(keybind.modifiers).some(Boolean);
+		if (!modifiersMatch && hasRequiredModifiers) continue;
+		if (activeKeybindIds.has(id)) continue;
+
+		activeKeybindIds.add(id);
+		mainWindow.webContents.send('global-keybind-triggered', {
+			id,
+			type,
+		});
+	}
+
+	if (type === 'keyup') {
+		activeKeys.delete(keycode);
 	}
 }
 
@@ -368,10 +398,12 @@ export function registerGlobalKeyHookHandlers(): void {
 
 	ipcMain.handle('global-key-hook-unregister', (_event, id: string): void => {
 		registeredKeybinds.delete(id);
+		activeKeybindIds.delete(id);
 	});
 
 	ipcMain.handle('global-key-hook-unregister-all', (): void => {
 		registeredKeybinds.clear();
+		activeKeybindIds.clear();
 	});
 }
 
@@ -379,4 +411,5 @@ export function cleanupGlobalKeyHook(): void {
 	stopHook();
 	registeredKeybinds.clear();
 	activeKeys.clear();
+	activeKeybindIds.clear();
 }

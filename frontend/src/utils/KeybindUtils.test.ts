@@ -148,6 +148,13 @@ describe('formatKeyCombo', () => {
 			const result = formatKeyCombo({key: 'c', ctrl: true});
 			expect(result).toBe('Ctrl + C');
 		});
+
+		test('formats modifier-only keys without duplicating the label', () => {
+			expect(formatKeyCombo({key: 'Control', code: 'ControlLeft', ctrl: true})).toBe('Ctrl');
+			expect(formatKeyCombo({key: 'Alt', code: 'AltLeft', alt: true})).toBe('Alt');
+			expect(formatKeyCombo({key: 'Shift', code: 'ShiftLeft', shift: true})).toBe('Shift');
+			expect(formatKeyCombo({key: 'Control', code: 'ControlLeft', ctrl: true, alt: true})).toBe('Ctrl + Alt');
+		});
 	});
 
 	describe('bug reproduction: code normalization in display', () => {
@@ -189,5 +196,33 @@ describe('toElectronAccelerator', () => {
 		expect(toElectronAccelerator({key: 'PageDown', code: 'NumpadPageDown'})).toBe('PageDown');
 		expect(toElectronAccelerator({key: 'Home', code: 'NumpadHome'})).toBe('Home');
 		expect(toElectronAccelerator({key: 'End', code: 'NumpadEnd'})).toBe('End');
+	});
+
+	test('does not register NumpadEnter as regular Enter through Electron accelerator fallback', () => {
+		expect(toElectronAccelerator({key: 'Enter', code: 'NumpadEnter'})).toBeNull();
+	});
+
+	test('does not register distinct numpad keys as regular top-row keys through Electron accelerator fallback', () => {
+		const numpadCombos = [
+			{key: '0', code: 'Numpad0'},
+			{key: '1', code: 'Numpad1'},
+			{key: '2', code: 'Numpad2'},
+			{key: '3', code: 'Numpad3'},
+			{key: '4', code: 'Numpad4'},
+			{key: '5', code: 'Numpad5'},
+			{key: '6', code: 'Numpad6'},
+			{key: '7', code: 'Numpad7'},
+			{key: '8', code: 'Numpad8'},
+			{key: '9', code: 'Numpad9'},
+			{key: '+', code: 'NumpadAdd'},
+			{key: '-', code: 'NumpadSubtract'},
+			{key: '*', code: 'NumpadMultiply'},
+			{key: '/', code: 'NumpadDivide'},
+			{key: '.', code: 'NumpadDecimal'},
+		];
+
+		for (const combo of numpadCombos) {
+			expect(toElectronAccelerator(combo)).toBeNull();
+		}
 	});
 });

@@ -13,6 +13,23 @@ const CONTROL_KEY_SYMBOL = '⌃';
 
 const KEY_CODE_RE = /^Key[A-Z]$/;
 const DIGIT_CODE_RE = /^Digit[0-9]$/;
+const MODIFIER_LABELS: Record<string, {mac: string; other: string}> = {
+	Control: {mac: CONTROL_KEY_SYMBOL, other: 'Ctrl'},
+	ControlLeft: {mac: CONTROL_KEY_SYMBOL, other: 'Ctrl'},
+	ControlRight: {mac: CONTROL_KEY_SYMBOL, other: 'Ctrl'},
+	Ctrl: {mac: CONTROL_KEY_SYMBOL, other: 'Ctrl'},
+	Shift: {mac: SHIFT_KEY_SYMBOL, other: 'Shift'},
+	ShiftLeft: {mac: SHIFT_KEY_SYMBOL, other: 'Shift'},
+	ShiftRight: {mac: SHIFT_KEY_SYMBOL, other: 'Shift'},
+	Alt: {mac: '⌥', other: 'Alt'},
+	AltLeft: {mac: '⌥', other: 'Alt'},
+	AltRight: {mac: '⌥', other: 'Alt'},
+	Meta: {mac: '⌘', other: 'Win'},
+	MetaLeft: {mac: '⌘', other: 'Win'},
+	MetaRight: {mac: '⌘', other: 'Win'},
+	OS: {mac: '⌘', other: 'Win'},
+	Command: {mac: '⌘', other: 'Win'},
+};
 
 /**
  * Normalizes event.code values (physical key identifiers) to standard key names.
@@ -27,6 +44,12 @@ export const resolveComboKey = (combo: {code?: string; key?: string}): string =>
 	if (KEY_CODE_RE.test(raw)) return raw.slice(3);
 	if (DIGIT_CODE_RE.test(raw)) return raw.slice(5);
 	return raw;
+};
+
+const getModifierKeyLabel = (key: string): string | null => {
+	const labels = MODIFIER_LABELS[key];
+	if (!labels) return null;
+	return isMac() ? labels.mac : labels.other;
 };
 
 export const formatKeyCombo = (combo: KeyCombo): string => {
@@ -49,6 +72,13 @@ export const formatKeyCombo = (combo: KeyCombo): string => {
 		return parts.join(' + ');
 	}
 	const key = resolveComboKey(combo);
+	const modifierKeyLabel = getModifierKeyLabel(key);
+	if (modifierKeyLabel) {
+		if (!parts.includes(modifierKeyLabel)) {
+			parts.push(modifierKeyLabel);
+		}
+		return parts.join(' + ');
+	}
 	if (key === ' ') {
 		parts.push('Space');
 	} else if (key.length === 1) {
@@ -99,6 +129,24 @@ const CODE_TO_ACCELERATOR_KEY: Record<string, string> = {
 	Escape: 'Escape',
 };
 
+const LOGICAL_NUMPAD_ACCELERATOR_CODES = new Set([
+	'NumpadHome',
+	'NumpadEnd',
+	'NumpadPageUp',
+	'NumpadPageDown',
+	'NumpadInsert',
+	'NumpadDelete',
+	'NumpadArrowUp',
+	'NumpadArrowDown',
+	'NumpadArrowLeft',
+	'NumpadArrowRight',
+]);
+
+const canUseKeyFallbackForAccelerator = (code: string | undefined): boolean => {
+	if (!code?.startsWith('Numpad')) return true;
+	return LOGICAL_NUMPAD_ACCELERATOR_CODES.has(code);
+};
+
 const codeToAcceleratorKey = (code: string): string | null => {
 	if (KEY_CODE_RE.test(code)) return code.slice(3);
 	if (DIGIT_CODE_RE.test(code)) return code.slice(5);
@@ -129,7 +177,7 @@ export const toElectronAccelerator = (combo: KeyCombo): string | null => {
 	}
 
 	const key = combo.code ? codeToAcceleratorKey(combo.code) : null;
-	const fallbackKey = combo.key ? codeToAcceleratorKey(combo.key) : null;
+	const fallbackKey = canUseKeyFallbackForAccelerator(combo.code) && combo.key ? codeToAcceleratorKey(combo.key) : null;
 	const acceleratorKey = key ?? fallbackKey;
 	if (!acceleratorKey) return null;
 
