@@ -21,14 +21,14 @@ const MODIFIER_LABELS: Record<string, {mac: string; other: string}> = {
 	Shift: {mac: SHIFT_KEY_SYMBOL, other: 'Shift'},
 	ShiftLeft: {mac: SHIFT_KEY_SYMBOL, other: 'Shift'},
 	ShiftRight: {mac: SHIFT_KEY_SYMBOL, other: 'Shift'},
-	Alt: {mac: 'вЊҐ', other: 'Alt'},
-	AltLeft: {mac: 'вЊҐ', other: 'Alt'},
-	AltRight: {mac: 'вЊҐ', other: 'Alt'},
-	Meta: {mac: 'вЊ', other: 'Win'},
-	MetaLeft: {mac: 'вЊ', other: 'Win'},
-	MetaRight: {mac: 'вЊ', other: 'Win'},
-	OS: {mac: 'вЊ', other: 'Win'},
-	Command: {mac: 'вЊ', other: 'Win'},
+	Alt: {mac: '⌥', other: 'Alt'},
+	AltLeft: {mac: '⌥', other: 'Alt'},
+	AltRight: {mac: '⌥', other: 'Alt'},
+	Meta: {mac: '⌘', other: 'Win'},
+	MetaLeft: {mac: '⌘', other: 'Win'},
+	MetaRight: {mac: '⌘', other: 'Win'},
+	OS: {mac: '⌘', other: 'Win'},
+	Command: {mac: '⌘', other: 'Win'},
 };
 
 /**
