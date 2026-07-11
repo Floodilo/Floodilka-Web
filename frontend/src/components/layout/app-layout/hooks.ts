@@ -91,6 +91,7 @@ export const useNagbarConditions = (): NagbarConditions => {
 
 	const canShowPremiumGracePeriod = (() => {
 		if (nagbarState.forceHidePremiumGracePeriod) return false;
+		if (nagbarState.premiumGracePeriodDismissed) return false;
 		if (nagbarState.forcePremiumGracePeriod) return true;
 		if (!user?.premiumUntil || user.premiumType === UserPremiumTypes.GIFT || premiumWillCancel) return false;
 		if (user.premiumPaymentGrace && user.premiumType === UserPremiumTypes.SUBSCRIPTION) return true;
