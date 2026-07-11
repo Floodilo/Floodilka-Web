@@ -24,7 +24,11 @@ import {Nagbar} from '~/components/layout/Nagbar';
 import {NagbarButton} from '~/components/layout/NagbarButton';
 import {NagbarContent} from '~/components/layout/NagbarContent';
 import {UserPremiumTypes} from '~/Constants';
-import {ComponentDispatch} from '~/lib/ComponentDispatch';
+
+import * as ModalActionCreators from '~/actions/ModalActionCreators';
+import {modal} from '~/actions/ModalActionCreators';
+import {UserSettingsModal} from '~/components/modals/UserSettingsModal';
+
 import UserStore from '~/stores/UserStore';
 import * as LocaleUtils from '~/utils/LocaleUtils';
 
@@ -32,7 +36,7 @@ export const PremiumGracePeriodNagbar = observer(({isMobile}: {isMobile: boolean
 	const user = UserStore.currentUser;
 
 	const handleNavigateToPremium = () => {
-		ComponentDispatch.dispatch('USER_SETTINGS_TAB_SELECT', {tab: 'premium'});
+    	ModalActionCreators.push(modal(() => <UserSettingsModal initialTab="premium" />));
 	};
 
 	const handleDismiss = () => {
