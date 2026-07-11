@@ -73,12 +73,6 @@ const MINIMUM_AGE_BY_COUNTRY: Record<string, number> = {
 
 const DEFAULT_MINIMUM_AGE = 13;
 
-// For these countries, the registration email domain must end with one of the
-// allowed suffixes. Any other domain is rejected.
-const ALLOWED_EMAIL_DOMAIN_SUFFIXES_BY_COUNTRY: Record<string, ReadonlyArray<string>> = {
-	RU: ['.ru'],
-};
-
 const USER_AGENT_TRUNCATE_LENGTH = 512;
 const PENDING_REG_TTL_SECONDS = 600;
 const PENDING_REG_MAX_ATTEMPTS = 5;
@@ -195,14 +189,6 @@ export class AuthRegistrationService {
 		await this.enforceRegistrationRateLimits({enforceRateLimits, emailKey});
 
 		if (rawEmail) {
-			const emailDomain = rawEmail.split('@')[1]?.toLowerCase() ?? '';
-			if (!emailDomain.endsWith('.ru')) {
-				throw InputValidationError.create(
-					'email',
-					'В соответствии с законодательством РФ регистрация с иностранных почтовых сервисов недоступна. Используйте адрес электронной почты на домене .ru (например, Яндекс или Mail.ru).',
-				);
-			}
-
 			const hasValidDns = await this.emailDnsValidationService.hasValidDnsRecords(rawEmail);
 			if (!hasValidDns) {
 				throw InputValidationError.create('email', 'Недействительный адрес электронной почты');
