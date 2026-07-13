@@ -17,9 +17,9 @@ import {isDesktop} from '~/utils/NativeUtils';
 export type ScreenShareResolution = 'low' | 'medium' | 'high';
 
 const SCREEN_SHARE_RESOLUTIONS = {
-	low: {width: 640, height: 360, baseBitrate: 1_000_000},
-	medium: {width: 1280, height: 720, baseBitrate: 4_000_000},
-	high: {width: 1920, height: 1080, baseBitrate: 8_000_000},
+	low: {width: 640, height: 360, baseBitrate: 500_000, simulcastBitrate: 300_000},
+	medium: {width: 1280, height: 720, baseBitrate: 2_000_000, simulcastBitrate: 1_200_000},
+	high: {width: 1920, height: 1080, baseBitrate: 5_000_000, simulcastBitrate: 3_000_000},
 } as const;
 
 function getScreenSharePreset(resolution: ScreenShareResolution, frameRate: number): VideoPreset {
@@ -36,7 +36,7 @@ function getScreenShareSimulcastLayers(resolution: ScreenShareResolution, frameR
 	for (let i = 0; i < targetIndex; i++) {
 		const res = SCREEN_SHARE_RESOLUTIONS[resolutionOrder[i]];
 		const fps = Math.min(frameRate, 30);
-		layers.push(new VideoPreset(res.width, res.height, res.baseBitrate, fps));
+		layers.push(new VideoPreset(res.width, res.height, res.simulcastBitrate, fps));
 	}
 
 	return layers;
@@ -50,13 +50,11 @@ export function getScreenShareOptions(
 	const preset = getScreenSharePreset(resolution, frameRate);
 	const excludeFloodilkaBrowserTab = !isDesktop();
 	const audioOptions = includeAudio
-		? isDesktop()
-			? {
-					autoGainControl: false,
-					echoCancellation: false,
-					noiseSuppression: false,
-				}
-			: true
+		? {
+				autoGainControl: false,
+				echoCancellation: false,
+				noiseSuppression: false,
+			}
 		: false;
 
 	return {
@@ -73,7 +71,7 @@ export function getScreenShareOptions(
 		publishOptions: {
 			videoCodec: 'h264' as const,
 			screenShareEncoding: preset.encoding,
-			degradationPreference: 'maintain-framerate' as const,
+			degradationPreference: 'maintain-resolution' as const,
 			...(resolution !== 'low' && {
 				screenShareSimulcastLayers: getScreenShareSimulcastLayers(resolution, frameRate),
 			}),
