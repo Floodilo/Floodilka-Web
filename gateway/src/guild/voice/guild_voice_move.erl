@@ -351,9 +351,15 @@ send_single_voice_server_update(GuildId, ChannelId, SessionInfo, GuildPid) ->
                                 <<"server_deaf">> => ServerDeaf,
                                 <<"member">> => Member
                             },
+                            %% Register the voice state for the new connection right away
+                            %% (mirrors the self-join path). Keeping it pending-only until
+                            %% the LiveKit webhook confirm left the moved user with no voice
+                            %% state at all: clients showed them disconnected and their own
+                            %% voice state updates failed with voice_connection_not_found.
                             gen_server:cast(
                                 GuildPid,
-                                {store_pending_connection, NewConnectionId, PendingMetadata}
+                                {register_move_voice_connection, NewConnectionId,
+                                    PendingMetadata}
                             ),
 
                             guild_voice_broadcast:broadcast_voice_server_update_to_session(
