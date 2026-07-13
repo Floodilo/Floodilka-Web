@@ -13,11 +13,44 @@ apps:
       automate:
         - '${LIVEKIT_DOMAIN_PROD}'
         - '${LIVEKIT_DOMAIN_TURN_PROD}'
+    automation:
+      policies:
+        # TLS-ALPN-01 can't work for the TURN domain anymore: TLS on :443
+        # with TURN SNI is intercepted by the layer4 wrapper below and goes
+        # to the TURN server, not to Caddy's ACME handler. Force HTTP-01
+        # (port 80) so issuance/renewal is deterministic.
+        - subjects:
+            - '${LIVEKIT_DOMAIN_PROD}'
+            - '${LIVEKIT_DOMAIN_TURN_PROD}'
+          issuers:
+            - module: acme
+              challenges:
+                tls-alpn:
+                  disabled: true
 
   http:
     servers:
       main:
         listen: [':80', ':443']
+        # LiveKit hardcodes the TURN/TLS URL it advertises to clients as
+        # turns:<turn-domain>:443 (tls_port is ignored in the URL), so
+        # TURN traffic arrives on the HTTPS port. The layer4 wrapper peeks
+        # at the ClientHello before TLS termination: TURN SNI is terminated
+        # here and proxied to LiveKit's plain TURN listener on 5350;
+        # everything else falls through to the HTTP app unchanged.
+        listener_wrappers:
+          - wrapper: layer4
+            routes:
+              - match:
+                  - tls:
+                      sni:
+                        - '${LIVEKIT_DOMAIN_TURN_PROD}'
+                handle:
+                  - handler: tls
+                  - handler: proxy
+                    upstreams:
+                      - dial: ['127.0.0.1:5350']
+          - wrapper: tls
         routes:
           - match:
               - host:
@@ -27,6 +60,8 @@ apps:
                 upstreams:
                   - dial: '127.0.0.1:7880'
 
+  # Kept for older clients that were told about :5349 directly; primary
+  # TURN/TLS entry point is now the :443 listener wrapper above.
   layer4:
     servers:
       turn:
