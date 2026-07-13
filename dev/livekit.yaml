@@ -6,3 +6,12 @@ rtc:
   use_external_ip: false
 keys:
   devkey: devsecretdevsecretdevsecretdevsecret
+# Without webhooks the gateway never gets participant_joined confirmations
+# and kicks DM-call participants after the 30-60s pending timeout.
+webhook:
+  api_key: devkey
+  urls:
+    - http://api:8080/webhooks/livekit
+room:
+  auto_create: true
+  empty_timeout: 300
