@@ -23,6 +23,15 @@ function resolveAudioContextCtor(): AudioContextCtor | null {
 	return w.AudioContext ?? w.webkitAudioContext ?? null;
 }
 
+function contextSupportsSinkSelection(): boolean {
+	const Ctor = resolveAudioContextCtor();
+	return !!Ctor?.prototype && 'setSinkId' in Ctor.prototype;
+}
+
+function elementSupportsSinkSelection(): boolean {
+	return typeof HTMLMediaElement !== 'undefined' && 'setSinkId' in HTMLMediaElement.prototype;
+}
+
 export class VoiceAudioContextManager {
 	private ctx: AudioContext | null = null;
 	private creationAttempted = false;
@@ -92,6 +101,23 @@ export class VoiceAudioContextManager {
 
 	isAvailable(): boolean {
 		return this.get() !== null;
+	}
+
+	/**
+	 * Whether voice audio should be mixed through this AudioContext
+	 * (LiveKit `webAudioMix`). When the browser cannot steer an
+	 * AudioContext's output device (no AudioContext.setSinkId, e.g. Firefox)
+	 * but can steer <audio> elements, mixing would permanently pin voice to
+	 * the default output — prefer element playback there so output device
+	 * selection keeps working.
+	 */
+	shouldUseForVoiceMix(): boolean {
+		return contextSupportsSinkSelection() || !elementSupportsSinkSelection();
+	}
+
+	/** True when in-call audio actually flows through this context. */
+	isUsedForVoiceMix(): boolean {
+		return this.shouldUseForVoiceMix() && this.isAvailable();
 	}
 
 	async resumeIfNeeded(): Promise<void> {

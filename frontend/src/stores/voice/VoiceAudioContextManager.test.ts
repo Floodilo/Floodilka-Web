@@ -13,7 +13,9 @@ interface FakeCtx {
 	resume: ReturnType<typeof vi.fn>;
 }
 
-function installFakeAudioContext(opts: {constructible?: boolean; initialState?: FakeCtx['state']} = {}) {
+function installFakeAudioContext(
+	opts: {constructible?: boolean; initialState?: FakeCtx['state']; withSetSinkId?: boolean} = {},
+) {
 	const constructible = opts.constructible ?? true;
 	const created: Array<FakeCtx> = [];
 	function FakeAudioContext(this: FakeCtx) {
@@ -25,8 +27,31 @@ function installFakeAudioContext(opts: {constructible?: boolean; initialState?: 
 		created.push(this);
 	}
 	const Ctor = vi.fn(FakeAudioContext as unknown as () => FakeCtx);
+	if (opts.withSetSinkId) {
+		(Ctor as unknown as {prototype: Record<string, unknown>}).prototype.setSinkId = vi
+			.fn()
+			.mockResolvedValue(undefined);
+	}
 	Object.defineProperty(window, 'AudioContext', {value: Ctor, configurable: true, writable: true});
 	return {Ctor, created};
+}
+
+function setElementSinkSupport(supported: boolean): () => void {
+	const proto = HTMLMediaElement.prototype as unknown as Record<string, unknown>;
+	const hadOwn = Object.hasOwn(proto, 'setSinkId');
+	const original = hadOwn ? proto.setSinkId : undefined;
+	if (supported) {
+		proto.setSinkId = vi.fn().mockResolvedValue(undefined);
+	} else {
+		delete proto.setSinkId;
+	}
+	return () => {
+		if (hadOwn) {
+			proto.setSinkId = original;
+		} else {
+			delete proto.setSinkId;
+		}
+	};
 }
 
 function installFakeWebkitAudioContext() {
@@ -151,5 +176,74 @@ describe('VoiceAudioContextManager', () => {
 		const attachedEvents = addSpy.mock.calls.map((call) => call[0]);
 		expect(attachedEvents).not.toContain('pointerdown');
 		expect(attachedEvents).not.toContain('keydown');
+	});
+
+	describe('shouldUseForVoiceMix', () => {
+		it('mixes through web audio when AudioContext supports setSinkId', () => {
+			installFakeAudioContext({withSetSinkId: true});
+			const restore = setElementSinkSupport(true);
+			try {
+				const manager = new VoiceAudioContextManager();
+				expect(manager.shouldUseForVoiceMix()).toBe(true);
+			} finally {
+				restore();
+			}
+		});
+
+		it('skips web audio mix when only media elements can switch sinks (Firefox)', () => {
+			installFakeAudioContext();
+			const restore = setElementSinkSupport(true);
+			try {
+				const manager = new VoiceAudioContextManager();
+				expect(manager.shouldUseForVoiceMix()).toBe(false);
+			} finally {
+				restore();
+			}
+		});
+
+		it('mixes through web audio when no sink selection exists at all (Safari)', () => {
+			installFakeAudioContext();
+			const restore = setElementSinkSupport(false);
+			try {
+				const manager = new VoiceAudioContextManager();
+				expect(manager.shouldUseForVoiceMix()).toBe(true);
+			} finally {
+				restore();
+			}
+		});
+	});
+
+	describe('isUsedForVoiceMix', () => {
+		it('is false when AudioContext is unsupported', () => {
+			const restore = setElementSinkSupport(false);
+			try {
+				const manager = new VoiceAudioContextManager();
+				expect(manager.isUsedForVoiceMix()).toBe(false);
+			} finally {
+				restore();
+			}
+		});
+
+		it('is true when the context is creatable and eligible for mixing', () => {
+			installFakeAudioContext({withSetSinkId: true});
+			const restore = setElementSinkSupport(true);
+			try {
+				const manager = new VoiceAudioContextManager();
+				expect(manager.isUsedForVoiceMix()).toBe(true);
+			} finally {
+				restore();
+			}
+		});
+
+		it('is false when mixing would break element-based sink selection', () => {
+			installFakeAudioContext();
+			const restore = setElementSinkSupport(true);
+			try {
+				const manager = new VoiceAudioContextManager();
+				expect(manager.isUsedForVoiceMix()).toBe(false);
+			} finally {
+				restore();
+			}
+		});
 	});
 });

@@ -97,7 +97,9 @@ class ParticipantVolumeStore {
 				const track = pub.track;
 				if (isRemoteAudioTrack(track)) {
 					const composed = composeVolumePercent(userVolume, outputVolume);
-					const effectiveVolume = VoiceAudioContextManager.isAvailable()
+					// Gain above 1.0 only works when audio flows through the web audio
+					// mix; element volume is clamped to [0, 1] by the browser.
+					const effectiveVolume = VoiceAudioContextManager.isUsedForVoiceMix()
 						? voiceVolumePercentToBoostedGain(composed)
 						: voiceVolumePercentToCappedVolume(composed);
 					track.setVolume(effectiveVolume);
