@@ -12,6 +12,14 @@
 -export([broadcast_voice_state_update/3]).
 -export([join_or_create_call/5, join_or_create_call/6]).
 
+%% The call process is created by the ring REST request, which clients send
+%% only after their media connection is up. TURN-relayed mobile connections
+%% routinely take longer than a few seconds to establish, so the join window
+%% must comfortably outlast media setup or the caller never registers in
+%% call.erl and the alone timeout kills the call mid-conversation.
+-define(JOIN_CALL_RETRIES, 40).
+-define(JOIN_CALL_RETRY_DELAY_MS, 500).
+
 voice_state_update(Request, State) ->
     #{
         user_id := UserId,
@@ -596,7 +604,7 @@ is_channel_recipient(UserId, Channel, State) ->
     lists:member(UserId, [CurrentUserId | Recipients]).
 
 join_or_create_call(ChannelId, UserId, VoiceState, SessionId, SessionPid) ->
-    join_or_create_call(ChannelId, UserId, VoiceState, SessionId, SessionPid, 10).
+    join_or_create_call(ChannelId, UserId, VoiceState, SessionId, SessionPid, ?JOIN_CALL_RETRIES).
 
 join_or_create_call(_ChannelId, UserId, _VoiceState, _SessionId, _SessionPid, 0) ->
     logger:warning("[dm_voice] Failed to join call after retries, user ~p could not join", [UserId]),
@@ -620,10 +628,10 @@ join_or_create_call(ChannelId, UserId, VoiceState, SessionId, SessionPid, Retrie
                     Error
             end;
         {error, not_found} ->
-            timer:sleep(300),
+            timer:sleep(?JOIN_CALL_RETRY_DELAY_MS),
             join_or_create_call(ChannelId, UserId, VoiceState, SessionId, SessionPid, Retries - 1);
         not_found ->
-            timer:sleep(300),
+            timer:sleep(?JOIN_CALL_RETRY_DELAY_MS),
             join_or_create_call(ChannelId, UserId, VoiceState, SessionId, SessionPid, Retries - 1)
     end.
 
