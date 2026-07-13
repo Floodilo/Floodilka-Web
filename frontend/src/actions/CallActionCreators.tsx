@@ -71,13 +71,20 @@ function setupPendingRing(channelId: string, recipients: Array<string>): void {
 	const noop = () => {};
 	pendingRing = {channelId, recipients, dispose: noop};
 
+	// Ring as soon as the gateway has accepted the connection and issued a
+	// voice token (endpoint set) instead of waiting for the media connection:
+	// TURN-relayed mobile links can take many seconds to establish, and the
+	// ring request is also what creates the call server-side, so delaying it
+	// kept the callee silent and shrank the caller's join window.
 	const dispose = reaction(
 		() => ({
 			connected: MediaEngineStore.connected,
+			voiceServerEndpoint: MediaEngineStore.voiceServerEndpoint,
 			currentChannelId: MediaEngineStore.channelId,
 		}),
-		({connected, currentChannelId}) => {
-			if (connected && currentChannelId === channelId && pendingRing?.channelId === channelId) {
+		({connected, voiceServerEndpoint, currentChannelId}) => {
+			const gatewayAccepted = connected || voiceServerEndpoint != null;
+			if (gatewayAccepted && currentChannelId === channelId && pendingRing?.channelId === channelId) {
 				void ringCallRecipients(channelId, pendingRing.recipients).catch((error) => {
 					console.error('Failed to ring call recipients:', error);
 				});

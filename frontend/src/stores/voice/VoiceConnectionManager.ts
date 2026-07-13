@@ -120,6 +120,10 @@ class VoiceConnectionManager {
 				connecting: true,
 				connected: false,
 				reconnecting: false,
+				// A non-null endpoint means the gateway accepted THIS attempt and
+				// issued a token (ring logic keys off it), so a stale value from a
+				// previous call must not leak into the new attempt.
+				voiceServerEndpoint: null,
 				connectionId: this.connectionState.connectionId,
 			};
 		});
