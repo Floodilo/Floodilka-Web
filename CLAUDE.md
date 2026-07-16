@@ -113,3 +113,11 @@ The frontend follows a Flux-like pattern (inherited from the Fluxer/Discord-web 
 - Data plane: Postgres (relational core: users/guilds/channels/auth), Cassandra (message history), Valkey (cache/sessions/pubsub), Meilisearch (full-text search), ClickHouse (analytics via `metrics`), S3/MinIO (object storage). See `dataPlane` view in `docs/architecture/floodilka.c4` for exactly which service writes to what.
 - Voice/video is delegated to an external LiveKit server (separate host in production, see the `livekitHost` block in the C4 file), controlled via `livekit-server-sdk` from the backend.
 - CI workflows live in `.github/workflows/`: `deploy-production.yml`, `deploy-staging.yml`, `load-test.yml`, `pr-desktop-preview.yml` (builds an unsigned Electron preview per PR, mirrors `just desktop-preview`).
+
+## Workflow conventions (fixes, branches, commits, PRs)
+
+- Approach to fixes: diagnose the root cause in the codebase first and report it before changing anything; keep changes minimal and targeted, mirroring an existing working pattern from a neighboring component rather than inventing a new one. If the same bug exists in sibling components, fix them all in one pass.
+- Branches: name fix branches `pr-fix-<short-kebab-description>` (e.g. `pr-fix-windows-global-hotkey-handling`), other work `pr-<short-kebab-description>`. Do not use `claude/...` branch names. Never push to `main` directly.
+- Commits: author is the repo owner (`Vadim Lipatov <vadegg0607@gmail.com>`, set in local git config) — no `Co-Authored-By: Claude`, no session links, no AI attribution anywhere in commit messages. Use conventional prefixes (`fix:`, `feat:`, `docs:`); message body in English explaining cause and fix.
+- Pull requests: follow `.github/pull_request_template.md` (Problem / Solution / QA / Additional Notes) with the body written in Russian; QA must contain the build command and concrete numbered test steps (open → click → verify). No AI attribution footers in PR titles or bodies.
+- Validation before committing: run the repo-pinned `biome check --write` on changed JS/TS; when translatable strings change, run `lingui extract` and make sure `lingui compile --strict` passes (a message missing from the catalogs renders its raw `{placeholder}` in production builds — Lingui v5 does not interpolate uncatalogued fallbacks).
