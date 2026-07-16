@@ -130,7 +130,7 @@ export function bindRoomEvents(
 					const userId = extractUserId(participant.identity);
 					if (userId) {
 						const userVolumePercent = ParticipantVolumeStore.getVolume(userId);
-						const trackVolume = VoiceAudioContextManager.isAvailable()
+						const trackVolume = VoiceAudioContextManager.isUsedForVoiceMix()
 							? voiceVolumePercentToBoostedGain(userVolumePercent)
 							: voiceVolumePercentToCappedVolume(userVolumePercent);
 						track.setVolume(trackVolume);

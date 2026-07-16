@@ -443,10 +443,6 @@ class VoiceMediaManager {
 	}
 
 	async applyInputDevice(room: Room): Promise<void> {
-		const pub = room.localParticipant?.getTrackPublication(Track.Source.Microphone);
-		const track = pub?.track as LocalAudioTrack | undefined;
-		if (!track) return;
-
 		let deviceId = VoiceSettingsStore.getInputDeviceId();
 		const deviceState = VoiceDevicePermissionStore.getState();
 		const exists = deviceId === 'default' || deviceState.inputDevices.some((d) => d.deviceId === deviceId);
@@ -458,22 +454,43 @@ class VoiceMediaManager {
 			deviceId = 'default';
 		}
 
-		this.destroyNoiseFilter();
+		logger.info('[applyInputDevice] Switching input device', {deviceId});
 
-		const useRNNoise = VoiceSettingsStore.noiseSuppression && RNNoiseProcessor.isSupported();
-		logger.info('[applyInputDevice] Switching input device', {deviceId, useRNNoise});
-
-		if (useRNNoise) {
-			this.noiseFilterProcessor = createRNNoiseProcessor();
-			await track.setProcessor(this.noiseFilterProcessor);
-			logger.info('[applyInputDevice] RNNoise processor attached');
-		} else {
-			await track.stopProcessor();
+		// switchActiveDevice updates the room's capture defaults (so later
+		// republishes pick the new device) and restarts a live mic track in
+		// place, re-initializing any attached RNNoise processor with the new
+		// source track.
+		try {
+			await room.switchActiveDevice('audioinput', deviceId, deviceId !== 'default');
+		} catch (e) {
+			logger.error('[applyInputDevice] Failed to switch input device', {deviceId, error: e});
+			if (deviceId === 'default') throw e;
+			ToastActionCreators.error('Failed to switch microphone. Using default device.');
+			await room.switchActiveDevice('audioinput', 'default', false);
 		}
 
-		await track.restartTrack(getMicConstraints(deviceId));
+		const pub = room.localParticipant?.getTrackPublication(Track.Source.Microphone);
+		const track = pub?.track as LocalAudioTrack | undefined;
+		if (!track) return;
+
+		// switchActiveDevice defers the restart while the track is muted
+		// (self-mute or push-to-talk idle); restart explicitly so the new
+		// device is capturing before the user unmutes.
+		if (track.isMuted) {
+			await track.restartTrack();
+		}
+
 		reconcileTransmissionStateFn(room, this.getCurrentVoiceState());
 		await this.setupInputGain(room);
+	}
+
+	async applyOutputDevice(room: Room): Promise<void> {
+		const deviceId = VoiceSettingsStore.getOutputDeviceId();
+		logger.info('[applyOutputDevice] Switching output device', {deviceId});
+		// Resolves Chrome's virtual 'default' id to the real device before
+		// AudioContext.setSinkId (which rejects the literal 'default') and
+		// mirrors the sink onto every attached <audio> element.
+		await room.switchActiveDevice('audiooutput', deviceId);
 	}
 
 	private destroyNoiseFilter(): void {

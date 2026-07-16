@@ -30,7 +30,10 @@ export const update = (
 	VoiceSettingsStore.updateSettings(settings);
 
 	if (settings.outputDeviceId !== undefined) {
+		// Keeps the desired sink for contexts created later (pre-call state).
 		VoiceAudioContextManager.setSinkId(VoiceSettingsStore.getOutputDeviceId());
+		// Applies the sink to a live call (web audio context + <audio> elements).
+		MediaEngineStore.applyOutputDevice();
 	}
 
 	if (settings.inputDeviceId !== undefined) {

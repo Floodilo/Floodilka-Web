@@ -211,11 +211,20 @@ class VoiceConnectionManager {
 		this.throttle.setInFlightConnect(true);
 
 		const roomOptions: RoomOptions = {adaptiveStream: true, dynacast: true};
-		VoiceAudioContextManager.setSinkId(VoiceSettingsStore.getOutputDeviceId());
-		const audioContext = VoiceAudioContextManager.get();
-		if (audioContext) {
-			roomOptions.webAudioMix = {audioContext};
-			void VoiceAudioContextManager.resumeIfNeeded();
+		const outputDeviceId = VoiceSettingsStore.getOutputDeviceId();
+		VoiceAudioContextManager.setSinkId(outputDeviceId);
+		if (VoiceAudioContextManager.shouldUseForVoiceMix()) {
+			const audioContext = VoiceAudioContextManager.get();
+			if (audioContext) {
+				roomOptions.webAudioMix = {audioContext};
+				void VoiceAudioContextManager.resumeIfNeeded();
+			}
+		}
+		if (outputDeviceId !== 'default') {
+			// Applied by LiveKit to every attached <audio> element: the only audio
+			// path when webAudioMix is off, and a Chrome echo-cancellation
+			// workaround when it's on (crbug 40252911).
+			roomOptions.audioOutput = {deviceId: outputDeviceId};
 		}
 		const room = new LiveKitRoom(roomOptions);
 
