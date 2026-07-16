@@ -9,6 +9,7 @@
 
 -export([voice_state_update/2]).
 -export([confirm_voice_connection_from_livekit/2]).
+-export([register_move_voice_connection/3]).
 -export([request_voice_token/4]).
 
 -type guild_state() :: map().
@@ -516,7 +517,11 @@ build_voice_state_from_pending(PendingData, ConnectionId, State) ->
                 self_video = pending_get_boolean(PendingData, self_video),
                 self_stream = pending_get_boolean(PendingData, self_stream),
                 is_mobile = pending_get_boolean(PendingData, is_mobile),
-                platform = maps:get(platform, PendingData, <<"web">>)
+                platform =
+                    case pending_get_binary(PendingData, platform) of
+                        undefined -> <<"web">>;
+                        Platform -> Platform
+                    end
             },
             ServerMute = pending_get_boolean(PendingData, server_mute),
             ServerDeaf = pending_get_boolean(PendingData, server_deaf),
@@ -776,6 +781,47 @@ parse_unclaimed_error(Body) when is_binary(Body) ->
 parse_unclaimed_error(_) ->
     false.
 
+%% Register a connection created by a moderator move: store the pending
+%% metadata and immediately add + broadcast the voice state for the target
+%% channel. The self-join path registers the voice state at token issuance
+%% (get_voice_token_and_create_state); the move path used to keep the new
+%% connection pending-only until the LiveKit webhook confirmation, so the
+%% moved user had no voice state anywhere during that window — every client
+%% saw them disconnected, and the moved client's own voice state updates for
+%% the new connection failed with voice_connection_not_found, aborting its
+%% reconnect.
+-spec register_move_voice_connection(binary(), map(), guild_state()) -> guild_state().
+register_move_voice_connection(ConnectionId, Metadata, State) ->
+    PendingConnections = pending_voice_connections(State),
+    State1 = maps:put(
+        pending_voice_connections,
+        maps:put(ConnectionId, Metadata, PendingConnections),
+        State
+    ),
+    case build_voice_state_from_pending(Metadata, ConnectionId, State1) of
+        undefined ->
+            logger:warning(
+                "[guild_voice_connection] register_move_voice_connection: "
+                "incomplete metadata for connection_id=~p, keeping pending only",
+                [ConnectionId]
+            ),
+            State1;
+        VoiceState ->
+            VoiceStates = voice_state_utils:voice_states(State1),
+            NewVoiceStates = maps:put(ConnectionId, VoiceState, VoiceStates),
+            State2 = maps:put(voice_states, NewVoiceStates, State1),
+            ChannelIdBin = maps:get(<<"channel_id">>, VoiceState, null),
+            logger:info(
+                "[guild_voice_connection] register_move_voice_connection: "
+                "registered voice state user_id=~p channel_id=~p connection_id=~p",
+                [maps:get(<<"user_id">>, VoiceState, undefined), ChannelIdBin, ConnectionId]
+            ),
+            guild_voice_broadcast:broadcast_voice_state_update(
+                VoiceState, State2, ChannelIdBin
+            ),
+            State2
+    end.
+
 -spec pending_voice_connections(guild_state()) -> pending_voice_connections().
 pending_voice_connections(State) ->
     case maps:get(pending_voice_connections, State, undefined) of
@@ -886,5 +932,64 @@ evict_existing_user_sessions_drops_prior_sessions_test() ->
         {force_disconnect, 10, 21, 5, <<"conn-old-b">>} -> ok
     after 100 -> ?assert(false)
     end.
+
+register_move_voice_connection_registers_state_test() ->
+    Metadata = #{
+        <<"user_id">> => 5,
+        <<"guild_id">> => 10,
+        <<"channel_id">> => 21,
+        <<"connection_id">> => <<"conn-new">>,
+        <<"session_id">> => <<"sess-1">>,
+        <<"self_mute">> => true,
+        <<"self_deaf">> => false,
+        <<"self_video">> => false,
+        <<"self_stream">> => false,
+        <<"is_mobile">> => false,
+        <<"platform">> => <<"desktop">>,
+        <<"server_mute">> => false,
+        <<"server_deaf">> => false,
+        <<"member">> => #{<<"user">> => #{<<"id">> => <<"5">>}}
+    },
+    State = #{
+        id => 10,
+        data => #{<<"members">> => [], <<"channels">> => []},
+        voice_states => #{
+            <<"conn-other">> => #{
+                <<"user_id">> => <<"99">>,
+                <<"guild_id">> => <<"10">>,
+                <<"channel_id">> => <<"21">>
+            }
+        },
+        sessions => #{}
+    },
+
+    NewState = register_move_voice_connection(<<"conn-new">>, Metadata, State),
+
+    Pending = maps:get(pending_voice_connections, NewState),
+    ?assertEqual([<<"conn-new">>], maps:keys(Pending)),
+
+    NewVoiceStates = maps:get(voice_states, NewState),
+    ?assertEqual(
+        [<<"conn-new">>, <<"conn-other">>], lists:sort(maps:keys(NewVoiceStates))
+    ),
+
+    VoiceState = maps:get(<<"conn-new">>, NewVoiceStates),
+    ?assertEqual(<<"5">>, maps:get(<<"user_id">>, VoiceState)),
+    ?assertEqual(<<"21">>, maps:get(<<"channel_id">>, VoiceState)),
+    ?assertEqual(<<"conn-new">>, maps:get(<<"connection_id">>, VoiceState)),
+    ?assertEqual(<<"sess-1">>, maps:get(<<"session_id">>, VoiceState)),
+    ?assertEqual(true, maps:get(<<"self_mute">>, VoiceState)),
+    ?assertEqual(<<"desktop">>, maps:get(<<"platform">>, VoiceState)).
+
+register_move_voice_connection_incomplete_metadata_test() ->
+    Metadata = #{<<"user_id">> => 5},
+    State = #{id => 10, voice_states => #{}, sessions => #{}},
+
+    NewState = register_move_voice_connection(<<"conn-new">>, Metadata, State),
+
+    ?assertEqual(
+        [<<"conn-new">>], maps:keys(maps:get(pending_voice_connections, NewState))
+    ),
+    ?assertEqual(#{}, maps:get(voice_states, NewState)).
 
 -endif.

@@ -12,6 +12,7 @@
 -export([disconnect_voice_user_if_in_channel/2]).
 -export([disconnect_all_voice_users_in_channel/2]).
 -export([confirm_voice_connection_from_livekit/2]).
+-export([register_move_voice_connection/3]).
 -export([move_member/2]).
 -export([broadcast_voice_state_update/3]).
 -export([broadcast_voice_server_update_to_session/7]).
@@ -56,6 +57,9 @@ confirm_voice_connection_from_livekit(Request, State) ->
         {error, Category, Message} ->
             {reply, {error, Category, Message}, State}
     end.
+
+register_move_voice_connection(ConnectionId, Metadata, State) ->
+    guild_voice_connection:register_move_voice_connection(ConnectionId, Metadata, State).
 
 move_member(Request, State) ->
     guild_voice_move:move_member(Request, State).

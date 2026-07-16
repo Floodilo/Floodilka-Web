@@ -283,6 +283,9 @@ handle_cast({store_pending_connection, ConnectionId, Metadata}, State) ->
     NewPendingConnections = maps:put(ConnectionId, Metadata, PendingConnections),
     NewState = maps:put(pending_voice_connections, NewPendingConnections, State),
     {noreply, NewState};
+handle_cast({register_move_voice_connection, ConnectionId, Metadata}, State) ->
+    NewState = guild_voice:register_move_voice_connection(ConnectionId, Metadata, State),
+    {noreply, NewState};
 handle_cast({add_virtual_channel_access, UserId, ChannelId}, State) ->
     NewState = guild_virtual_channel_access:add_virtual_access(UserId, ChannelId, State),
     guild_virtual_channel_access:dispatch_channel_visibility_change(
