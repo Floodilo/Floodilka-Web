@@ -19,14 +19,13 @@
 
 import {Trans} from '@lingui/react/macro';
 import {observer} from 'mobx-react-lite';
+import * as ModalActionCreators from '~/actions/ModalActionCreators';
+import {modal} from '~/actions/ModalActionCreators';
 import * as NagbarActionCreators from '~/actions/NagbarActionCreators';
+import {UserPremiumTypes} from '~/Constants';
 import {Nagbar} from '~/components/layout/Nagbar';
 import {NagbarButton} from '~/components/layout/NagbarButton';
 import {NagbarContent} from '~/components/layout/NagbarContent';
-import {UserPremiumTypes} from '~/Constants';
-
-import * as ModalActionCreators from '~/actions/ModalActionCreators';
-import {modal} from '~/actions/ModalActionCreators';
 import {UserSettingsModal} from '~/components/modals/UserSettingsModal';
 
 import UserStore from '~/stores/UserStore';
@@ -36,7 +35,7 @@ export const PremiumGracePeriodNagbar = observer(({isMobile}: {isMobile: boolean
 	const user = UserStore.currentUser;
 
 	const handleNavigateToPremium = () => {
-    	ModalActionCreators.push(modal(() => <UserSettingsModal initialTab="premium" />));
+		ModalActionCreators.push(modal(() => <UserSettingsModal initialTab="premium" />));
 	};
 
 	const handleDismiss = () => {

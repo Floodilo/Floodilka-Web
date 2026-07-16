@@ -105,6 +105,7 @@ export const useNagbarConditions = (): NagbarConditions => {
 
 	const canShowPremiumExpired = (() => {
 		if (nagbarState.forceHidePremiumExpired) return false;
+		if (nagbarState.premiumExpiredDismissed) return false;
 		if (nagbarState.forcePremiumExpired) return true;
 		if (!user?.premiumUntil || user.premiumType === UserPremiumTypes.GIFT || premiumWillCancel) return false;
 		if (user.premiumPaymentGrace && user.premiumType === UserPremiumTypes.SUBSCRIPTION) return false;
