@@ -19,18 +19,20 @@
 
 import {Trans} from '@lingui/react/macro';
 import {observer} from 'mobx-react-lite';
+import * as ModalActionCreators from '~/actions/ModalActionCreators';
+import {modal} from '~/actions/ModalActionCreators';
 import * as NagbarActionCreators from '~/actions/NagbarActionCreators';
 import {Nagbar} from '~/components/layout/Nagbar';
 import {NagbarButton} from '~/components/layout/NagbarButton';
 import {NagbarContent} from '~/components/layout/NagbarContent';
-import {ComponentDispatch} from '~/lib/ComponentDispatch';
+import {UserSettingsModal} from '~/components/modals/UserSettingsModal';
 import UserStore from '~/stores/UserStore';
 
 export const PremiumExpiredNagbar = observer(({isMobile}: {isMobile: boolean}) => {
 	const user = UserStore.currentUser;
 
 	const handleNavigateToPremium = () => {
-		ComponentDispatch.dispatch('USER_SETTINGS_TAB_SELECT', {tab: 'premium'});
+		ModalActionCreators.push(modal(() => <UserSettingsModal initialTab="premium" />));
 	};
 
 	const handleDismiss = () => {
@@ -51,8 +53,8 @@ export const PremiumExpiredNagbar = observer(({isMobile}: {isMobile: boolean}) =
 				isMobile={isMobile}
 				message={
 					<Trans>
-						Your Premium subscription has expired. You've lost all Premium perks. Reactivate your subscription to
-						regain access.
+						Your Premium subscription has expired. You've lost all Premium perks. Reactivate your subscription to regain
+						access.
 					</Trans>
 				}
 				actions={
