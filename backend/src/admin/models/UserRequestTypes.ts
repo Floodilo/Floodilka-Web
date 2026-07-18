@@ -5,7 +5,7 @@
  * Modified by Floodilka Contributors starting March 2026. See LICENSE and NOTICE.
  */
 
-import {createStringType, EmailType, Int64Type, UsernameType, z} from '~/Schema';
+import {AdminUsernameType, createStringType, EmailType, Int64Type, z} from '~/Schema';
 
 export const UpdateUserFlagsRequest = z.object({
 	user_id: Int64Type,
@@ -62,7 +62,7 @@ export type SendPasswordResetRequest = z.infer<typeof SendPasswordResetRequest>;
 
 export const ChangeUsernameRequest = z.object({
 	user_id: Int64Type,
-	username: UsernameType,
+	username: AdminUsernameType,
 });
 
 export type ChangeUsernameRequest = z.infer<typeof ChangeUsernameRequest>;

@@ -173,6 +173,22 @@ export const UsernameType = z
 		return !value.includes('floodilka') && !value.includes('system message');
 	}, 'Username cannot contain "floodilka" or "system message"');
 
+// Same as UsernameType minus the reserved-word check: admins may assign names
+// like "floodilka" to official instance accounts, while public registration
+// and self-service renames keep rejecting them.
+export const AdminUsernameType = z
+	.string()
+	.transform((value) => value.trim().toLowerCase())
+	.refine((value) => value.length >= 1 && value.length <= 32, 'Username length must be between 1 and 32 characters')
+	.refine(
+		(value) => FLOODILKA_TAG_REGEX.test(value),
+		'Username can only contain lowercase Latin letters (a-z), numbers (0-9), and dots (.)',
+	)
+	.refine((value) => !value.includes('..'), 'Username cannot contain consecutive dots')
+	.refine((value) => {
+		return value !== 'everyone' && value !== 'here';
+	}, 'Username cannot be "everyone" or "here"');
+
 export const NewUsernameType = z
 	.string()
 	.transform((value) => value.trim().toLowerCase())
